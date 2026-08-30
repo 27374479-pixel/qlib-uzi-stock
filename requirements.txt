@@ -1,0 +1,11 @@
+﻿pyqlib
+lightgbm
+xgboost
+mlflow
+numpy
+pandas
+scikit-learn
+baostock
+pyarrow
+-r UZI-Skill/requirements.txt
+-e ./Sequoia-X

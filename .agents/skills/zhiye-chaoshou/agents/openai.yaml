@@ -1,0 +1,4 @@
+interface:
+  display_name: "职业炒手交易"
+  short_description: "依据顺势、弱市回避与回撤控制研究A股短线机会及可验证条件"
+  default_prompt: "使用 $zhiye-chaoshou 评估当前A股市场环境和短线候选，只输出有时间戳的观察、触发或放弃条件。"

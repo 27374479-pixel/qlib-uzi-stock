@@ -1,0 +1,4 @@
+interface:
+  display_name: "冷狐冲打板"
+  short_description: "依据市场氛围、人气、趋势与涨停确认研究A股机会及打板条件"
+  default_prompt: "使用 $lenghuchong-limitup 评估A股打板机会，严格区分可执行买点、已封板观察和事后标签。"

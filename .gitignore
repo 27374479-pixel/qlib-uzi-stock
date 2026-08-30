@@ -1,0 +1,17 @@
+.venv/
+qlib_data/
+models/
+output/
+mlruns/
+__pycache__/
+*.pyc
+*.pkl
+*.tar.gz
+*.zip
+agent-tools/
+.cache/
+reports/
+Sequoia-X/data/
+data_lake/
+tmp/
+logs/

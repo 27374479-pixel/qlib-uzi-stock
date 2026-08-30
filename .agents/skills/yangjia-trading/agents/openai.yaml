@@ -1,0 +1,4 @@
+interface:
+  display_name: "炒股养家研究"
+  short_description: "按炒股养家公开思路研究A股情绪周期与主线短线交易机会"
+  default_prompt: "使用 $yangjia-trading 按情绪周期、主线跟随和预判试错确认框架分析当前A股机会。"

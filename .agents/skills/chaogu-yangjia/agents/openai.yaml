@@ -1,0 +1,5 @@
+interface:
+  display_name: "炒股养家 skill"
+  short_description: "按情绪、主线和群体供需生成可执行A股短线预案"
+  default_prompt: "使用 $chaogu-yangjia 刷新当前A股行情与事件，按炒股养家框架给出唯一当前动作、触发窗口和放弃条件。"
+

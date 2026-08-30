@@ -1,0 +1,4 @@
+interface:
+  display_name: "Asking节奏"
+  short_description: "依据主线跟随、盘前准备与节奏把握研究A股机会及可执行条件"
+  default_prompt: "使用 $asking-rhythm 分析A股超短节奏，区分盘前假设、盘中确认和不可追认的事后结果。"

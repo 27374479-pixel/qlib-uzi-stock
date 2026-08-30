@@ -1,0 +1,4 @@
+interface:
+  display_name: "赵老哥选股"
+  short_description: "依据新题材、龙头、人气与资金合力研究A股机会及龙头确认条件"
+  default_prompt: "使用 $zhao-laoge 从新题材、龙头、人气和资金合力中筛选可验证的A股超短机会。"
