@@ -85,6 +85,9 @@ def build(book: dict[str, Any], timing: dict[str, Any], external: dict[str, Any]
         "X01_attention_saturation": "ATTENTION_SATURATION_VETO",
         "X02_limit_adjusted_momentum": "LIMIT_ADJUSTED_MOMENTUM",
         "X04_lottery_crowding_veto": "LOTTERY_CROWDING_VETO",
+        "X06_t1_high_turnover_decline_reversal": "T1_DELAYED_REVERSAL",
+        "X07_overnight_information": "OVERNIGHT_INFORMATION",
+        "X07b_overnight_vs_intraday_momentum": "OVERNIGHT_VS_INTRADAY_STRENGTH",
     }
     for key, module in challenger_modules.items():
         item = external.get("challengers", {}).get(key, {})
@@ -119,9 +122,6 @@ def build(book: dict[str, Any], timing: dict[str, Any], external: dict[str, Any]
             "post_open_1d": item.get("post_open_1d"),
         }
 
-    # Timing evidence can veto a daily new-entry interpretation without saying
-    # the state itself is useless. It may remain valuable for T-day existing
-    # positions or for finding an earlier intraday trigger.
     for module_name in ("BREADTH_WITH_LEADER", "ROLE_PERSISTENCE", "AMOUNT_ACCELERATION"):
         if module_name not in modules:
             continue
