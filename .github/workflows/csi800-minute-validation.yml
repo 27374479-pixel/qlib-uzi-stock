@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PIPELINE_VERSION: "strict-v2"
+  PIPELINE_VERSION: "strict-v3"
   UNIVERSE_ASOF: "20250102"
   DATA_START: "20241001"
   DATA_END: "20260903"
@@ -133,7 +133,7 @@ jobs:
             --top-n 5 \
             --output output/github_csi800_partial_smoke.json || true
 
-      - name: Run strict full validation
+      - name: Run strict frozen-signal validation
         if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.90 }}
         run: |
           python run_frozen_universe_backtest.py \
@@ -143,19 +143,28 @@ jobs:
             --end "$BACKTEST_END" \
             --top-n 5 \
             --cost-multiplier 1 \
+            --entry-delay-minutes 0 \
             --output output/github_csi800_full_validation.json
 
-      - name: Run doubled-cost stress test
+      - name: Replay identical signals under cost and delay stress
         if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.90 }}
         run: |
-          python run_frozen_universe_backtest.py \
-            --universe-file "$UNIVERSE_FILE" \
+          python minute_execution_stress.py \
+            --baseline output/github_csi800_full_validation.json \
             --status-file "$STATUS_FILE" \
-            --start "$BACKTEST_START" \
-            --end "$BACKTEST_END" \
-            --top-n 5 \
-            --cost-multiplier 2 \
-            --output output/github_csi800_full_validation_cost2x.json
+            --output-dir output/minute_execution_stress
+
+      - name: Build anti-overfit robustness verdict
+        if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.90 }}
+        run: |
+          python minute_robustness_report.py \
+            --baseline output/minute_execution_stress/baseline_reexec.json \
+            --variant cost2x=output/minute_execution_stress/cost2x.json \
+            --variant delay5=output/minute_execution_stress/delay5.json \
+            --variant delay10=output/minute_execution_stress/delay10.json \
+            --variant delay30=output/minute_execution_stress/delay30.json \
+            --focus-style yangjia \
+            --output output/github_yangjia_minute_robustness.json
 
       - name: Commit validation results
         if: always()
@@ -165,8 +174,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           test ! -f output/github_csi800_partial_smoke.json || git add -f output/github_csi800_partial_smoke.json
           test ! -f output/github_csi800_full_validation.json || git add -f output/github_csi800_full_validation.json
-          test ! -f output/github_csi800_full_validation_cost2x.json || git add -f output/github_csi800_full_validation_cost2x.json
+          test ! -f output/github_yangjia_minute_robustness.json || git add -f output/github_yangjia_minute_robustness.json
+          test ! -d output/minute_execution_stress || git add -f output/minute_execution_stress
           if ! git diff --cached --quiet; then
-            git commit -m "research: persist strict CSI800 minute validation [skip ci]"
+            git commit -m "research: persist strict CSI800 robustness validation [skip ci]"
             git push
           fi
