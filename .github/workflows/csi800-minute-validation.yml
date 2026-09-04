@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: csi800-minute-data
+  group: csi800-minute-data-strict-v3
   cancel-in-progress: false
 
 env:
