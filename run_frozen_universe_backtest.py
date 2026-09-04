@@ -1,14 +1,18 @@
 """Run the existing five-style intraday backtest on an explicit frozen universe.
 
-This is intentionally a thin adapter: it does not change signal rules,
-execution, costs or outcome calculations. It only forces every minute source
-(Eastmoney, BaoStock and Sina fallback) through a point-in-time universe file.
+This is intentionally a thin adapter: signal rules and execution logic remain
+in ``five_experts_intraday_backtest``.  The adapter only injects (1) an
+explicit point-in-time universe, (2) optional historical daily ST/N status,
+and (3) an optional transaction-cost multiplier for stress testing.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
+
+import pandas as pd
 
 import five_experts_intraday_backtest as base
 from eastmoney_recent_backfill import instrument_from_code, normalize_code
@@ -28,15 +32,31 @@ def load_instruments(path: Path) -> set[str]:
     return instruments
 
 
+def load_bad_status_keys(path: Path | None) -> set[tuple[str, pd.Timestamp]]:
+    if path is None:
+        return set()
+    frame = pd.read_parquet(path)
+    if frame.empty:
+        return set()
+    frame["instrument"] = frame["instrument"].astype(str).str.upper()
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce").dt.normalize()
+    is_st = frame.get("is_st", pd.Series(False, index=frame.index)).fillna(False).astype(bool)
+    is_n = frame.get("is_n", pd.Series(False, index=frame.index)).fillna(False).astype(bool)
+    bad = frame.loc[(is_st | is_n) & frame["date"].notna(), ["instrument", "date"]]
+    return {(str(row.instrument), pd.Timestamp(row.date)) for row in bad.itertuples(index=False)}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run base intraday replay on an explicit frozen universe")
     parser.add_argument("--universe-file", type=Path, required=True)
+    parser.add_argument("--status-file", type=Path, default=None)
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True)
     parser.add_argument("--top-n", type=int, default=5)
     parser.add_argument("--min-history-days", type=int, default=base.BacktestConfig.min_history_days)
     parser.add_argument("--min-daily-bars", type=int, default=base.BacktestConfig.min_daily_bars)
     parser.add_argument("--signal-times", default=base.BacktestConfig.signal_times)
+    parser.add_argument("--cost-multiplier", type=float, default=1.0)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
@@ -44,15 +64,40 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
     allowed = load_instruments(args.universe_file)
+    bad_status_keys = load_bad_status_keys(args.status_file)
     original_load_minutes = base.load_minutes
+    original_config = base.BacktestConfig
 
     def filtered_load_minutes(start, end, max_files=0, instruments=None):
         requested = allowed if instruments is None else allowed & {str(x).upper() for x in instruments}
-        return original_load_minutes(start, end, max_files, requested)
+        minutes = original_load_minutes(start, end, max_files, requested)
+        if minutes.empty or not bad_status_keys:
+            return minutes
+        dates = pd.to_datetime(minutes["datetime"], errors="coerce").dt.normalize()
+        keys = list(zip(minutes["instrument"].astype(str).str.upper(), dates))
+        keep = pd.Series([key not in bad_status_keys for key in keys], index=minutes.index)
+        return minutes.loc[keep].reset_index(drop=True)
 
-    # Preserve the tested strategy engine verbatim; only inject the explicit
-    # historical universe into its data loader.
+    multiplier = max(0.0, float(args.cost_multiplier))
+
+    def stressed_config(**kwargs):
+        return original_config(
+            open_cost=original_config.open_cost * multiplier,
+            close_cost=original_config.close_cost * multiplier,
+            **kwargs,
+        )
+
+    # base.parse_args reads defaults from BacktestConfig as class attributes.
+    for name in (
+        "start", "end", "top_n", "min_history_days", "min_daily_bars", "signal_times",
+        "open_cost", "close_cost", "max_files", "universe",
+    ):
+        setattr(stressed_config, name, getattr(original_config, name))
+
+    # Preserve the tested strategy engine verbatim; inject only data-universe
+    # eligibility and the explicitly requested cost stress.
     base.load_minutes = filtered_load_minutes
+    base.BacktestConfig = stressed_config
     sys.argv = [
         "five_experts_intraday_backtest.py",
         "--start", args.start,
@@ -67,8 +112,10 @@ def main():
     result = base.main()
     result.setdefault("methodology", {})["explicit_universe_file"] = str(args.universe_file)
     result["methodology"]["explicit_universe_instruments"] = len(allowed)
+    result["methodology"]["daily_status_file"] = None if args.status_file is None else str(args.status_file)
+    result["methodology"]["daily_st_n_exclusion_keys"] = len(bad_status_keys)
+    result["methodology"]["cost_multiplier"] = multiplier
     # base.main already wrote the result; rewrite with the adapter metadata.
-    import json
     args.output.write_text(json.dumps(base._json_safe(result), ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
