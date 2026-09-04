@@ -1,14 +1,14 @@
 """Point-in-time daily A-share name/trading-status snapshots for a frozen universe.
 
-The minute endpoint does not carry historical ST/name flags.  BaoStock's
+The minute endpoint does not carry historical ST/name flags. BaoStock's
 ``query_all_stock(day=...)`` does, so this collector records only the selected
-universe on each historical trading day.  The resulting table is used by the
-backtest adapter to exclude ST/N-labelled observations without consulting a
-future/current name.
+universe on each historical trading day. Long anonymous BaoStock sessions can
+drop, therefore the collector reconnects periodically and retries each day.
 """
 from __future__ import annotations
 
 import argparse
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,6 +30,33 @@ def _rows(result, label: str) -> list[dict[str, str]]:
     return rows
 
 
+def _login() -> None:
+    login = bs.login()
+    if str(login.error_code) != "0":
+        raise RuntimeError(f"BaoStock login failed: {login.error_code} {login.error_msg}")
+
+
+def _reconnect() -> None:
+    try:
+        bs.logout()
+    except Exception:
+        pass
+    _login()
+
+
+def _all_stock_for_day(day: str, retries: int = 4) -> list[dict[str, str]]:
+    error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            return _rows(bs.query_all_stock(day=day), f"query_all_stock({day})")
+        except Exception as exc:
+            error = exc
+            if attempt < retries:
+                time.sleep(min(5.0, float(attempt)))
+                _reconnect()
+    raise RuntimeError(f"query_all_stock({day}) exhausted retries: {error}")
+
+
 def load_universe(path: Path) -> set[str]:
     return {
         code
@@ -42,9 +69,7 @@ def collect(universe_file: Path, start: pd.Timestamp, end: pd.Timestamp, output:
     codes = load_universe(universe_file)
     if not codes:
         raise ValueError(f"empty universe: {universe_file}")
-    login = bs.login()
-    if str(login.error_code) != "0":
-        raise RuntimeError(f"BaoStock login failed: {login.error_code} {login.error_msg}")
+    _login()
     try:
         calendar = _rows(
             bs.query_trade_dates(start_date=start.strftime("%Y-%m-%d"), end_date=end.strftime("%Y-%m-%d")),
@@ -57,7 +82,12 @@ def collect(universe_file: Path, start: pd.Timestamp, end: pd.Timestamp, output:
         ]
         frames: list[pd.DataFrame] = []
         for number, day in enumerate(dates, 1):
-            rows = _rows(bs.query_all_stock(day=day), f"query_all_stock({day})")
+            # BaoStock has historically dropped long anonymous sessions after
+            # dozens of requests. Re-login before that becomes a correctness
+            # issue, and still retry individual days for transient failures.
+            if number > 1 and (number - 1) % 40 == 0:
+                _reconnect()
+            rows = _all_stock_for_day(day)
             selected: list[dict[str, object]] = []
             for row in rows:
                 code = normalize_code(row.get("code"))
@@ -84,7 +114,10 @@ def collect(universe_file: Path, start: pd.Timestamp, end: pd.Timestamp, output:
             if number == 1 or number % 25 == 0 or number == len(dates):
                 print(f"daily status {number}/{len(dates)} {day} rows={len(selected)}", flush=True)
     finally:
-        bs.logout()
+        try:
+            bs.logout()
+        except Exception:
+            pass
 
     result = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
     if result.empty:
