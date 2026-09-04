@@ -11,6 +11,11 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/csi800-minute-validation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/csi800-minute-validation.yml"
+      - "pipeline-kick/**"
 
 permissions:
   contents: write
@@ -36,6 +41,7 @@ jobs:
         with:
           lfs: false
           fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
