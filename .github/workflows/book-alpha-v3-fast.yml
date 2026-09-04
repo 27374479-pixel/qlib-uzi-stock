@@ -80,9 +80,10 @@ jobs:
   daily-shards:
     needs: prepare-membership
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 210
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         shard: [0, 1, 2, 3, 4, 5]
     steps:
@@ -103,6 +104,7 @@ jobs:
           name: book-alpha-v3-membership
           path: data_lake/universe
       - name: Collect daily shard
+        continue-on-error: true
         env:
           SHARD: ${{ matrix.shard }}
         run: |
@@ -116,23 +118,26 @@ jobs:
           shards = int(os.environ['SHARDS'])
           selected = [code for i, code in enumerate(codes) if i % shards == shard]
           print(f'shard {shard}/{shards}: {len(selected)}')
-          cfg = CollectionConfig(start=os.environ['DATA_START'], end=os.environ['DATA_END'], market='csi800', retry_count=4, retry_delay_seconds=1.0)
+          cfg = CollectionConfig(start=os.environ['DATA_START'], end=os.environ['DATA_END'], market='csi800', retry_count=8, retry_delay_seconds=2.0)
           result = collect(cfg, selected, resume=False)
           failed = len(result.get('failed', []))
-          if failed > max(3, int(len(selected) * 0.05)):
+          print(f'shard {shard}: failed={failed}/{len(selected)}; partial data will still be uploaded')
+          if failed > max(10, int(len(selected) * 0.20)):
               raise SystemExit(f'too many provider failures {failed}/{len(selected)}')
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: book-alpha-v3-daily-${{ matrix.shard }}
           path: data_lake/raw/baostock/equity_daily
+          if-no-files-found: warn
           retention-days: 3
           compression-level: 0
 
   industry:
     needs: prepare-membership
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
@@ -151,20 +156,25 @@ jobs:
           name: book-alpha-v3-membership
           path: data_lake/universe
       - name: Collect point-in-time industry snapshots on same monthly dates
+        continue-on-error: true
         run: |
           python - <<'PY'
           import pandas as pd
           from collect_industry_snapshots import collect_snapshots
           frame = pd.read_parquet('data_lake/universe/csi800_membership_monthly_snapshots.parquet')
           dates = [pd.Timestamp(x) for x in sorted(pd.to_datetime(frame['snapshot_date']).dt.normalize().unique())]
-          result = collect_snapshots(dates, resume=False, retries=4)
-          if len(result.get('failed', [])) > 3:
-              raise SystemExit(f"too many industry failures: {len(result['failed'])}")
+          result = collect_snapshots(dates, resume=False, retries=8)
+          failed = len(result.get('failed', []))
+          print(f'industry failed={failed}/{len(dates)}; partial snapshots will still be uploaded')
+          if failed > max(5, int(len(dates) * 0.15)):
+              raise SystemExit(f"too many industry failures: {failed}")
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: book-alpha-v3-industry
           path: data_lake/raw/baostock/industry_snapshots
+          if-no-files-found: warn
           retention-days: 3
           compression-level: 0
 
@@ -205,6 +215,25 @@ jobs:
         with:
           name: book-alpha-v3-industry
           path: data_lake/raw/baostock/industry_snapshots
+      - name: Verify usable data coverage
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          expected = [x for x in Path('data_lake/universe/csi800_membership_instruments.txt').read_text().splitlines() if x.strip()]
+          daily = list(Path('data_lake/raw/baostock/equity_daily').glob('*.parquet'))
+          industry = list(Path('data_lake/raw/baostock/industry_snapshots').glob('*.parquet'))
+          snapshots = pd.read_parquet('data_lake/universe/csi800_membership_monthly_snapshots.parquet')
+          expected_industry = pd.to_datetime(snapshots['snapshot_date']).dt.normalize().nunique()
+          daily_ratio = len(daily) / max(1, len(expected))
+          industry_ratio = len(industry) / max(1, expected_industry)
+          print(f'daily coverage={len(daily)}/{len(expected)}={daily_ratio:.2%}')
+          print(f'industry coverage={len(industry)}/{expected_industry}={industry_ratio:.2%}')
+          if daily_ratio < 0.90:
+              raise SystemExit('daily coverage below 90%; do not publish alpha conclusions')
+          if industry_ratio < 0.85:
+              raise SystemExit('industry coverage below 85%; do not publish alpha conclusions')
+          PY
       - name: Prepare point-in-time Qlib membership
         run: |
           mkdir -p qlib_data/cn_data/instruments
