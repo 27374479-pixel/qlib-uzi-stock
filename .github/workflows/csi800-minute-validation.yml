@@ -2,20 +2,10 @@ name: CSI800 5m data and validation
 
 on:
   workflow_dispatch:
-    inputs:
-      batch_size:
-        description: "Number of missing CSI800 stocks to backfill this run"
-        required: false
-        default: "30"
   push:
     branches: [main]
     paths:
       - ".github/workflows/csi800-minute-validation.yml"
-  pull_request:
-    branches: [main]
-    paths:
-      - ".github/workflows/csi800-minute-validation.yml"
-      - "pipeline-kick/**"
 
 permissions:
   contents: write
@@ -30,6 +20,8 @@ env:
   DATA_END: "20260903"
   BACKTEST_START: "20250102"
   BACKTEST_END: "20260903"
+  UNIVERSE_FILE: "data_lake/universe/csi800_20250102.txt"
+  STATUS_FILE: "data_lake/raw/baostock/daily_status/csi800_20250102_20241001_20260903.parquet"
 
 jobs:
   backfill-and-validate:
@@ -41,7 +33,6 @@ jobs:
         with:
           lfs: false
           fetch-depth: 1
-          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -49,7 +40,7 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install minimal research dependencies
+      - name: Install research dependencies
         run: |
           python -m pip install --upgrade pip
           pip install "numpy<3" pandas pyarrow baostock requests
@@ -58,17 +49,48 @@ jobs:
         run: |
           git lfs install
           git lfs track "data_lake/raw/baostock/equity_5min/*.parquet"
+          git lfs track "data_lake/raw/baostock/daily_status/*.parquet"
 
-      - name: Backfill next missing CSI800 batch
-        env:
-          BATCH_SIZE: ${{ github.event.inputs.batch_size || '30' }}
+      - name: Freeze point-in-time research universe
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from github_csi800_minute_pipeline import freeze_csi800
+          codes, meta = freeze_csi800(pd.Timestamp('2025-01-02'))
+          print('filtered universe', len(codes), 'raw CSI800', meta['raw_csi800_count'], 'excluded', meta['excluded_count'])
+          PY
+
+      - name: Collect historical daily ST and N status
+        run: |
+          python baostock_daily_universe_status.py \
+            --universe-file "$UNIVERSE_FILE" \
+            --start "$DATA_START" \
+            --end "$DATA_END" \
+            --output "$STATUS_FILE"
+
+      - name: Parallel backfill reusable 5-minute history
+        shell: bash
+        run: |
+          CODES="$(paste -sd, "$UNIVERSE_FILE")"
+          # Keep a hard wall-clock reserve for reconciliation, validation and
+          # Git-LFS upload. Any successfully written symbol survives even if
+          # the provider stalls later in the broad run.
+          timeout 12600 python baostock_parallel_backfill.py \
+            --start "$DATA_START" \
+            --end "$DATA_END" \
+            --codes "$CODES" \
+            --workers 3 \
+            --retries 2 \
+            --retry-delay 1 || true
+
+      - name: Reconcile exact coverage and fill one edge symbol
         run: |
           python github_csi800_minute_pipeline.py \
             --asof "$UNIVERSE_ASOF" \
             --start "$DATA_START" \
             --end "$DATA_END" \
-            --batch-size "$BATCH_SIZE" \
-            --retries 3 \
+            --batch-size 1 \
+            --retries 2 \
             --page-size 10000
 
       - name: Read coverage
@@ -82,32 +104,10 @@ jobs:
           print(f"ratio={d['coverage_ratio']:.8f}")
           print(f"completed={d['completed_count']}")
           print(f"expected={d['expected_count']}")
+          print(f"excluded={d['excluded_count']}")
           PY
 
-      - name: Smoke-test the real bars downloaded in this run
-        run: |
-          python five_experts_intraday_backtest.py \
-            --start 20260105 \
-            --end "$BACKTEST_END" \
-            --universe cached \
-            --top-n 5 \
-            --output output/github_csi800_batch_smoke.json || true
-
-      - name: Pull cumulative LFS data at 90 percent coverage
-        if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.90 }}
-        run: git lfs pull --include="data_lake/raw/baostock/equity_5min/*.parquet"
-
-      - name: Run cumulative frozen-CSI800 validation
-        if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.90 }}
-        run: |
-          python five_experts_intraday_backtest.py \
-            --start "$BACKTEST_START" \
-            --end "$BACKTEST_END" \
-            --universe cached \
-            --top-n 5 \
-            --output output/github_csi800_full_validation.json
-
-      - name: Commit reusable data, state and results
+      - name: Commit reusable data checkpoint first
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -115,11 +115,57 @@ jobs:
           git add .gitattributes
           git add -f data_lake/universe data_lake/state data_lake/manifests output/github_csi800_minute_status.json
           git add -f data_lake/raw/baostock/equity_5min/*.parquet
-          test ! -f output/github_csi800_batch_smoke.json || git add -f output/github_csi800_batch_smoke.json
-          test ! -f output/github_csi800_full_validation.json || git add -f output/github_csi800_full_validation.json
-          if git diff --cached --quiet; then
-            echo "No new data to commit"
-            exit 0
+          git add -f data_lake/raw/baostock/daily_status/*.parquet
+          if ! git diff --cached --quiet; then
+            git commit -m "data: checkpoint strict frozen-universe 5m lake [skip ci]"
+            git push
           fi
-          git commit -m "data: extend frozen CSI800 5m backtest lake [skip ci]"
-          git push
+
+      - name: Partial real-data smoke replay
+        if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.05 && fromJSON(steps.coverage.outputs.ratio) < 0.90 }}
+        run: |
+          python run_frozen_universe_backtest.py \
+            --universe-file "$UNIVERSE_FILE" \
+            --status-file "$STATUS_FILE" \
+            --start 20260105 \
+            --end "$BACKTEST_END" \
+            --top-n 5 \
+            --output output/github_csi800_partial_smoke.json || true
+
+      - name: Run strict full validation
+        if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.90 }}
+        run: |
+          python run_frozen_universe_backtest.py \
+            --universe-file "$UNIVERSE_FILE" \
+            --status-file "$STATUS_FILE" \
+            --start "$BACKTEST_START" \
+            --end "$BACKTEST_END" \
+            --top-n 5 \
+            --cost-multiplier 1 \
+            --output output/github_csi800_full_validation.json
+
+      - name: Run doubled-cost stress test
+        if: ${{ fromJSON(steps.coverage.outputs.ratio) >= 0.90 }}
+        run: |
+          python run_frozen_universe_backtest.py \
+            --universe-file "$UNIVERSE_FILE" \
+            --status-file "$STATUS_FILE" \
+            --start "$BACKTEST_START" \
+            --end "$BACKTEST_END" \
+            --top-n 5 \
+            --cost-multiplier 2 \
+            --output output/github_csi800_full_validation_cost2x.json
+
+      - name: Commit validation results
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test ! -f output/github_csi800_partial_smoke.json || git add -f output/github_csi800_partial_smoke.json
+          test ! -f output/github_csi800_full_validation.json || git add -f output/github_csi800_full_validation.json
+          test ! -f output/github_csi800_full_validation_cost2x.json || git add -f output/github_csi800_full_validation_cost2x.json
+          if ! git diff --cached --quiet; then
+            git commit -m "research: persist strict CSI800 minute validation [skip ci]"
+            git push
+          fi
