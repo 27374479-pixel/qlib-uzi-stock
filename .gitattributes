@@ -1,2 +1,6 @@
 data_lake/raw/baostock/equity_5min/*.parquet filter=lfs diff=lfs merge=lfs -text
 data_lake/raw/baostock/daily_status/*.parquet filter=lfs diff=lfs merge=lfs -text
+data_lake/raw/baostock/equity_daily/*.parquet filter=lfs diff=lfs merge=lfs -text
+data_lake/raw/baostock/industry_snapshots/*.parquet filter=lfs diff=lfs merge=lfs -text
+data_lake/universe/*_snapshots.parquet filter=lfs diff=lfs merge=lfs -text
+output/*_observations*.parquet filter=lfs diff=lfs merge=lfs -text
