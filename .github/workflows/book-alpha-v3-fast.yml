@@ -1,0 +1,253 @@
+name: Book alpha v3 fast screen
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/book-alpha-v3-fast.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: book-alpha-v3-fast
+  cancel-in-progress: false
+
+env:
+  DATA_START: "2014-01-01"
+  SIGNAL_START: "2015-01-01"
+  DATA_END: "2026-09-03"
+  OOS_START: "2023-01-01"
+  SHARDS: "6"
+
+jobs:
+  prepare-membership:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow baostock pytest
+      - name: Static checks and tests
+        run: |
+          python -m py_compile \
+            baostock_csi800_membership_history.py \
+            book_alpha_daily_screen.py \
+            book_alpha_daily_screen_v2.py \
+            book_alpha_daily_screen_v3.py \
+            attention_timing_decomposition.py \
+            external_challenger_daily_screen.py \
+            build_alpha_evidence_registry.py
+          pytest -q test_book_alpha_hypotheses.py
+      - name: Build causal monthly CSI800 screening history
+        run: |
+          python baostock_csi800_membership_history.py \
+            --start "$DATA_START" \
+            --end "$DATA_END" \
+            --cadence monthly \
+            --output data_lake/universe/csi800_membership_monthly.tsv \
+            --snapshots-output data_lake/universe/csi800_membership_monthly_snapshots.parquet
+      - name: Export historical instrument list
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('data_lake/universe/csi800_membership_monthly.tsv')
+          names = sorted({line.split('\t')[0] for line in path.read_text().splitlines() if line.strip()})
+          Path('data_lake/universe/csi800_membership_instruments.txt').write_text('\n'.join(names) + '\n')
+          print('unique historical instruments', len(names))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: book-alpha-v3-membership
+          path: |
+            data_lake/universe/csi800_membership_monthly.tsv
+            data_lake/universe/csi800_membership_monthly.tsv.json
+            data_lake/universe/csi800_membership_monthly_snapshots.parquet
+            data_lake/universe/csi800_membership_instruments.txt
+          retention-days: 3
+
+  daily-shards:
+    needs: prepare-membership
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow baostock
+      - uses: actions/download-artifact@v4
+        with:
+          name: book-alpha-v3-membership
+          path: data_lake/universe
+      - name: Collect daily shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from point_in_time_data import CollectionConfig, collect
+
+          codes = [x.strip() for x in Path('data_lake/universe/csi800_membership_instruments.txt').read_text().splitlines() if x.strip()]
+          shard = int(os.environ['SHARD'])
+          shards = int(os.environ['SHARDS'])
+          selected = [code for i, code in enumerate(codes) if i % shards == shard]
+          print(f'shard {shard}/{shards}: {len(selected)}')
+          cfg = CollectionConfig(start=os.environ['DATA_START'], end=os.environ['DATA_END'], market='csi800', retry_count=4, retry_delay_seconds=1.0)
+          result = collect(cfg, selected, resume=False)
+          failed = len(result.get('failed', []))
+          if failed > max(3, int(len(selected) * 0.05)):
+              raise SystemExit(f'too many provider failures {failed}/{len(selected)}')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: book-alpha-v3-daily-${{ matrix.shard }}
+          path: data_lake/raw/baostock/equity_daily
+          retention-days: 3
+          compression-level: 0
+
+  industry:
+    needs: prepare-membership
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow baostock
+      - uses: actions/download-artifact@v4
+        with:
+          name: book-alpha-v3-membership
+          path: data_lake/universe
+      - name: Collect point-in-time industry snapshots on same monthly dates
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from collect_industry_snapshots import collect_snapshots
+          frame = pd.read_parquet('data_lake/universe/csi800_membership_monthly_snapshots.parquet')
+          dates = [pd.Timestamp(x) for x in sorted(pd.to_datetime(frame['snapshot_date']).dt.normalize().unique())]
+          result = collect_snapshots(dates, resume=False, retries=4)
+          if len(result.get('failed', [])) > 3:
+              raise SystemExit(f"too many industry failures: {len(result['failed'])}")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: book-alpha-v3-industry
+          path: data_lake/raw/baostock/industry_snapshots
+          retention-days: 3
+          compression-level: 0
+
+  aggregate-screen-persist:
+    needs: [prepare-membership, daily-shards, industry]
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow baostock pytest
+      - name: Install LFS
+        run: |
+          git lfs install
+          git lfs track "data_lake/raw/baostock/equity_daily/*.parquet"
+          git lfs track "data_lake/raw/baostock/industry_snapshots/*.parquet"
+          git lfs track "data_lake/universe/*_snapshots.parquet"
+          git lfs track "output/*_observations*.parquet"
+      - uses: actions/download-artifact@v4
+        with:
+          name: book-alpha-v3-membership
+          path: data_lake/universe
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: book-alpha-v3-daily-*
+          path: data_lake/raw/baostock/equity_daily
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: book-alpha-v3-industry
+          path: data_lake/raw/baostock/industry_snapshots
+      - name: Prepare point-in-time Qlib membership
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          echo "daily=$(find data_lake/raw/baostock/equity_daily -name '*.parquet' | wc -l) industry=$(find data_lake/raw/baostock/industry_snapshots -name '*.parquet' | wc -l)"
+      - name: Run canonical v3 book hypothesis screen
+        run: |
+          python book_alpha_daily_screen_v3.py \
+            --start "$SIGNAL_START" --end "$DATA_END" --oos-start "$OOS_START" \
+            --round-trip-cost 0.0018 --bootstrap-samples 5000 \
+            --output output/book_alpha_daily_screen_v3.json \
+            --observations-output output/book_alpha_daily_screen_observations_v3.parquet
+      - name: Decompose where apparent alpha actually occurs
+        run: |
+          python attention_timing_decomposition.py \
+            --start "$SIGNAL_START" --end "$DATA_END" --oos-start "$OOS_START" \
+            --round-trip-cost 0.0018 --bootstrap-samples 5000 \
+            --output output/attention_timing_decomposition_v1.json
+      - name: Run external A-share challenger screen
+        run: |
+          python external_challenger_daily_screen.py \
+            --start "$SIGNAL_START" --end "$DATA_END" --oos-start "$OOS_START" \
+            --round-trip-cost 0.0018 --bootstrap-samples 5000 \
+            --output output/external_challenger_daily_screen_v1.json
+      - name: Build evidence registry
+        run: |
+          python build_alpha_evidence_registry.py
+          cat output/alpha_evidence_registry_v1.md
+      - name: Rebase latest main before persisting data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+      - name: Commit reusable data and evidence
+        run: |
+          git add .gitattributes
+          git add -f data_lake/universe/csi800_membership_monthly.tsv data_lake/universe/csi800_membership_monthly.tsv.json data_lake/universe/csi800_membership_instruments.txt data_lake/universe/csi800_membership_monthly_snapshots.parquet
+          git add -f data_lake/raw/baostock/equity_daily/*.parquet
+          git add -f data_lake/raw/baostock/industry_snapshots/*.parquet
+          git add -f output/book_alpha_daily_screen_v3.json output/book_alpha_daily_screen_observations_v3.parquet
+          git add -f output/attention_timing_decomposition_v1.json output/external_challenger_daily_screen_v1.json
+          git add -f output/alpha_evidence_registry_v1.json output/alpha_evidence_registry_v1.md
+          if ! git diff --cached --quiet; then
+            git commit -m "data: persist v3 long-sample alpha evidence [skip ci]"
+            git push origin HEAD:main
+          fi
