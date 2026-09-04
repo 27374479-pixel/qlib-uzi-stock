@@ -1,9 +1,9 @@
 """Run the existing five-style intraday backtest on an explicit frozen universe.
 
-This is intentionally a thin adapter: signal rules and execution logic remain
-in ``five_experts_intraday_backtest``.  The adapter only injects (1) an
-explicit point-in-time universe, (2) optional historical daily ST/N status,
-and (3) an optional transaction-cost multiplier for stress testing.
+This is intentionally a thin adapter: signal rules remain in
+``five_experts_intraday_backtest``. The adapter injects (1) an explicit
+point-in-time universe, (2) optional historical daily ST/N status, (3) an
+optional transaction-cost multiplier and (4) an execution-delay stress test.
 """
 from __future__ import annotations
 
@@ -57,6 +57,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-daily-bars", type=int, default=base.BacktestConfig.min_daily_bars)
     parser.add_argument("--signal-times", default=base.BacktestConfig.signal_times)
     parser.add_argument("--cost-multiplier", type=float, default=1.0)
+    parser.add_argument(
+        "--entry-delay-minutes",
+        type=int,
+        default=0,
+        help="Additional delay after the original signal timestamp before selecting the next 5m bar",
+    )
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
@@ -67,6 +73,7 @@ def main():
     bad_status_keys = load_bad_status_keys(args.status_file)
     original_load_minutes = base.load_minutes
     original_config = base.BacktestConfig
+    original_entry_and_exit = base._entry_and_exit
 
     def filtered_load_minutes(start, end, max_files=0, instruments=None):
         requested = allowed if instruments is None else allowed & {str(x).upper() for x in instruments}
@@ -79,6 +86,7 @@ def main():
         return minutes.loc[keep].reset_index(drop=True)
 
     multiplier = max(0.0, float(args.cost_multiplier))
+    delay_minutes = max(0, int(args.entry_delay_minutes))
 
     def stressed_config(**kwargs):
         return original_config(
@@ -94,10 +102,42 @@ def main():
     ):
         setattr(stressed_config, name, getattr(original_config, name))
 
+    def delayed_entry_and_exit(
+        instrument_frame,
+        signal_datetime,
+        signal_date,
+        signal_previous_close,
+        limit_ratio_value,
+        trading_dates,
+        config,
+    ):
+        shifted = pd.Timestamp(signal_datetime) + pd.Timedelta(minutes=delay_minutes)
+        outcome = original_entry_and_exit(
+            instrument_frame,
+            shifted,
+            signal_date,
+            signal_previous_close,
+            limit_ratio_value,
+            trading_dates,
+            config,
+        )
+        entry_dt = outcome.get("entry_datetime")
+        if entry_dt is not None and pd.Timestamp(entry_dt).normalize() != pd.Timestamp(signal_date).normalize():
+            return {
+                "entry_filled": False,
+                "entry_reason": "delay_crossed_signal_session",
+                "entry_datetime": entry_dt,
+                "entry_open": outcome.get("entry_open"),
+            }
+        if delay_minutes and outcome.get("entry_filled"):
+            outcome["entry_reason"] = f"next_bar_open_after_{delay_minutes}m_delay"
+        return outcome
+
     # Preserve the tested strategy engine verbatim; inject only data-universe
-    # eligibility and the explicitly requested cost stress.
+    # eligibility, transaction-cost stress and the explicit execution delay.
     base.load_minutes = filtered_load_minutes
     base.BacktestConfig = stressed_config
+    base._entry_and_exit = delayed_entry_and_exit
     sys.argv = [
         "five_experts_intraday_backtest.py",
         "--start", args.start,
@@ -115,6 +155,7 @@ def main():
     result["methodology"]["daily_status_file"] = None if args.status_file is None else str(args.status_file)
     result["methodology"]["daily_st_n_exclusion_keys"] = len(bad_status_keys)
     result["methodology"]["cost_multiplier"] = multiplier
+    result["methodology"]["entry_delay_minutes"] = delay_minutes
     # base.main already wrote the result; rewrite with the adapter metadata.
     args.output.write_text(json.dumps(base._json_safe(result), ensure_ascii=False, indent=2), encoding="utf-8")
     return result
