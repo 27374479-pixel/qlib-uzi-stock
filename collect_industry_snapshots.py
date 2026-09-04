@@ -13,8 +13,6 @@ import baostock as bs
 import pandas as pd
 
 from config import PROJECT_ROOT
-from factor_transfer_backtest import calendar
-from multi_expert_oos_backtest import Config as BacktestConfig, signal_dates
 
 
 INDUSTRY_DIR = PROJECT_ROOT / "data_lake" / "raw" / "baostock" / "industry_snapshots"
@@ -143,6 +141,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> dict:
+    # Keep the reusable collector import-light.  These research-backtest
+    # dependencies are only needed by this CLI path, not by workflows that call
+    # collect_snapshots directly.
+    from factor_transfer_backtest import calendar
+    from multi_expert_oos_backtest import Config as BacktestConfig, signal_dates
+
     args = parse_args()
     config = BacktestConfig(start=args.start, end=args.end, holding_days=args.holding_days)
     dates = signal_dates(calendar(), config)
