@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  PIPELINE_VERSION: "strict-v2"
   UNIVERSE_ASOF: "20250102"
   DATA_START: "20241001"
   DATA_END: "20260903"
