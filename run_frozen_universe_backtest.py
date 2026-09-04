@@ -2,8 +2,12 @@
 
 This is intentionally a thin adapter: signal rules remain in
 ``five_experts_intraday_backtest``. The adapter injects (1) an explicit
-point-in-time universe, (2) optional historical daily ST/N status, (3) an
-optional transaction-cost multiplier and (4) an execution-delay stress test.
+point-in-time universe, (2) historical daily ST/N eligibility for *signals*,
+(3) an optional transaction-cost multiplier and (4) execution-delay stress.
+
+Important: ST/N rows are filtered from the signal-feature panel but the raw
+minute panel is retained for future exits. A stock that becomes ST after entry
+must not make its real T+1/T+5 prices disappear from the execution path.
 """
 from __future__ import annotations
 
@@ -74,16 +78,21 @@ def main():
     original_load_minutes = base.load_minutes
     original_config = base.BacktestConfig
     original_entry_and_exit = base._entry_and_exit
+    original_attach_outcomes = base.attach_outcomes
+    raw_minutes_box: dict[str, pd.DataFrame] = {}
 
     def filtered_load_minutes(start, end, max_files=0, instruments=None):
         requested = allowed if instruments is None else allowed & {str(x).upper() for x in instruments}
-        minutes = original_load_minutes(start, end, max_files, requested)
-        if minutes.empty or not bad_status_keys:
-            return minutes
-        dates = pd.to_datetime(minutes["datetime"], errors="coerce").dt.normalize()
-        keys = list(zip(minutes["instrument"].astype(str).str.upper(), dates))
-        keep = pd.Series([key not in bad_status_keys for key in keys], index=minutes.index)
-        return minutes.loc[keep].reset_index(drop=True)
+        raw = original_load_minutes(start, end, max_files, requested)
+        # Keep a full execution panel. Only the returned feature/signal panel
+        # drops ST/N dates.
+        raw_minutes_box["minutes"] = raw
+        if raw.empty or not bad_status_keys:
+            return raw
+        dates = pd.to_datetime(raw["datetime"], errors="coerce").dt.normalize()
+        keys = list(zip(raw["instrument"].astype(str).str.upper(), dates))
+        keep = pd.Series([key not in bad_status_keys for key in keys], index=raw.index)
+        return raw.loc[keep].reset_index(drop=True)
 
     multiplier = max(0.0, float(args.cost_multiplier))
     delay_minutes = max(0, int(args.entry_delay_minutes))
@@ -133,11 +142,16 @@ def main():
             outcome["entry_reason"] = f"next_bar_open_after_{delay_minutes}m_delay"
         return outcome
 
-    # Preserve the tested strategy engine verbatim; inject only data-universe
-    # eligibility, transaction-cost stress and the explicit execution delay.
+    def attach_outcomes_with_raw(signals, _filtered_minutes, trading_dates, config):
+        execution_minutes = raw_minutes_box.get("minutes", _filtered_minutes)
+        return original_attach_outcomes(signals, execution_minutes, trading_dates, config)
+
+    # Preserve the tested strategy engine verbatim; inject only universe/status
+    # eligibility, transaction costs and explicit execution delay.
     base.load_minutes = filtered_load_minutes
     base.BacktestConfig = stressed_config
     base._entry_and_exit = delayed_entry_and_exit
+    base.attach_outcomes = attach_outcomes_with_raw
     sys.argv = [
         "five_experts_intraday_backtest.py",
         "--start", args.start,
@@ -154,6 +168,7 @@ def main():
     result["methodology"]["explicit_universe_instruments"] = len(allowed)
     result["methodology"]["daily_status_file"] = None if args.status_file is None else str(args.status_file)
     result["methodology"]["daily_st_n_exclusion_keys"] = len(bad_status_keys)
+    result["methodology"]["status_filter_scope"] = "signal_features_only; raw minute bars retained for exits"
     result["methodology"]["cost_multiplier"] = multiplier
     result["methodology"]["entry_delay_minutes"] = delay_minutes
     # base.main already wrote the result; rewrite with the adapter metadata.
