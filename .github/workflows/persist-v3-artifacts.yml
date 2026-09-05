@@ -1,0 +1,86 @@
+name: Persist v3 artifacts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/persist-v3-artifacts.yml"
+  workflow_run:
+    workflows: ["Book alpha v3 fast screen"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: persist-v3-artifacts
+  cancel-in-progress: false
+
+jobs:
+  persist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SOURCE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || '33919741708' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          lfs: false
+
+      - name: Download every currently available v3 data artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/v3-artifacts
+          mkdir -p /tmp/v3-artifacts
+          echo "source run: $SOURCE_RUN_ID"
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'book-alpha-v3-membership' \
+            --pattern 'book-alpha-v3-daily-*' \
+            --pattern 'book-alpha-v3-industry' \
+            --dir /tmp/v3-artifacts
+          find /tmp/v3-artifacts -maxdepth 2 -type f | sort | head -50
+
+      - name: Merge artifacts into durable data lake
+        run: |
+          mkdir -p data_lake/raw/baostock/equity_daily
+          mkdir -p data_lake/raw/baostock/industry_snapshots
+          mkdir -p data_lake/universe
+
+          shopt -s nullglob
+          for dir in /tmp/v3-artifacts/book-alpha-v3-daily-*; do
+            cp -f "$dir"/*.parquet data_lake/raw/baostock/equity_daily/ || true
+          done
+          if [ -d /tmp/v3-artifacts/book-alpha-v3-industry ]; then
+            cp -f /tmp/v3-artifacts/book-alpha-v3-industry/*.parquet data_lake/raw/baostock/industry_snapshots/ || true
+          fi
+          if [ -d /tmp/v3-artifacts/book-alpha-v3-membership ]; then
+            cp -f /tmp/v3-artifacts/book-alpha-v3-membership/* data_lake/universe/ || true
+          fi
+
+          echo "durable daily files: $(find data_lake/raw/baostock/equity_daily -name '*.parquet' | wc -l)"
+          echo "durable industry files: $(find data_lake/raw/baostock/industry_snapshots -name '*.parquet' | wc -l)"
+
+      - name: Commit raw data through Git LFS before any alpha dependency
+        run: |
+          git lfs install
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add .gitattributes
+          git add -f data_lake/universe/csi800_membership_monthly.tsv || true
+          git add -f data_lake/universe/csi800_membership_monthly.tsv.json || true
+          git add -f data_lake/universe/csi800_membership_instruments.txt || true
+          git add -f data_lake/universe/csi800_membership_monthly_snapshots.parquet || true
+          git add -f data_lake/raw/baostock/equity_daily/*.parquet || true
+          git add -f data_lake/raw/baostock/industry_snapshots/*.parquet || true
+          if git diff --cached --quiet; then
+            echo "No new v3 data to persist"
+            exit 0
+          fi
+          git commit -m "data: checkpoint v3 market data from run ${SOURCE_RUN_ID} [skip ci]"
+          git push origin HEAD:main
