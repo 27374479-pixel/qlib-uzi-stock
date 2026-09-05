@@ -99,11 +99,16 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install "numpy<3" pandas pyarrow baostock
+      - name: Restore cached daily parquet from GitHub LFS
+        run: |
+          git lfs install
+          git lfs pull --include="data_lake/raw/baostock/equity_daily/*.parquet" --exclude="" || true
+          echo "cached daily files=$(find data_lake/raw/baostock/equity_daily -name '*.parquet' 2>/dev/null | wc -l)"
       - uses: actions/download-artifact@v4
         with:
           name: book-alpha-v3-membership
           path: data_lake/universe
-      - name: Collect daily shard
+      - name: Collect only missing daily data
         continue-on-error: true
         env:
           SHARD: ${{ matrix.shard }}
@@ -119,9 +124,12 @@ jobs:
           selected = [code for i, code in enumerate(codes) if i % shards == shard]
           print(f'shard {shard}/{shards}: {len(selected)}')
           cfg = CollectionConfig(start=os.environ['DATA_START'], end=os.environ['DATA_END'], market='csi800', retry_count=8, retry_delay_seconds=2.0)
-          result = collect(cfg, selected, resume=False)
+          result = collect(cfg, selected, resume=True)
           failed = len(result.get('failed', []))
-          print(f'shard {shard}: failed={failed}/{len(selected)}; partial data will still be uploaded')
+          print(
+              f"shard {shard}: new={result.get('downloaded', 0)} "
+              f"skipped={result.get('skipped_existing', 0)} failed={failed}/{len(selected)}"
+          )
           if failed > max(10, int(len(selected) * 0.20)):
               raise SystemExit(f'too many provider failures {failed}/{len(selected)}')
           PY
@@ -129,7 +137,9 @@ jobs:
         if: always()
         with:
           name: book-alpha-v3-daily-${{ matrix.shard }}
-          path: data_lake/raw/baostock/equity_daily
+          path: |
+            data_lake/raw/baostock/equity_daily
+            data_lake/manifests/baostock_*.json
           if-no-files-found: warn
           retention-days: 3
           compression-level: 0
@@ -151,11 +161,16 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install "numpy<3" pandas pyarrow baostock
+      - name: Restore cached industry snapshots from GitHub LFS
+        run: |
+          git lfs install
+          git lfs pull --include="data_lake/raw/baostock/industry_snapshots/*.parquet" --exclude="" || true
+          echo "cached industry files=$(find data_lake/raw/baostock/industry_snapshots -name '*.parquet' 2>/dev/null | wc -l)"
       - uses: actions/download-artifact@v4
         with:
           name: book-alpha-v3-membership
           path: data_lake/universe
-      - name: Collect point-in-time industry snapshots on same monthly dates
+      - name: Collect only missing point-in-time industry snapshots
         continue-on-error: true
         run: |
           python - <<'PY'
@@ -163,9 +178,12 @@ jobs:
           from collect_industry_snapshots import collect_snapshots
           frame = pd.read_parquet('data_lake/universe/csi800_membership_monthly_snapshots.parquet')
           dates = [pd.Timestamp(x) for x in sorted(pd.to_datetime(frame['snapshot_date']).dt.normalize().unique())]
-          result = collect_snapshots(dates, resume=False, retries=8)
+          result = collect_snapshots(dates, resume=True, retries=8)
           failed = len(result.get('failed', []))
-          print(f'industry failed={failed}/{len(dates)}; partial snapshots will still be uploaded')
+          print(
+              f"industry new={result.get('downloaded', 0)} "
+              f"skipped={result.get('skipped_existing', 0)} failed={failed}/{len(dates)}"
+          )
           if failed > max(5, int(len(dates) * 0.15)):
               raise SystemExit(f"too many industry failures: {failed}")
           PY
@@ -173,13 +191,62 @@ jobs:
         if: always()
         with:
           name: book-alpha-v3-industry
-          path: data_lake/raw/baostock/industry_snapshots
+          path: |
+            data_lake/raw/baostock/industry_snapshots
+            data_lake/manifests/baostock_industry_*.json
           if-no-files-found: warn
           retention-days: 3
           compression-level: 0
 
-  aggregate-screen-persist:
+  persist-data-cache:
     needs: [prepare-membership, daily-shards, industry]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: false
+          fetch-depth: 0
+      - name: Install Git LFS
+        run: |
+          git lfs install
+      - uses: actions/download-artifact@v4
+        with:
+          name: book-alpha-v3-membership
+          path: data_lake/universe
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: book-alpha-v3-daily-*
+          path: .
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: book-alpha-v3-industry
+          path: .
+      - name: Persist reusable market data to GitHub before any alpha calculation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .gitattributes
+          git add -f data_lake/universe/csi800_membership_monthly.tsv \
+            data_lake/universe/csi800_membership_monthly.tsv.json \
+            data_lake/universe/csi800_membership_instruments.txt \
+            data_lake/universe/csi800_membership_monthly_snapshots.parquet
+          git add -f data_lake/raw/baostock/equity_daily/*.parquet
+          git add -f data_lake/raw/baostock/industry_snapshots/*.parquet
+          git add -f data_lake/manifests/*.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "data: checkpoint reusable v3 market data [skip ci]"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          else
+            echo "No new market data to persist"
+          fi
+
+  aggregate-screen-persist:
+    needs: [persist-data-cache]
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
@@ -195,26 +262,10 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install "numpy<3" pandas pyarrow baostock pytest
-      - name: Install LFS
+      - name: Restore persisted v3 market data from GitHub LFS
         run: |
           git lfs install
-          git lfs track "data_lake/raw/baostock/equity_daily/*.parquet"
-          git lfs track "data_lake/raw/baostock/industry_snapshots/*.parquet"
-          git lfs track "data_lake/universe/*_snapshots.parquet"
-          git lfs track "output/*_observations*.parquet"
-      - uses: actions/download-artifact@v4
-        with:
-          name: book-alpha-v3-membership
-          path: data_lake/universe
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: book-alpha-v3-daily-*
-          path: data_lake/raw/baostock/equity_daily
-          merge-multiple: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: book-alpha-v3-industry
-          path: data_lake/raw/baostock/industry_snapshots
+          git lfs pull --include="data_lake/raw/baostock/equity_daily/*.parquet,data_lake/raw/baostock/industry_snapshots/*.parquet,data_lake/universe/*_snapshots.parquet" --exclude=""
       - name: Verify usable data coverage
         run: |
           python - <<'PY'
@@ -262,21 +313,17 @@ jobs:
         run: |
           python build_alpha_evidence_registry.py
           cat output/alpha_evidence_registry_v1.md
-      - name: Rebase latest main before persisting data
+      - name: Persist alpha evidence
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
-      - name: Commit reusable data and evidence
-        run: |
           git add .gitattributes
-          git add -f data_lake/universe/csi800_membership_monthly.tsv data_lake/universe/csi800_membership_monthly.tsv.json data_lake/universe/csi800_membership_instruments.txt data_lake/universe/csi800_membership_monthly_snapshots.parquet
-          git add -f data_lake/raw/baostock/equity_daily/*.parquet
-          git add -f data_lake/raw/baostock/industry_snapshots/*.parquet
           git add -f output/book_alpha_daily_screen_v3.json output/book_alpha_daily_screen_observations_v3.parquet
           git add -f output/attention_timing_decomposition_v1.json output/external_challenger_daily_screen_v1.json
           git add -f output/alpha_evidence_registry_v1.json output/alpha_evidence_registry_v1.md
           if ! git diff --cached --quiet; then
-            git commit -m "data: persist v3 long-sample alpha evidence [skip ci]"
+            git commit -m "research: persist v3 long-sample alpha evidence [skip ci]"
+            git fetch origin main
+            git rebase origin/main
             git push origin HEAD:main
           fi
