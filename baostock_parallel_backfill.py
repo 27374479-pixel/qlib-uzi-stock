@@ -1,11 +1,10 @@
-"""Run independent, resumable BaoStock collectors on disjoint code shards.
+"""Parallel, resumable BaoStock 5-minute backfill.
 
-This launcher is intentionally conservative: each worker owns distinct
-instrument files and its own BaoStock login session.  It exists to test and,
-when allowed by the provider, accelerate the otherwise serial collector; it
-does not merge or overwrite another worker's symbol.
+Each process handles exactly one instrument at a time.  This prevents a slow
+symbol from holding an entire shard hostage and makes progress visible and
+restartable at symbol granularity.  The underlying collector writes each
+instrument atomically and skips files that already cover the requested range.
 """
-
 from __future__ import annotations
 
 import argparse
@@ -19,7 +18,7 @@ from baostock_minute_backfill import collect, load_codes, normalize_code, instru
 
 @dataclass(frozen=True)
 class Job:
-    instruments: list[str]
+    instrument: str
     start: pd.Timestamp
     end: pd.Timestamp
     retries: int
@@ -28,7 +27,7 @@ class Job:
 
 def _run_job(job: Job) -> dict:
     return collect(
-        job.instruments,
+        [job.instrument],
         job.start,
         job.end,
         retries=job.retries,
@@ -58,33 +57,45 @@ def _codes(args: argparse.Namespace, start: pd.Timestamp) -> list[str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Conservative parallel BaoStock 5-minute backfill")
+    parser = argparse.ArgumentParser(description="Symbol-resumable parallel BaoStock 5-minute backfill")
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True)
     parser.add_argument("--universe", choices=["events", "existing", "csi800", "csi800_start"], default="csi800_start")
     parser.add_argument("--codes", default="")
-    parser.add_argument("--workers", type=int, default=2)
-    parser.add_argument("--retries", type=int, default=3)
+    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--retries", type=int, default=2)
     parser.add_argument("--retry-delay", type=float, default=1.0)
     args = parser.parse_args()
+
     start = _parse_date(args.start)
     end = _parse_date(args.end)
     instruments = _codes(args, start)
-    workers = max(1, min(args.workers, len(instruments))) if instruments else 0
     if not instruments:
         raise ValueError("no SH/SZ instruments selected")
-    shards = [instruments[index::workers] for index in range(workers)]
-    print(f"Parallel BaoStock probe: instruments={len(instruments)} workers={workers}", flush=True)
-    jobs = [Job(shard, start, end, max(1, args.retries), max(0.0, args.retry_delay)) for shard in shards if shard]
+    workers = max(1, min(args.workers, len(instruments)))
+    jobs = [Job(x, start, end, max(1, args.retries), max(0.0, args.retry_delay)) for x in instruments]
+    print(f"BaoStock symbol-resumable backfill: instruments={len(jobs)} workers={workers}", flush=True)
+
+    downloaded = skipped = failed = 0
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(_run_job, job) for job in jobs]
-        for number, future in enumerate(as_completed(futures), 1):
-            result = future.result()
+        future_to_symbol = {pool.submit(_run_job, job): job.instrument for job in jobs}
+        for number, future in enumerate(as_completed(future_to_symbol), 1):
+            symbol = future_to_symbol[future]
+            try:
+                result = future.result()
+                downloaded += int(result.get("downloaded", 0))
+                skipped += int(result.get("skipped_existing", 0))
+                failed += len(result.get("failed", []))
+                status = "failed" if result.get("failed") else ("skipped" if result.get("skipped_existing") else "downloaded")
+            except Exception as exc:
+                failed += 1
+                status = f"exception:{exc}"
             print(
-                f"worker {number}/{len(futures)} downloaded={result['downloaded']} "
-                f"skipped={result['skipped_existing']} failed={len(result['failed'])}",
+                f"[{number}/{len(jobs)}] {symbol} {status} totals downloaded={downloaded} skipped={skipped} failed={failed}",
                 flush=True,
             )
+
+    print(f"completed downloaded={downloaded} skipped={skipped} failed={failed}", flush=True)
 
 
 if __name__ == "__main__":
