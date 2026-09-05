@@ -19,7 +19,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,17 +60,20 @@ jobs:
           print('candidate rows', len(c))
           PY
 
-      - name: Pilot direct Eastmoney/Sina minute fetch
+      - name: Slowly collect direct Eastmoney/Sina minute histories
         shell: bash
         run: |
-          timeout 1800 python direct_minute_gap_backfill.py \
+          timeout 18000 python direct_minute_gap_backfill.py \
             --codes-file output/v4_survivor_codes.txt \
             --start 2025-01-02 \
             --end 2026-09-03 \
-            --sleep 2.0 \
-            --timeout 15 \
-            --max-symbols 30 \
-            --max-consecutive-failures 5 || true
+            --sleep 15 \
+            --jitter 10 \
+            --timeout 20 \
+            --max-symbols 813 \
+            --max-consecutive-failures 6 \
+            --failure-backoff 60 \
+            --max-backoff 600 || true
 
       - name: Run leakage-safe late-day timing matrix
         run: |
@@ -100,6 +103,6 @@ jobs:
           latest_manifest=$(ls -1t data_lake/manifests/direct_minute_gap_*.json 2>/dev/null | head -1 || true)
           test -z "$latest_manifest" || git add -f "$latest_manifest"
           if ! git diff --cached --quiet; then
-            git commit -m "research: persist direct minute pilot [skip ci]"
+            git commit -m "research: persist slow direct minute collection [skip ci]"
             git push
           fi
