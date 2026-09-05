@@ -5,3 +5,4 @@ data_lake/raw/baostock/industry_snapshots/*.parquet filter=lfs diff=lfs merge=lf
 data_lake/universe/*_snapshots.parquet filter=lfs diff=lfs merge=lfs -text
 output/*_observations*.parquet filter=lfs diff=lfs merge=lfs -text
 data_lake/raw/eastmoney/equity_5min/*.parquet filter=lfs diff=lfs merge=lfs -text
+data_lake/raw/sina/equity_5min/*.parquet filter=lfs diff=lfs merge=lfs -text
