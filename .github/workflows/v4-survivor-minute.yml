@@ -5,8 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/v4-survivor-minute.yml"
-      - "eastmoney_history_probe.py"
-      - "direct_minute_gap_backfill.py"
+      - "traderharness_hf_probe.py"
   workflow_dispatch:
 
 permissions:
@@ -34,18 +33,18 @@ jobs:
       - name: Install probe dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests
+          pip install huggingface_hub
 
-      - name: Low-frequency Eastmoney historical 5-minute probe
-        run: python eastmoney_history_probe.py
+      - name: Inspect TraderHarness 5-minute yearly partitions
+        run: python traderharness_hf_probe.py
 
-      - name: Persist probe result
+      - name: Persist dataset partition probe
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          test ! -f output/eastmoney_history_probe.json || git add -f output/eastmoney_history_probe.json
+          test ! -f output/traderharness_hf_probe.json || git add -f output/traderharness_hf_probe.json
           if ! git diff --cached --quiet; then
-            git commit -m "research: persist Eastmoney history probe [skip ci]"
+            git commit -m "research: persist TraderHarness partition probe [skip ci]"
             git push
           fi
