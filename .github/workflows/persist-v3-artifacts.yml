@@ -43,7 +43,7 @@ jobs:
             --pattern 'book-alpha-v3-daily-*' \
             --pattern 'book-alpha-v3-industry' \
             --dir /tmp/v3-artifacts
-          find /tmp/v3-artifacts -maxdepth 2 -type f | sort | head -50
+          find /tmp/v3-artifacts -maxdepth 2 -type f | sort | head -50 || true
 
       - name: Merge artifacts into durable data lake
         run: |
@@ -70,7 +70,6 @@ jobs:
           git lfs install
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
           git add .gitattributes
           git add -f data_lake/universe/csi800_membership_monthly.tsv || true
           git add -f data_lake/universe/csi800_membership_monthly.tsv.json || true
@@ -83,4 +82,13 @@ jobs:
             exit 0
           fi
           git commit -m "data: checkpoint v3 market data from run ${SOURCE_RUN_ID} [skip ci]"
-          git push origin HEAD:main
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} failed; rebasing onto latest main"
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "failed to persist v3 data after retries" >&2
+          exit 1
