@@ -1,6 +1,6 @@
 """Run leakage-safe v4 minute timing validation against final v3 survivors.
 
-The external challenger selectors are daily-close definitions.  For an entry
+The external challenger selectors are daily-close definitions. For an entry
 on trading day T they are therefore evaluated on T-1 and carried forward to T.
 This makes every 14:xx entry causal: no T close, high, limit-touch or cross-
 sectional rank is used before it exists.
@@ -64,9 +64,22 @@ def candidates(frame, modules):
     return pd.concat(parts, ignore_index=True).drop_duplicates()
 
 
+# The base loader caches a missing file as an empty DataFrame. On the next
+# access that empty frame used to escape as if it were valid and later caused
+# KeyError('datetime'). Normalize cached empties back to None.
+_base_load_minute = v4._load_minute
+
+def safe_load_minute(instrument, cache):
+    frame = _base_load_minute(instrument, cache)
+    if frame is None or frame.empty or "datetime" not in frame.columns:
+        return None
+    return frame
+
+
 v4._load_pass_ids = load_modules
 v4._prepare_daily = prepare
 v4._candidate_rows = candidates
+v4._load_minute = safe_load_minute
 
 if __name__ == "__main__":
     v4.run(v4.parse_args())
