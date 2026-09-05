@@ -32,14 +32,18 @@ def _observed_age(path: Path, dates: pd.Series) -> np.ndarray:
     )
     target = pd.DatetimeIndex(pd.to_datetime(dates, errors="coerce").dt.normalize())
     if all_dates.empty:
-        return np.zeros(len(target), dtype=int)
+        return np.zeros(len(target), dtype=np.int64)
     # searchsorted-right counts all observed provider rows up to the signal date.
-    return all_dates.searchsorted(target, side="right").astype(int)
+    # Use one explicit dtype end-to-end. Pandas 3.x rejects implicit assignment
+    # between int64 ndarray values and an int32 Series (LossySetitemError).
+    return all_dates.searchsorted(target, side="right").astype(np.int64, copy=False)
 
 
 def enforce_true_listing_policy(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
     frame = frame.copy()
-    ages = pd.Series(0, index=frame.index, dtype="int32")
+    # int64 matches DatetimeIndex.searchsorted's natural integer dtype and avoids
+    # Pandas 3.x strict setitem coercion failures. Values are only session counts.
+    ages = pd.Series(0, index=frame.index, dtype="int64")
     missing_files: list[str] = []
     for instrument, index in frame.groupby("instrument", sort=False).groups.items():
         path = DAILY_DIR / f"{instrument}.parquet"
