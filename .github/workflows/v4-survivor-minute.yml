@@ -35,6 +35,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install "numpy<3" pandas pyarrow baostock requests
 
+      - name: Materialize frozen CSI800 membership for legacy loader
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+          echo "membership rows: $(wc -l < qlib_data/cn_data/instruments/csi800.txt)"
+
       - name: Build frozen v3 survivor code set
         run: |
           python - <<'PY'
