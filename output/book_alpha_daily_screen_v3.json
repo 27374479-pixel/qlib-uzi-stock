@@ -1,0 +1,4853 @@
+{
+  "config": {
+    "universe": "csi800",
+    "start": "2015-01-01",
+    "end": "2026-09-03",
+    "oos_start": "2023-01-01",
+    "round_trip_cost": 0.0018,
+    "bootstrap_samples": 5000,
+    "seed": 20260904,
+    "min_oos_observations": 50,
+    "min_oos_days": 20,
+    "output": "output/book_alpha_daily_screen_v3.json",
+    "observations_output": "output/book_alpha_daily_screen_observations_v3.parquet"
+  },
+  "data": {
+    "membership_instruments": 1515,
+    "loaded_instruments": 1459,
+    "missing_daily_files": 0,
+    "rows": 2133053,
+    "industry_known_ratio": 1.0,
+    "actual_start": "2015-01-05",
+    "actual_end": "2026-09-03",
+    "policy": "mainboard_chinext_no_star_historical_st_removed_observed_listing_sessions_ge120_v2",
+    "listing_age_source": "complete BaoStock daily file rows before point-in-time index membership filtering",
+    "rows_before_policy": 2133053,
+    "rows_after_policy": 2132656,
+    "instruments_after_policy": 1459,
+    "removed_rows": 397,
+    "missing_daily_files_for_age": []
+  },
+  "methodology": {
+    "signal": "completed daily state only; no future event/price fields",
+    "universe": "mainboard_chinext_no_star_historical_st_removed_observed_listing_sessions_ge120_v2",
+    "entry": "next available open; locked upper-limit session is unfilled",
+    "horizons": "entry T+1 open to T+2/T+3/T+6 open for 1/2/5d labels",
+    "cost": 0.0018,
+    "baseline": "same-date eligible universe average executable return",
+    "control": "pre-registered hypothesis-specific same-context control",
+    "bootstrap_unit": "signal date",
+    "parameter_policy": "broad pre-registered thresholds; no threshold search",
+    "promotion_policy": "daily screen only promotes information; minute-required hypotheses are not trade-ready"
+  },
+  "hypotheses": {
+    "H01": {
+      "title": "weak-regime veto",
+      "source_cluster": "养家/Asking/瑞鹤仙/孤独牛背",
+      "expected_direction": 1,
+      "minute_required": false,
+      "notes": "Same active-core family; non-weak market should dominate weak market.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 29640,
+            "active_days": 1190,
+            "mean_return": -0.004060338798410115,
+            "median_return": -0.0055067551592545595,
+            "win_rate": 0.42840755735492575,
+            "mean_market_excess": -0.0011358429909524867,
+            "bootstrap95_market_excess": [
+              -0.0018208926050673315,
+              -0.00045739647867703865
+            ],
+            "trim_best5_mean_market_excess": -0.006083830287323317,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.3927536712359066
+          },
+          "control": {
+            "n": 16316,
+            "active_days": 757,
+            "mean_return": 0.0002575995554722256,
+            "median_return": -0.0018,
+            "win_rate": 0.47652610934052464,
+            "mean_market_excess": -0.0005296129093942883,
+            "bootstrap95_market_excess": [
+              -0.0014776997860176356,
+              0.0004652328978397385
+            ],
+            "trim_best5_mean_market_excess": -0.004805309881841574,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.26697329190873703
+          },
+          "paired": {
+            "paired_days": 0
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 29630,
+            "active_days": 1190,
+            "mean_return": -0.0059986848763212645,
+            "median_return": -0.00805710054310763,
+            "win_rate": 0.42774215322308473,
+            "mean_market_excess": -0.002201566546292802,
+            "bootstrap95_market_excess": [
+              -0.0031651661602178963,
+              -0.001270451275977143
+            ],
+            "trim_best5_mean_market_excess": -0.008903068176832793,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.474075592759505
+          },
+          "control": {
+            "n": 16298,
+            "active_days": 757,
+            "mean_return": 0.0011709912915320302,
+            "median_return": -0.0018,
+            "win_rate": 0.4868081973248251,
+            "mean_market_excess": -0.0011295335192153372,
+            "bootstrap95_market_excess": [
+              -0.0024066430185572243,
+              0.000269180434580615
+            ],
+            "trim_best5_mean_market_excess": -0.007121076147271454,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.47564465706394515
+          },
+          "paired": {
+            "paired_days": 0
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 29579,
+            "active_days": 1190,
+            "mean_return": -0.00846948849443852,
+            "median_return": -0.013611023622047112,
+            "win_rate": 0.42056864667500593,
+            "mean_market_excess": -0.004965549013055204,
+            "bootstrap95_market_excess": [
+              -0.006312256311983349,
+              -0.003622960007709612
+            ],
+            "trim_best5_mean_market_excess": -0.015114163625271305,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.6009339794120141
+          },
+          "control": {
+            "n": 16273,
+            "active_days": 757,
+            "mean_return": -0.0015297031806472798,
+            "median_return": -0.0029235955056179136,
+            "win_rate": 0.48196398943034474,
+            "mean_market_excess": -0.0040986200916305945,
+            "bootstrap95_market_excess": [
+              -0.005840207682829481,
+              -0.0023149050385998303
+            ],
+            "trim_best5_mean_market_excess": -0.013118523749913943,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.6398852793231791
+          },
+          "paired": {
+            "paired_days": 0
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 8090,
+            "active_days": 495,
+            "mean_return": -0.0021939277216150343,
+            "median_return": -0.005727544904579749,
+            "win_rate": 0.41878862793572313,
+            "mean_market_excess": -0.000690115922660291,
+            "bootstrap95_market_excess": [
+              -0.001845054798823683,
+              0.0005093223313442964
+            ],
+            "trim_best5_mean_market_excess": -0.005719070030947211,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.5080086240805541
+          },
+          "control": {
+            "n": 5054,
+            "active_days": 393,
+            "mean_return": -0.0033282400416685077,
+            "median_return": -0.004498152698152711,
+            "win_rate": 0.4362880886426593,
+            "mean_market_excess": -0.0008769368295589137,
+            "bootstrap95_market_excess": [
+              -0.002525813600291587,
+              0.0008376565474681141
+            ],
+            "trim_best5_mean_market_excess": -0.006212896219859292,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.6798367004989809
+          },
+          "paired": {
+            "paired_days": 0
+          },
+          "verdict": "INSUFFICIENT_CONTROL"
+        },
+        "2d": {
+          "selected": {
+            "n": 8069,
+            "active_days": 494,
+            "mean_return": -0.00024056653242684155,
+            "median_return": -0.006158830146231729,
+            "win_rate": 0.44020324699467095,
+            "mean_market_excess": -0.00013145134700839957,
+            "bootstrap95_market_excess": [
+              -0.0018404639795716747,
+              0.0015937922133297795
+            ],
+            "trim_best5_mean_market_excess": -0.007532662768229041,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.42391991685696967
+          },
+          "control": {
+            "n": 5052,
+            "active_days": 393,
+            "mean_return": -0.005249370504326397,
+            "median_return": -0.008293506493506495,
+            "win_rate": 0.4231987331749802,
+            "mean_market_excess": -0.0016944793022420897,
+            "bootstrap95_market_excess": [
+              -0.0039511880072950955,
+              0.0006251009794615608
+            ],
+            "trim_best5_mean_market_excess": -0.00982802236104981,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.5692732069785067
+          },
+          "paired": {
+            "paired_days": 0
+          },
+          "verdict": "INSUFFICIENT_CONTROL"
+        },
+        "5d": {
+          "selected": {
+            "n": 7984,
+            "active_days": 491,
+            "mean_return": 0.0011099833263109034,
+            "median_return": -0.010565069734457564,
+            "win_rate": 0.43198897795591185,
+            "mean_market_excess": -0.0002420334896791484,
+            "bootstrap95_market_excess": [
+              -0.0031165699049808225,
+              0.00266018821780721
+            ],
+            "trim_best5_mean_market_excess": -0.01281788883493847,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.4873699180424159
+          },
+          "control": {
+            "n": 5039,
+            "active_days": 393,
+            "mean_return": -0.002581912436801831,
+            "median_return": -0.008649315068493178,
+            "win_rate": 0.43917443937289147,
+            "mean_market_excess": 0.0003550048802083806,
+            "bootstrap95_market_excess": [
+              -0.004164221899279312,
+              0.005415697309921991
+            ],
+            "trim_best5_mean_market_excess": -0.014196835896712893,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.5589948190241293
+          },
+          "paired": {
+            "paired_days": 0
+          },
+          "verdict": "INSUFFICIENT_CONTROL"
+        }
+      },
+      "overall_verdict": "INSUFFICIENT_CONTROL"
+    },
+    "H02": {
+      "title": "panic-to-repair",
+      "source_cluster": "养家弱势超跌/Asking/乔帮主",
+      "expected_direction": 1,
+      "minute_required": true,
+      "notes": "Tests collective repair versus merely being individually oversold.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 7106,
+            "active_days": 222,
+            "mean_return": -0.000835457511356686,
+            "median_return": -0.0018,
+            "win_rate": 0.47565437658316917,
+            "mean_market_excess": 0.00024634720322334424,
+            "bootstrap95_market_excess": [
+              -0.0006717528756366053,
+              0.0012057606219959024
+            ],
+            "trim_best5_mean_market_excess": -0.0029023930008377037,
+            "halfyears": 16,
+            "positive_halfyears": 7,
+            "negative_halfyears": 9,
+            "best_half_contribution_share": 0.23338242081664257
+          },
+          "control": {
+            "n": 47500,
+            "active_days": 1696,
+            "mean_return": -0.0018814693347174159,
+            "median_return": -0.0018,
+            "win_rate": 0.4596421052631579,
+            "mean_market_excess": -0.0007444978589909956,
+            "bootstrap95_market_excess": [
+              -0.0011679485932463473,
+              -0.00033834887955981564
+            ],
+            "trim_best5_mean_market_excess": -0.00394170203109159,
+            "halfyears": 16,
+            "positive_halfyears": 1,
+            "negative_halfyears": 15,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 0
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 7104,
+            "active_days": 222,
+            "mean_return": 0.0005630319286341046,
+            "median_return": -0.0005676018138819111,
+            "win_rate": 0.4908502252252252,
+            "mean_market_excess": 0.00037886105682008523,
+            "bootstrap95_market_excess": [
+              -0.0010541638135712701,
+              0.001669834116939716
+            ],
+            "trim_best5_mean_market_excess": -0.0041896128216757445,
+            "halfyears": 16,
+            "positive_halfyears": 11,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.28821639229887647
+          },
+          "control": {
+            "n": 47475,
+            "active_days": 1696,
+            "mean_return": -0.0021020142256175088,
+            "median_return": -0.0018,
+            "win_rate": 0.470753027909426,
+            "mean_market_excess": -0.001441600788720804,
+            "bootstrap95_market_excess": [
+              -0.0020309972711084413,
+              -0.0008398770061037535
+            ],
+            "trim_best5_mean_market_excess": -0.005828703854195021,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.706355640494369
+          },
+          "paired": {
+            "paired_days": 0
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 7093,
+            "active_days": 222,
+            "mean_return": -0.0011404351253231314,
+            "median_return": -0.0018,
+            "win_rate": 0.4883688143239814,
+            "mean_market_excess": -0.0011680047419059514,
+            "bootstrap95_market_excess": [
+              -0.003361161120069397,
+              0.0011335924295803779
+            ],
+            "trim_best5_mean_market_excess": -0.008313678266090556,
+            "halfyears": 16,
+            "positive_halfyears": 7,
+            "negative_halfyears": 9,
+            "best_half_contribution_share": 0.2752261639242032
+          },
+          "control": {
+            "n": 47408,
+            "active_days": 1696,
+            "mean_return": -0.00258303285574636,
+            "median_return": -0.0020616488624394563,
+            "win_rate": 0.4810158623017212,
+            "mean_market_excess": -0.0035425005931999805,
+            "bootstrap95_market_excess": [
+              -0.004443586828169248,
+              -0.0026166483856034624
+            ],
+            "trim_best5_mean_market_excess": -0.01073233605442899,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.9527864468304142
+          },
+          "paired": {
+            "paired_days": 0
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 2619,
+            "active_days": 92,
+            "mean_return": -0.0005703110489141401,
+            "median_return": -0.0030269938650306677,
+            "win_rate": 0.43986254295532645,
+            "mean_market_excess": 0.0005230963492919263,
+            "bootstrap95_market_excess": [
+              -0.0010281908519161264,
+              0.002042770032513986
+            ],
+            "trim_best5_mean_market_excess": -0.002654923139671088,
+            "halfyears": 8,
+            "positive_halfyears": 6,
+            "negative_halfyears": 2,
+            "best_half_contribution_share": 0.4057051505497726
+          },
+          "control": {
+            "n": 20420,
+            "active_days": 796,
+            "mean_return": -0.0015558099198246774,
+            "median_return": -0.0027939218756906953,
+            "win_rate": 0.4383937316356513,
+            "mean_market_excess": -0.000318594031772437,
+            "bootstrap95_market_excess": [
+              -0.0008365209112629975,
+              0.0002237260405314129
+            ],
+            "trim_best5_mean_market_excess": -0.0036600608798899145,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.6034310748451079
+          },
+          "paired": {
+            "paired_days": 0
+          },
+          "verdict": "INSUFFICIENT_CONTROL"
+        },
+        "2d": {
+          "selected": {
+            "n": 2615,
+            "active_days": 92,
+            "mean_return": -0.0004925087331400346,
+            "median_return": -0.003001923076923017,
+            "win_rate": 0.4604206500956023,
+            "mean_market_excess": 3.895647386390518e-05,
+            "bootstrap95_market_excess": [
+              -0.0020965733644334934,
+              0.002212863735412957
+            ],
+            "trim_best5_mean_market_excess": -0.004615107458529114,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.5790272156765913
+          },
+          "control": {
+            "n": 20386,
+            "active_days": 795,
+            "mean_return": -0.0014569697889523616,
+            "median_return": -0.004052252252252284,
+            "win_rate": 0.4410379672324144,
+            "mean_market_excess": -0.0006758579884837753,
+            "bootstrap95_market_excess": [
+              -0.0014265115727409748,
+              0.00011265001815535997
+            ],
+            "trim_best5_mean_market_excess": -0.005215433422009457,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.743967193571064
+          },
+          "paired": {
+            "paired_days": 0
+          },
+          "verdict": "INSUFFICIENT_CONTROL"
+        },
+        "5d": {
+          "selected": {
+            "n": 2606,
+            "active_days": 92,
+            "mean_return": 0.00017543590065513193,
+            "median_return": -0.004919349371994817,
+            "win_rate": 0.4562547966231773,
+            "mean_market_excess": 0.0006713610954358759,
+            "bootstrap95_market_excess": [
+              -0.0031942475926276808,
+              0.004918644034632309
+            ],
+            "trim_best5_mean_market_excess": -0.007046462495488593,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.581564128717825
+          },
+          "control": {
+            "n": 20274,
+            "active_days": 792,
+            "mean_return": 5.889846422120563e-05,
+            "median_return": -0.004579064977860179,
+            "win_rate": 0.45743316563085723,
+            "mean_market_excess": -0.0012822651843708605,
+            "bootstrap95_market_excess": [
+              -0.0023669792583664896,
+              -0.0001919783882422828
+            ],
+            "trim_best5_mean_market_excess": -0.00858087722311027,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.9451212540160677
+          },
+          "paired": {
+            "paired_days": 0
+          },
+          "verdict": "INSUFFICIENT_CONTROL"
+        }
+      },
+      "overall_verdict": "INSUFFICIENT_CONTROL"
+    },
+    "H03": {
+      "title": "climax avoidance",
+      "source_cluster": "情绪周期/高潮后分歧",
+      "expected_direction": -1,
+      "minute_required": false,
+      "notes": "A successful veto means climax chasing is worse than non-climax core states.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 937,
+            "active_days": 245,
+            "mean_return": -0.007296943381329088,
+            "median_return": -0.012870110701106972,
+            "win_rate": 0.4119530416221985,
+            "mean_market_excess": -0.008069091970641195,
+            "bootstrap95_market_excess": [
+              -0.013058064463616265,
+              -0.0030489000166009496
+            ],
+            "trim_best5_mean_market_excess": -0.012304826336815554,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.37308299353457214
+          },
+          "control": {
+            "n": 6588,
+            "active_days": 1222,
+            "mean_return": -0.0018285049867561136,
+            "median_return": -0.0036887752614587527,
+            "win_rate": 0.4599271402550091,
+            "mean_market_excess": -0.0009546037729464503,
+            "bootstrap95_market_excess": [
+              -0.0026599400360697504,
+              0.0007649573347197551
+            ],
+            "trim_best5_mean_market_excess": -0.006279241932878558,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.3850573515247042
+          },
+          "paired": {
+            "paired_days": 208,
+            "selected_minus_control": -0.00219248055961155,
+            "expected_signed_difference": 0.00219248055961155,
+            "bootstrap95_expected_signed_difference": [
+              -0.0033530572366981264,
+              0.007733648584271396
+            ],
+            "positive_halfyears_expected_direction": 9,
+            "negative_halfyears_expected_direction": 7,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.3176540695999191
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 937,
+            "active_days": 245,
+            "mean_return": -0.015354609404104757,
+            "median_return": -0.016419883040935643,
+            "win_rate": 0.3895410885805763,
+            "mean_market_excess": -0.0119142648761048,
+            "bootstrap95_market_excess": [
+              -0.018977581848068466,
+              -0.0052537299007153725
+            ],
+            "trim_best5_mean_market_excess": -0.01654027583286397,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.39325521554350973
+          },
+          "control": {
+            "n": 6586,
+            "active_days": 1222,
+            "mean_return": -0.000727334526307779,
+            "median_return": -0.00502062026760711,
+            "win_rate": 0.46112966899483754,
+            "mean_market_excess": -0.0016555267894250623,
+            "bootstrap95_market_excess": [
+              -0.0039331367933496016,
+              0.0006825623451322539
+            ],
+            "trim_best5_mean_market_excess": -0.008665434007382395,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.2993487587866777
+          },
+          "paired": {
+            "paired_days": 208,
+            "selected_minus_control": -0.008735115492810584,
+            "expected_signed_difference": 0.008735115492810584,
+            "bootstrap95_expected_signed_difference": [
+              0.0007540082891928562,
+              0.016905305681418414
+            ],
+            "positive_halfyears_expected_direction": 12,
+            "negative_halfyears_expected_direction": 4,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.19748060784388133
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 936,
+            "active_days": 245,
+            "mean_return": -0.016136782946706864,
+            "median_return": -0.016159163792399876,
+            "win_rate": 0.41346153846153844,
+            "mean_market_excess": -0.019500905358675737,
+            "bootstrap95_market_excess": [
+              -0.02920357323072043,
+              -0.009956279987880097
+            ],
+            "trim_best5_mean_market_excess": -0.029799019628792875,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.6023685401736655
+          },
+          "control": {
+            "n": 6581,
+            "active_days": 1222,
+            "mean_return": -0.005765986743932379,
+            "median_return": -0.011005020920502016,
+            "win_rate": 0.4514511472420605,
+            "mean_market_excess": -0.006475737824359566,
+            "bootstrap95_market_excess": [
+              -0.009846172921983008,
+              -0.0030481136792078673
+            ],
+            "trim_best5_mean_market_excess": -0.01777589798013631,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.6537133154858119
+          },
+          "paired": {
+            "paired_days": 208,
+            "selected_minus_control": -0.009224968662966711,
+            "expected_signed_difference": 0.009224968662966711,
+            "bootstrap95_expected_signed_difference": [
+              -0.0027116761656579167,
+              0.02156359791303134
+            ],
+            "positive_halfyears_expected_direction": 10,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.3094050919727687
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 225,
+            "active_days": 79,
+            "mean_return": -0.009299797269387655,
+            "median_return": -0.01584255319148928,
+            "win_rate": 0.36,
+            "mean_market_excess": -0.0043981772822371725,
+            "bootstrap95_market_excess": [
+              -0.01329047436065724,
+              0.004527788522877202
+            ],
+            "trim_best5_mean_market_excess": -0.010717975798980837,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.6233595637348113
+          },
+          "control": {
+            "n": 1708,
+            "active_days": 460,
+            "mean_return": -0.0015521266791350583,
+            "median_return": -0.0057153578438521625,
+            "win_rate": 0.4385245901639344,
+            "mean_market_excess": -0.0013978032183699302,
+            "bootstrap95_market_excess": [
+              -0.0043852663707834826,
+              0.001638528353547458
+            ],
+            "trim_best5_mean_market_excess": -0.006205054918703628,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5383055095528587
+          },
+          "paired": {
+            "paired_days": 55,
+            "selected_minus_control": -0.01031808635996908,
+            "expected_signed_difference": 0.01031808635996908,
+            "bootstrap95_expected_signed_difference": [
+              0.000783632724054498,
+              0.019459478133474838
+            ],
+            "positive_halfyears_expected_direction": 6,
+            "negative_halfyears_expected_direction": 2,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.25460593937251846
+          },
+          "verdict": "PASS"
+        },
+        "2d": {
+          "selected": {
+            "n": 225,
+            "active_days": 79,
+            "mean_return": -0.012675830244349397,
+            "median_return": -0.017347703180212035,
+            "win_rate": 0.40444444444444444,
+            "mean_market_excess": -0.003939337854672074,
+            "bootstrap95_market_excess": [
+              -0.01640337759556213,
+              0.008956685707730998
+            ],
+            "trim_best5_mean_market_excess": -0.008949155375084462,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.6217552816878498
+          },
+          "control": {
+            "n": 1705,
+            "active_days": 459,
+            "mean_return": -0.0055490981831144565,
+            "median_return": -0.011356203433754517,
+            "win_rate": 0.4146627565982405,
+            "mean_market_excess": -0.003135120786386063,
+            "bootstrap95_market_excess": [
+              -0.006990766204712393,
+              0.0008964918133630539
+            ],
+            "trim_best5_mean_market_excess": -0.009909634465812917,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.6857506901163086
+          },
+          "paired": {
+            "paired_days": 55,
+            "selected_minus_control": -0.011924988644237683,
+            "expected_signed_difference": 0.011924988644237683,
+            "bootstrap95_expected_signed_difference": [
+              -0.005490461009127056,
+              0.029627301342406008
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.35096953711368606
+          },
+          "verdict": "PROMISING"
+        },
+        "5d": {
+          "selected": {
+            "n": 225,
+            "active_days": 79,
+            "mean_return": -0.03233997149855696,
+            "median_return": -0.045145829428303676,
+            "win_rate": 0.3466666666666667,
+            "mean_market_excess": -0.011434910974003927,
+            "bootstrap95_market_excess": [
+              -0.031124175351083253,
+              0.00868891878185964
+            ],
+            "trim_best5_mean_market_excess": -0.027290474491573808,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.4881088292671814
+          },
+          "control": {
+            "n": 1697,
+            "active_days": 457,
+            "mean_return": -0.0078715997108492,
+            "median_return": -0.015976663031624903,
+            "win_rate": 0.41190335886859164,
+            "mean_market_excess": -0.0040970392574664425,
+            "bootstrap95_market_excess": [
+              -0.009969661641093263,
+              0.0020731382358677533
+            ],
+            "trim_best5_mean_market_excess": -0.014550885854696318,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.6508733052777347
+          },
+          "paired": {
+            "paired_days": 55,
+            "selected_minus_control": -0.01881887479633037,
+            "expected_signed_difference": 0.01881887479633037,
+            "bootstrap95_expected_signed_difference": [
+              -0.003765455454831525,
+              0.041833645899117644
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.3124413923887924
+          },
+          "verdict": "PROMISING"
+        }
+      },
+      "overall_verdict": "PROMISING"
+    },
+    "H04": {
+      "title": "novelty-emergence",
+      "source_cluster": "赵老哥/作手新一/陈小群",
+      "expected_direction": 1,
+      "minute_required": false,
+      "notes": "Current industry event proxy is provisional; true event text is a later upgrade.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 958,
+            "active_days": 338,
+            "mean_return": -0.00392959763964251,
+            "median_return": -0.007536174949070693,
+            "win_rate": 0.42171189979123175,
+            "mean_market_excess": -0.007021895669901765,
+            "bootstrap95_market_excess": [
+              -0.010414081935516283,
+              -0.0036088186963180104
+            ],
+            "trim_best5_mean_market_excess": -0.010098784502326805,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.8465831446942043
+          },
+          "control": {
+            "n": 2236,
+            "active_days": 564,
+            "mean_return": -0.006758829494918196,
+            "median_return": -0.010889557130228131,
+            "win_rate": 0.4083184257602862,
+            "mean_market_excess": -0.004419347710735081,
+            "bootstrap95_market_excess": [
+              -0.0073245953713259385,
+              -0.001493813434740849
+            ],
+            "trim_best5_mean_market_excess": -0.00932841125513393,
+            "halfyears": 16,
+            "positive_halfyears": 1,
+            "negative_halfyears": 15,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 175,
+            "selected_minus_control": -0.007782992176585774,
+            "expected_signed_difference": -0.007782992176585774,
+            "bootstrap95_expected_signed_difference": [
+              -0.013996480170933823,
+              -0.0015574349751492082
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 10,
+            "halfyears": 15,
+            "best_half_contribution_share": 0.5252253311942576
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 957,
+            "active_days": 338,
+            "mean_return": -0.0014387335304045332,
+            "median_return": -0.00662244629548445,
+            "win_rate": 0.438871473354232,
+            "mean_market_excess": -0.00722613214446065,
+            "bootstrap95_market_excess": [
+              -0.012023143731340155,
+              -0.0025282757370980787
+            ],
+            "trim_best5_mean_market_excess": -0.010842224481364123,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.7106571508865704
+          },
+          "control": {
+            "n": 2236,
+            "active_days": 564,
+            "mean_return": -0.00967381028587084,
+            "median_return": -0.010151688693098324,
+            "win_rate": 0.4199463327370304,
+            "mean_market_excess": -0.0038975412827732454,
+            "bootstrap95_market_excess": [
+              -0.007900244858636102,
+              3.3231157447439656e-05
+            ],
+            "trim_best5_mean_market_excess": -0.011165307000972976,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.643590967372197
+          },
+          "paired": {
+            "paired_days": 175,
+            "selected_minus_control": -0.009764655082224656,
+            "expected_signed_difference": -0.009764655082224656,
+            "bootstrap95_expected_signed_difference": [
+              -0.01836039617610912,
+              -0.00180530294927116
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 11,
+            "halfyears": 15,
+            "best_half_contribution_share": 0.7226767105953119
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 957,
+            "active_days": 338,
+            "mean_return": -0.003618211245061189,
+            "median_return": -0.010458008658008586,
+            "win_rate": 0.4336468129571578,
+            "mean_market_excess": -0.01015757984500827,
+            "bootstrap95_market_excess": [
+              -0.017844343563669485,
+              -0.00241526887027185
+            ],
+            "trim_best5_mean_market_excess": -0.020725709140498347,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.2727239874920874
+          },
+          "control": {
+            "n": 2235,
+            "active_days": 564,
+            "mean_return": -0.011865213876393681,
+            "median_return": -0.01433132832080206,
+            "win_rate": 0.4268456375838926,
+            "mean_market_excess": -0.008625345584478616,
+            "bootstrap95_market_excess": [
+              -0.014231081309332936,
+              -0.0028778932096184965
+            ],
+            "trim_best5_mean_market_excess": -0.02012697168786112,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.5252988711056001
+          },
+          "paired": {
+            "paired_days": 175,
+            "selected_minus_control": -0.014283443661837775,
+            "expected_signed_difference": -0.014283443661837775,
+            "bootstrap95_expected_signed_difference": [
+              -0.028505236451305503,
+              -0.0007761947602734063
+            ],
+            "positive_halfyears_expected_direction": 9,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 15,
+            "best_half_contribution_share": 0.6384539045087271
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 351,
+            "active_days": 114,
+            "mean_return": 0.0028397311049172466,
+            "median_return": -0.0055546933667084165,
+            "win_rate": 0.45014245014245013,
+            "mean_market_excess": -0.0038544669592603126,
+            "bootstrap95_market_excess": [
+              -0.010960903428910273,
+              0.003400522749058138
+            ],
+            "trim_best5_mean_market_excess": -0.006890536797081894,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.5177841870621442
+          },
+          "control": {
+            "n": 507,
+            "active_days": 195,
+            "mean_return": -0.004949944117150247,
+            "median_return": -0.011154761333653205,
+            "win_rate": 0.40039447731755423,
+            "mean_market_excess": -0.0029258443932782246,
+            "bootstrap95_market_excess": [
+              -0.008041169688062365,
+              0.0024971321184990023
+            ],
+            "trim_best5_mean_market_excess": -0.008327097573262695,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.3954248569456126
+          },
+          "paired": {
+            "paired_days": 41,
+            "selected_minus_control": -0.0012333189644873884,
+            "expected_signed_difference": -0.0012333189644873884,
+            "bootstrap95_expected_signed_difference": [
+              -0.016418888532595523,
+              0.01571801835129882
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 4,
+            "halfyears": 7,
+            "best_half_contribution_share": 0.45650150048180427
+          },
+          "verdict": "FAIL"
+        },
+        "2d": {
+          "selected": {
+            "n": 351,
+            "active_days": 114,
+            "mean_return": 0.0036961656334103922,
+            "median_return": -0.006512886022572138,
+            "win_rate": 0.46153846153846156,
+            "mean_market_excess": -0.006647661590516195,
+            "bootstrap95_market_excess": [
+              -0.014595677243289366,
+              0.0016059275175938062
+            ],
+            "trim_best5_mean_market_excess": -0.007691620646938658,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.3691103615975388
+          },
+          "control": {
+            "n": 507,
+            "active_days": 195,
+            "mean_return": -0.006454987123036928,
+            "median_return": -0.01321141141141122,
+            "win_rate": 0.41420118343195267,
+            "mean_market_excess": -0.0012697830916571537,
+            "bootstrap95_market_excess": [
+              -0.00830875555589502,
+              0.005950876184584857
+            ],
+            "trim_best5_mean_market_excess": -0.008419606153788181,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.655610115102387
+          },
+          "paired": {
+            "paired_days": 41,
+            "selected_minus_control": -0.005741832290198079,
+            "expected_signed_difference": -0.005741832290198079,
+            "bootstrap95_expected_signed_difference": [
+              -0.020644303164548107,
+              0.00952388451014238
+            ],
+            "positive_halfyears_expected_direction": 1,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 7,
+            "best_half_contribution_share": 1.0
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 349,
+            "active_days": 114,
+            "mean_return": -0.006422070942614634,
+            "median_return": -0.014145679012345733,
+            "win_rate": 0.4326647564469914,
+            "mean_market_excess": -0.00858841148993255,
+            "bootstrap95_market_excess": [
+              -0.02301957518207362,
+              0.006502057876651801
+            ],
+            "trim_best5_mean_market_excess": -0.016728815160398796,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.5461048107582258
+          },
+          "control": {
+            "n": 503,
+            "active_days": 193,
+            "mean_return": -0.010430721736614577,
+            "median_return": -0.023353398058252404,
+            "win_rate": 0.415506958250497,
+            "mean_market_excess": -0.00018068637125664316,
+            "bootstrap95_market_excess": [
+              -0.011403031125128603,
+              0.011260021212279557
+            ],
+            "trim_best5_mean_market_excess": -0.013781661334848367,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.4122564825555023
+          },
+          "paired": {
+            "paired_days": 41,
+            "selected_minus_control": -0.010118854446566664,
+            "expected_signed_difference": -0.010118854446566664,
+            "bootstrap95_expected_signed_difference": [
+              -0.03527001431544014,
+              0.014714152754880173
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 4,
+            "halfyears": 7,
+            "best_half_contribution_share": 0.5049918099312973
+          },
+          "verdict": "FAIL"
+        }
+      },
+      "overall_verdict": "FAIL"
+    },
+    "H05": {
+      "title": "breadth-with-leader",
+      "source_cluster": "主线/合力/热点中的热点",
+      "expected_direction": 1,
+      "minute_required": false,
+      "notes": "Leader plus broad participation versus isolated strong stock.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 65854,
+            "active_days": 1904,
+            "mean_return": -0.002344088470502769,
+            "median_return": -0.0035064846416383616,
+            "win_rate": 0.4329273848209676,
+            "mean_market_excess": -0.0005010745487213852,
+            "bootstrap95_market_excess": [
+              -0.0010971838775134068,
+              8.505451431417335e-05
+            ],
+            "trim_best5_mean_market_excess": -0.004963033931627385,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.4806100642310232
+          },
+          "control": {
+            "n": 70966,
+            "active_days": 1876,
+            "mean_return": -0.001468744736221288,
+            "median_return": -0.0018,
+            "win_rate": 0.45496434912493305,
+            "mean_market_excess": -0.00041093413481673764,
+            "bootstrap95_market_excess": [
+              -0.0008925587997677397,
+              7.808971462584346e-05
+            ],
+            "trim_best5_mean_market_excess": -0.004362182606813571,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.45478396920748665
+          },
+          "paired": {
+            "paired_days": 1833,
+            "selected_minus_control": -4.410191056871136e-05,
+            "expected_signed_difference": -4.410191056871136e-05,
+            "bootstrap95_expected_signed_difference": [
+              -0.0008377397716551807,
+              0.0007000313364797958
+            ],
+            "positive_halfyears_expected_direction": 10,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.1774871429965331
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 65834,
+            "active_days": 1904,
+            "mean_return": -0.00227805762999343,
+            "median_return": -0.0034393442622950615,
+            "win_rate": 0.4554485524197223,
+            "mean_market_excess": -0.0010296836990554676,
+            "bootstrap95_market_excess": [
+              -0.0018144252462033157,
+              -0.00022398550615019834
+            ],
+            "trim_best5_mean_market_excess": -0.007120025654155814,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.7142344666582028
+          },
+          "control": {
+            "n": 70932,
+            "active_days": 1876,
+            "mean_return": -0.001969852556378123,
+            "median_return": -0.0030591829184503966,
+            "win_rate": 0.456564033158518,
+            "mean_market_excess": -0.0011264661341066472,
+            "bootstrap95_market_excess": [
+              -0.0017798022062033108,
+              -0.0004935530682229037
+            ],
+            "trim_best5_mean_market_excess": -0.006463769191579294,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.6011592028945804
+          },
+          "paired": {
+            "paired_days": 1833,
+            "selected_minus_control": 6.024435313951015e-05,
+            "expected_signed_difference": 6.024435313951015e-05,
+            "bootstrap95_expected_signed_difference": [
+              -0.000996593188733921,
+              0.0010705719742397331
+            ],
+            "positive_halfyears_expected_direction": 8,
+            "negative_halfyears_expected_direction": 8,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.23675368016348133
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 65764,
+            "active_days": 1904,
+            "mean_return": -0.0034890258592085474,
+            "median_return": -0.00509760948232638,
+            "win_rate": 0.46000851529712306,
+            "mean_market_excess": -0.0032783367161561493,
+            "bootstrap95_market_excess": [
+              -0.004646994360383145,
+              -0.0019423038007074815
+            ],
+            "trim_best5_mean_market_excess": -0.011880831374794183,
+            "halfyears": 16,
+            "positive_halfyears": 1,
+            "negative_halfyears": 15,
+            "best_half_contribution_share": 1.0
+          },
+          "control": {
+            "n": 70846,
+            "active_days": 1876,
+            "mean_return": -0.0030300317439859964,
+            "median_return": -0.004206580978596251,
+            "win_rate": 0.4635688676848375,
+            "mean_market_excess": -0.0017315462273931746,
+            "bootstrap95_market_excess": [
+              -0.002768662211762071,
+              -0.0005686642370998723
+            ],
+            "trim_best5_mean_market_excess": -0.01085853488333083,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.4302673828065253
+          },
+          "paired": {
+            "paired_days": 1833,
+            "selected_minus_control": -0.001731312258170352,
+            "expected_signed_difference": -0.001731312258170352,
+            "bootstrap95_expected_signed_difference": [
+              -0.0035913046520478146,
+              7.486683784054165e-05
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 12,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.48646692731145774
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 28276,
+            "active_days": 880,
+            "mean_return": -0.0018288509027638501,
+            "median_return": -0.004136994752548449,
+            "win_rate": 0.41402602914132125,
+            "mean_market_excess": -0.00013558151677757499,
+            "bootstrap95_market_excess": [
+              -0.0008706689483985244,
+              0.0006326371384979412
+            ],
+            "trim_best5_mean_market_excess": -0.004337473235650808,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.4022371389292104
+          },
+          "control": {
+            "n": 32869,
+            "active_days": 886,
+            "mean_return": -0.0016535888209742798,
+            "median_return": -0.0026130081300814495,
+            "win_rate": 0.43220055371322524,
+            "mean_market_excess": -0.0002308673604518665,
+            "bootstrap95_market_excess": [
+              -0.0007142814412191817,
+              0.0002382603814686999
+            ],
+            "trim_best5_mean_market_excess": -0.003793288246609503,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.5572479809824636
+          },
+          "paired": {
+            "paired_days": 878,
+            "selected_minus_control": 0.0001093575674721264,
+            "expected_signed_difference": 0.0001093575674721264,
+            "bootstrap95_expected_signed_difference": [
+              -0.000789656294045205,
+              0.0010392434764096114
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.46284580090670485
+          },
+          "verdict": "FAIL_SIGN_FLIP"
+        },
+        "2d": {
+          "selected": {
+            "n": 28224,
+            "active_days": 879,
+            "mean_return": -0.0012107297903874003,
+            "median_return": -0.005078688524590178,
+            "win_rate": 0.4278982426303855,
+            "mean_market_excess": -0.0004227401070112546,
+            "bootstrap95_market_excess": [
+              -0.0014078333386380844,
+              0.000587790850153011
+            ],
+            "trim_best5_mean_market_excess": -0.006253953113255703,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.7676329293732341
+          },
+          "control": {
+            "n": 32826,
+            "active_days": 885,
+            "mean_return": -0.0018179890415298246,
+            "median_return": -0.0037976694410781536,
+            "win_rate": 0.43794553098153904,
+            "mean_market_excess": -0.00027369325320335806,
+            "bootstrap95_market_excess": [
+              -0.0009660807578088055,
+              0.0004103216427143395
+            ],
+            "trim_best5_mean_market_excess": -0.005103967839953809,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.5690646442825573
+          },
+          "paired": {
+            "paired_days": 877,
+            "selected_minus_control": -0.0001348425200216644,
+            "expected_signed_difference": -0.0001348425200216644,
+            "bootstrap95_expected_signed_difference": [
+              -0.0013657175683009113,
+              0.0011040680183086508
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.38733241016261766
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 28083,
+            "active_days": 876,
+            "mean_return": -0.0012914111989808445,
+            "median_return": -0.006800724742716289,
+            "win_rate": 0.4348894348894349,
+            "mean_market_excess": -0.0014308958678763155,
+            "bootstrap95_market_excess": [
+              -0.0029132326117209495,
+              4.388008184096638e-05
+            ],
+            "trim_best5_mean_market_excess": -0.010316723344549117,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.717586242436139
+          },
+          "control": {
+            "n": 32699,
+            "active_days": 882,
+            "mean_return": -0.0007382449868976273,
+            "median_return": -0.00512170735758186,
+            "win_rate": 0.4452123918162635,
+            "mean_market_excess": -5.350454935538804e-05,
+            "bootstrap95_market_excess": [
+              -0.001480756818764056,
+              0.0015996428380266826
+            ],
+            "trim_best5_mean_market_excess": -0.008611848848027015,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5650365496671409
+          },
+          "paired": {
+            "paired_days": 874,
+            "selected_minus_control": -0.001349069630549212,
+            "expected_signed_difference": -0.001349069630549212,
+            "bootstrap95_expected_signed_difference": [
+              -0.003723635470342216,
+              0.0008509003204710456
+            ],
+            "positive_halfyears_expected_direction": 2,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.7720030631065407
+          },
+          "verdict": "FAIL"
+        }
+      },
+      "overall_verdict": "FAIL_SIGN_FLIP"
+    },
+    "H06": {
+      "title": "post-divergence repair",
+      "source_cluster": "养家/涅槃重升/乔帮主",
+      "expected_direction": 1,
+      "minute_required": true,
+      "notes": "",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 1338,
+            "active_days": 425,
+            "mean_return": -0.00413471332605313,
+            "median_return": -0.008410303586029375,
+            "win_rate": 0.4431988041853513,
+            "mean_market_excess": -0.006445079371461056,
+            "bootstrap95_market_excess": [
+              -0.010913017099713068,
+              -0.0020263772998956736
+            ],
+            "trim_best5_mean_market_excess": -0.011960531967446909,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.5219254623672167
+          },
+          "control": {
+            "n": 299,
+            "active_days": 113,
+            "mean_return": -0.013867911224085603,
+            "median_return": -0.018441452344931972,
+            "win_rate": 0.3779264214046823,
+            "mean_market_excess": -0.008618949706089006,
+            "bootstrap95_market_excess": [
+              -0.017056416733059753,
+              0.00017469271010627876
+            ],
+            "trim_best5_mean_market_excess": -0.016952987224190197,
+            "halfyears": 14,
+            "positive_halfyears": 5,
+            "negative_halfyears": 9,
+            "best_half_contribution_share": 0.34500915673597893
+          },
+          "paired": {
+            "paired_days": 78,
+            "selected_minus_control": 0.00035282491303036497,
+            "expected_signed_difference": 0.00035282491303036497,
+            "bootstrap95_expected_signed_difference": [
+              -0.010751800590112921,
+              0.011505393902160006
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 9,
+            "best_half_contribution_share": 0.6729887224828702
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 1338,
+            "active_days": 425,
+            "mean_return": -0.008421529963314092,
+            "median_return": -0.010455974393026233,
+            "win_rate": 0.4304932735426009,
+            "mean_market_excess": -0.0101391173145591,
+            "bootstrap95_market_excess": [
+              -0.01565774091294465,
+              -0.004431432489557612
+            ],
+            "trim_best5_mean_market_excess": -0.016748784121274334,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.41182421484454035
+          },
+          "control": {
+            "n": 299,
+            "active_days": 113,
+            "mean_return": -0.020567261767038884,
+            "median_return": -0.01861759379042691,
+            "win_rate": 0.3745819397993311,
+            "mean_market_excess": -0.005506431618798899,
+            "bootstrap95_market_excess": [
+              -0.015126861851026723,
+              0.004833572543979814
+            ],
+            "trim_best5_mean_market_excess": -0.015293705273683088,
+            "halfyears": 14,
+            "positive_halfyears": 5,
+            "negative_halfyears": 9,
+            "best_half_contribution_share": 0.5834170514222384
+          },
+          "paired": {
+            "paired_days": 78,
+            "selected_minus_control": -0.011013236944645085,
+            "expected_signed_difference": -0.011013236944645085,
+            "bootstrap95_expected_signed_difference": [
+              -0.024276198455698766,
+              0.001858581872109183
+            ],
+            "positive_halfyears_expected_direction": 2,
+            "negative_halfyears_expected_direction": 7,
+            "halfyears": 9,
+            "best_half_contribution_share": 0.9349542360073405
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 1334,
+            "active_days": 424,
+            "mean_return": -0.02230403541206489,
+            "median_return": -0.02544534622599146,
+            "win_rate": 0.39580209895052476,
+            "mean_market_excess": -0.018724622727642408,
+            "bootstrap95_market_excess": [
+              -0.027162495471649964,
+              -0.010335402790071795
+            ],
+            "trim_best5_mean_market_excess": -0.032163205193843795,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.5156847124126311
+          },
+          "control": {
+            "n": 299,
+            "active_days": 113,
+            "mean_return": -0.012181978600256757,
+            "median_return": -0.013266505733252918,
+            "win_rate": 0.42474916387959866,
+            "mean_market_excess": -0.01882344905075159,
+            "bootstrap95_market_excess": [
+              -0.03147495289448581,
+              -0.005073545441690763
+            ],
+            "trim_best5_mean_market_excess": -0.03096186324386331,
+            "halfyears": 14,
+            "positive_halfyears": 3,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.7141208191507621
+          },
+          "paired": {
+            "paired_days": 78,
+            "selected_minus_control": -0.01876490383741473,
+            "expected_signed_difference": -0.01876490383741473,
+            "bootstrap95_expected_signed_difference": [
+              -0.03967471221884282,
+              0.001789531524707827
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 9,
+            "best_half_contribution_share": 0.7296290114245215
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 245,
+            "active_days": 125,
+            "mean_return": -0.004221340791091405,
+            "median_return": -0.009207407407407196,
+            "win_rate": 0.40408163265306124,
+            "mean_market_excess": -0.0010591421775930426,
+            "bootstrap95_market_excess": [
+              -0.008567937590887392,
+              0.006381436256894842
+            ],
+            "trim_best5_mean_market_excess": -0.006359538378205887,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.6895602739757558
+          },
+          "control": {
+            "n": 82,
+            "active_days": 36,
+            "mean_return": -0.015544405022292268,
+            "median_return": -0.021561154403769465,
+            "win_rate": 0.32926829268292684,
+            "mean_market_excess": -0.00790946981943471,
+            "bootstrap95_market_excess": [
+              -0.024093559530578217,
+              0.010791068615668396
+            ],
+            "trim_best5_mean_market_excess": -0.019248753483227438,
+            "halfyears": 6,
+            "positive_halfyears": 1,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 19,
+            "selected_minus_control": 0.014682767903329652,
+            "expected_signed_difference": 0.014682767903329652,
+            "bootstrap95_expected_signed_difference": [
+              -0.002726226194591945,
+              0.03251708066318364
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 1,
+            "halfyears": 6,
+            "best_half_contribution_share": 0.49907593735482597
+          },
+          "verdict": "WEAK_CONTROL_ONLY"
+        },
+        "2d": {
+          "selected": {
+            "n": 245,
+            "active_days": 125,
+            "mean_return": -0.009164377820424355,
+            "median_return": -0.018894017094017033,
+            "win_rate": 0.37142857142857144,
+            "mean_market_excess": -0.0015593037702506317,
+            "bootstrap95_market_excess": [
+              -0.012315394915440817,
+              0.009293267811661642
+            ],
+            "trim_best5_mean_market_excess": -0.00937302895367422,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5865975045522361
+          },
+          "control": {
+            "n": 82,
+            "active_days": 36,
+            "mean_return": -0.028912042204101037,
+            "median_return": -0.021910574689107152,
+            "win_rate": 0.36585365853658536,
+            "mean_market_excess": -0.02256236564402309,
+            "bootstrap95_market_excess": [
+              -0.04538112321662941,
+              0.002029875626570989
+            ],
+            "trim_best5_mean_market_excess": -0.032648663725786356,
+            "halfyears": 6,
+            "positive_halfyears": 1,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 19,
+            "selected_minus_control": 0.04371986024657797,
+            "expected_signed_difference": 0.04371986024657797,
+            "bootstrap95_expected_signed_difference": [
+              0.014375973163153144,
+              0.07257303460266433
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 1,
+            "halfyears": 6,
+            "best_half_contribution_share": 0.4958876215363244
+          },
+          "verdict": "FAIL_SIGN_FLIP"
+        },
+        "5d": {
+          "selected": {
+            "n": 244,
+            "active_days": 125,
+            "mean_return": -0.01974315668883276,
+            "median_return": -0.03201432365643545,
+            "win_rate": 0.36885245901639346,
+            "mean_market_excess": -0.009875544647155362,
+            "bootstrap95_market_excess": [
+              -0.026604118196818474,
+              0.007368103149882906
+            ],
+            "trim_best5_mean_market_excess": -0.02486403416341609,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.423258166026532
+          },
+          "control": {
+            "n": 82,
+            "active_days": 36,
+            "mean_return": -0.04276692760271834,
+            "median_return": -0.05427685605373032,
+            "win_rate": 0.3048780487804878,
+            "mean_market_excess": -0.02728887394891623,
+            "bootstrap95_market_excess": [
+              -0.06499739795832256,
+              0.011732197214495858
+            ],
+            "trim_best5_mean_market_excess": -0.05166790358157349,
+            "halfyears": 6,
+            "positive_halfyears": 1,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 19,
+            "selected_minus_control": 0.03659101676385443,
+            "expected_signed_difference": 0.03659101676385443,
+            "bootstrap95_expected_signed_difference": [
+              0.0003625025810873167,
+              0.07877677462522749
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 1,
+            "halfyears": 6,
+            "best_half_contribution_share": 0.47036341192466674
+          },
+          "verdict": "FAIL_SIGN_FLIP"
+        }
+      },
+      "overall_verdict": "FAIL_SIGN_FLIP"
+    },
+    "H07": {
+      "title": "survivor-not-follower",
+      "source_cluster": "龙头/淘汰赛/幸存者",
+      "expected_direction": 1,
+      "minute_required": true,
+      "notes": "",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 8311,
+            "active_days": 923,
+            "mean_return": -0.0003751256694043849,
+            "median_return": -0.0018,
+            "win_rate": 0.485621465527614,
+            "mean_market_excess": 0.0008214653868356812,
+            "bootstrap95_market_excess": [
+              -0.0008478688599258727,
+              0.002494221544049854
+            ],
+            "trim_best5_mean_market_excess": -0.003835419490511902,
+            "halfyears": 16,
+            "positive_halfyears": 8,
+            "negative_halfyears": 8,
+            "best_half_contribution_share": 0.26101635678447666
+          },
+          "control": {
+            "n": 12454,
+            "active_days": 951,
+            "mean_return": -0.0006701689242832755,
+            "median_return": -0.0018,
+            "win_rate": 0.46523205395856754,
+            "mean_market_excess": 0.00021680225269725932,
+            "bootstrap95_market_excess": [
+              -0.0011545904157211659,
+              0.00208764258855726
+            ],
+            "trim_best5_mean_market_excess": -0.003955932843359675,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.6105331791917472
+          },
+          "paired": {
+            "paired_days": 887,
+            "selected_minus_control": 0.0004570536281852654,
+            "expected_signed_difference": 0.0004570536281852654,
+            "bootstrap95_expected_signed_difference": [
+              -0.0018250388262981377,
+              0.0024933740101448624
+            ],
+            "positive_halfyears_expected_direction": 9,
+            "negative_halfyears_expected_direction": 7,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.383356619703485
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 8310,
+            "active_days": 923,
+            "mean_return": -0.00046095981801935683,
+            "median_return": -0.0018,
+            "win_rate": 0.4817087845968712,
+            "mean_market_excess": -0.0008537786453391486,
+            "bootstrap95_market_excess": [
+              -0.0032928217648416458,
+              0.001578281256459838
+            ],
+            "trim_best5_mean_market_excess": -0.007244591929979761,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.2695307358161229
+          },
+          "control": {
+            "n": 12451,
+            "active_days": 951,
+            "mean_return": 0.0005358405460969824,
+            "median_return": -0.001106037473976394,
+            "win_rate": 0.48847482129949404,
+            "mean_market_excess": -0.0001225809108295336,
+            "bootstrap95_market_excess": [
+              -0.0019661801283300958,
+              0.0020941790289240015
+            ],
+            "trim_best5_mean_market_excess": -0.0054875038224755385,
+            "halfyears": 16,
+            "positive_halfyears": 8,
+            "negative_halfyears": 8,
+            "best_half_contribution_share": 0.6258862414036304
+          },
+          "paired": {
+            "paired_days": 887,
+            "selected_minus_control": -0.0013004852229103866,
+            "expected_signed_difference": -0.0013004852229103866,
+            "bootstrap95_expected_signed_difference": [
+              -0.004428829034203751,
+              0.001481212097626306
+            ],
+            "positive_halfyears_expected_direction": 8,
+            "negative_halfyears_expected_direction": 8,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.305048933805577
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 8305,
+            "active_days": 922,
+            "mean_return": -0.00116073801324453,
+            "median_return": -0.003396504495420703,
+            "win_rate": 0.4817579771222155,
+            "mean_market_excess": -0.005415262384621435,
+            "bootstrap95_market_excess": [
+              -0.008466011696845906,
+              -0.002238786615383577
+            ],
+            "trim_best5_mean_market_excess": -0.014091312477114646,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.7491833694792632
+          },
+          "control": {
+            "n": 12443,
+            "active_days": 951,
+            "mean_return": 0.002127941560440954,
+            "median_return": 0.00010839694656474995,
+            "win_rate": 0.5005223820622037,
+            "mean_market_excess": -0.002093734930145798,
+            "bootstrap95_market_excess": [
+              -0.004538163401329145,
+              0.0006316693418051453
+            ],
+            "trim_best5_mean_market_excess": -0.009849978509455052,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.7764452625866219
+          },
+          "paired": {
+            "paired_days": 886,
+            "selected_minus_control": -0.0037532672917559738,
+            "expected_signed_difference": -0.0037532672917559738,
+            "bootstrap95_expected_signed_difference": [
+              -0.007449213170238776,
+              6.961676859070866e-05
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 12,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.35735013674783306
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 2098,
+            "active_days": 319,
+            "mean_return": -0.0012961309298901355,
+            "median_return": -0.0027159451145403507,
+            "win_rate": 0.4671115347950429,
+            "mean_market_excess": -0.001566561106962997,
+            "bootstrap95_market_excess": [
+              -0.005013696444189601,
+              0.0018818530834908186
+            ],
+            "trim_best5_mean_market_excess": -0.006049371923926328,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.6787696442973211
+          },
+          "control": {
+            "n": 4949,
+            "active_days": 360,
+            "mean_return": 0.003221268923101875,
+            "median_return": -0.0010568739162743796,
+            "win_rate": 0.4813093554253384,
+            "mean_market_excess": 0.0014945046418039971,
+            "bootstrap95_market_excess": [
+              -0.0004849367461084663,
+              0.003638573255295817
+            ],
+            "trim_best5_mean_market_excess": -0.0019478093480016702,
+            "halfyears": 8,
+            "positive_halfyears": 6,
+            "negative_halfyears": 2,
+            "best_half_contribution_share": 0.31969961305507816
+          },
+          "paired": {
+            "paired_days": 311,
+            "selected_minus_control": -0.002616294419190482,
+            "expected_signed_difference": -0.002616294419190482,
+            "bootstrap95_expected_signed_difference": [
+              -0.005470449256246868,
+              0.00018785480564573705
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.8299901427337874
+          },
+          "verdict": "FAIL"
+        },
+        "2d": {
+          "selected": {
+            "n": 2093,
+            "active_days": 318,
+            "mean_return": -0.004783642927547346,
+            "median_return": -0.010267023172905596,
+            "win_rate": 0.43000477783086477,
+            "mean_market_excess": -0.004048306165485197,
+            "bootstrap95_market_excess": [
+              -0.008681938596452813,
+              0.0005235255066351354
+            ],
+            "trim_best5_mean_market_excess": -0.011385800842618666,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.6672148757960842
+          },
+          "control": {
+            "n": 4925,
+            "active_days": 359,
+            "mean_return": 0.001399079278452068,
+            "median_return": -0.0027166666666666767,
+            "win_rate": 0.4619289340101523,
+            "mean_market_excess": 0.001377795651826812,
+            "bootstrap95_market_excess": [
+              -0.0012913146464749539,
+              0.004170521348222835
+            ],
+            "trim_best5_mean_market_excess": -0.004289312169878841,
+            "halfyears": 8,
+            "positive_halfyears": 6,
+            "negative_halfyears": 2,
+            "best_half_contribution_share": 0.2977526894562607
+          },
+          "paired": {
+            "paired_days": 310,
+            "selected_minus_control": -0.004808414483940938,
+            "expected_signed_difference": -0.004808414483940938,
+            "bootstrap95_expected_signed_difference": [
+              -0.008783975555990607,
+              -0.0007254871680416924
+            ],
+            "positive_halfyears_expected_direction": 2,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.8057147090793463
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 2082,
+            "active_days": 316,
+            "mean_return": -0.002972169422175138,
+            "median_return": -0.010125958702064872,
+            "win_rate": 0.43948126801152737,
+            "mean_market_excess": -0.0021659087525582976,
+            "bootstrap95_market_excess": [
+              -0.008756064318606092,
+              0.004622822096019526
+            ],
+            "trim_best5_mean_market_excess": -0.013618442848648566,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.557486847175303
+          },
+          "control": {
+            "n": 4894,
+            "active_days": 357,
+            "mean_return": 0.0022229469818680816,
+            "median_return": -0.004050373163144747,
+            "win_rate": 0.46710257458111976,
+            "mean_market_excess": 0.003042522296893652,
+            "bootstrap95_market_excess": [
+              -0.0006985129210962184,
+              0.0069171351993834946
+            ],
+            "trim_best5_mean_market_excess": -0.004569649391844065,
+            "halfyears": 8,
+            "positive_halfyears": 6,
+            "negative_halfyears": 2,
+            "best_half_contribution_share": 0.4139301732120459
+          },
+          "paired": {
+            "paired_days": 308,
+            "selected_minus_control": -0.00427655564775395,
+            "expected_signed_difference": -0.00427655564775395,
+            "bootstrap95_expected_signed_difference": [
+              -0.009883685466596584,
+              0.0015188661655118896
+            ],
+            "positive_halfyears_expected_direction": 2,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.790440605893826
+          },
+          "verdict": "FAIL"
+        }
+      },
+      "overall_verdict": "FAIL"
+    },
+    "H08": {
+      "title": "role persistence",
+      "source_cluster": "赵老哥/养家/陈小群/作手新一",
+      "expected_direction": 1,
+      "minute_required": false,
+      "notes": "Persistent role versus same-day strength without prior role evidence.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 45956,
+            "active_days": 1947,
+            "mean_return": -0.0025273184706630465,
+            "median_return": -0.0041508156650193785,
+            "win_rate": 0.4454913395421708,
+            "mean_market_excess": -0.0009001387424986827,
+            "bootstrap95_market_excess": [
+              -0.001454465078268546,
+              -0.00033655375969019174
+            ],
+            "trim_best5_mean_market_excess": -0.005576402487295123,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.4690365370447312
+          },
+          "control": {
+            "n": 91558,
+            "active_days": 1939,
+            "mean_return": -0.001880035239774199,
+            "median_return": -0.0026092254649813,
+            "win_rate": 0.4393280761921405,
+            "mean_market_excess": -0.00020442047256785992,
+            "bootstrap95_market_excess": [
+              -0.0006200876598292865,
+              0.00018635220674319812
+            ],
+            "trim_best5_mean_market_excess": -0.0041883035350221524,
+            "halfyears": 16,
+            "positive_halfyears": 7,
+            "negative_halfyears": 9,
+            "best_half_contribution_share": 0.3276012881987035
+          },
+          "paired": {
+            "paired_days": 1939,
+            "selected_minus_control": -0.0007021397869856896,
+            "expected_signed_difference": -0.0007021397869856896,
+            "bootstrap95_expected_signed_difference": [
+              -0.0013779897437559197,
+              -1.5213550084216394e-05
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 12,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.3719603741792878
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 45928,
+            "active_days": 1947,
+            "mean_return": -0.003454455164954058,
+            "median_return": -0.005836779750013597,
+            "win_rate": 0.4487023166695698,
+            "mean_market_excess": -0.0017847565814763453,
+            "bootstrap95_market_excess": [
+              -0.002551351663926364,
+              -0.0010309608532574489
+            ],
+            "trim_best5_mean_market_excess": -0.008232890080715463,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.4261327453299015
+          },
+          "control": {
+            "n": 91543,
+            "active_days": 1939,
+            "mean_return": -0.0019801781673979097,
+            "median_return": -0.0028570824524314126,
+            "win_rate": 0.4576756278470227,
+            "mean_market_excess": -0.000657174585675574,
+            "bootstrap95_market_excess": [
+              -0.001205953924337993,
+              -0.0001215235593481311
+            ],
+            "trim_best5_mean_market_excess": -0.006114328046220203,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.33439652456879754
+          },
+          "paired": {
+            "paired_days": 1939,
+            "selected_minus_control": -0.0011506531816499665,
+            "expected_signed_difference": -0.0011506531816499665,
+            "bootstrap95_expected_signed_difference": [
+              -0.002101349221346843,
+              -0.00016225867398346377
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 12,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.536495823259265
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 45852,
+            "active_days": 1947,
+            "mean_return": -0.006006539737321602,
+            "median_return": -0.010044590461085332,
+            "win_rate": 0.4423580214603507,
+            "mean_market_excess": -0.004628484198716001,
+            "bootstrap95_market_excess": [
+              -0.005735151628084169,
+              -0.0035245986476945324
+            ],
+            "trim_best5_mean_market_excess": -0.014360795188685434,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.5019175473771195
+          },
+          "control": {
+            "n": 91498,
+            "active_days": 1939,
+            "mean_return": -0.0029795660146608037,
+            "median_return": -0.0038752271175930037,
+            "win_rate": 0.46537629237797545,
+            "mean_market_excess": -0.002379839675949443,
+            "bootstrap95_market_excess": [
+              -0.0031840072460024953,
+              -0.0015975142902155855
+            ],
+            "trim_best5_mean_market_excess": -0.010725230753963668,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.5580451213557029
+          },
+          "paired": {
+            "paired_days": 1939,
+            "selected_minus_control": -0.0023042827832791815,
+            "expected_signed_difference": -0.0023042827832791815,
+            "bootstrap95_expected_signed_difference": [
+              -0.003661512645051176,
+              -0.0009640690669962668
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 11,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.5103771086236228
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 13144,
+            "active_days": 888,
+            "mean_return": -0.0026300822001261615,
+            "median_return": -0.005210062154415138,
+            "win_rate": 0.4255173463177115,
+            "mean_market_excess": -0.0007727967969971814,
+            "bootstrap95_market_excess": [
+              -0.0017629547537099857,
+              0.00021161088715290153
+            ],
+            "trim_best5_mean_market_excess": -0.0059070576243568425,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5012701213558007
+          },
+          "control": {
+            "n": 44955,
+            "active_days": 888,
+            "mean_return": -0.0015727457366846286,
+            "median_return": -0.003301501501501523,
+            "win_rate": 0.4246023801579357,
+            "mean_market_excess": -0.00013259153882367,
+            "bootstrap95_market_excess": [
+              -0.00047696340438269357,
+              0.00022139360926565595
+            ],
+            "trim_best5_mean_market_excess": -0.0037990976417203604,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.3966278112570592
+          },
+          "paired": {
+            "paired_days": 888,
+            "selected_minus_control": -0.0006402052581735116,
+            "expected_signed_difference": -0.0006402052581735116,
+            "bootstrap95_expected_signed_difference": [
+              -0.0017374112911710837,
+              0.0004602412332035541
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.5677838525148466
+          },
+          "verdict": "FAIL"
+        },
+        "2d": {
+          "selected": {
+            "n": 13121,
+            "active_days": 887,
+            "mean_return": -0.00216911448350043,
+            "median_return": -0.0069744726018310145,
+            "win_rate": 0.4336559713436476,
+            "mean_market_excess": -0.0008239766980871371,
+            "bootstrap95_market_excess": [
+              -0.002214607379312284,
+              0.0006024430014221462
+            ],
+            "trim_best5_mean_market_excess": -0.008494621991582055,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.5479065712283373
+          },
+          "control": {
+            "n": 44904,
+            "active_days": 887,
+            "mean_return": -0.00146820450425696,
+            "median_return": -0.004399935276229481,
+            "win_rate": 0.4303402814893996,
+            "mean_market_excess": -0.0003269016345509389,
+            "bootstrap95_market_excess": [
+              -0.0008381909913507978,
+              0.00017399140753956662
+            ],
+            "trim_best5_mean_market_excess": -0.005409682563922319,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.34063311551564707
+          },
+          "paired": {
+            "paired_days": 887,
+            "selected_minus_control": -0.0004970750635361981,
+            "expected_signed_difference": -0.0004970750635361981,
+            "bootstrap95_expected_signed_difference": [
+              -0.002010242443951631,
+              0.001105730324943282
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.38319444401959535
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 13023,
+            "active_days": 884,
+            "mean_return": -0.0003185249091436817,
+            "median_return": -0.009728642220019876,
+            "win_rate": 0.4347692543960685,
+            "mean_market_excess": 2.3391939467682942e-05,
+            "bootstrap95_market_excess": [
+              -0.002598966974910729,
+              0.00282588791410796
+            ],
+            "trim_best5_mean_market_excess": -0.013225027220818598,
+            "halfyears": 8,
+            "positive_halfyears": 5,
+            "negative_halfyears": 3,
+            "best_half_contribution_share": 0.33825268224036753
+          },
+          "control": {
+            "n": 44751,
+            "active_days": 884,
+            "mean_return": -0.000713170564216553,
+            "median_return": -0.005731847968545287,
+            "win_rate": 0.44164376215056644,
+            "mean_market_excess": -0.0007593427380174397,
+            "bootstrap95_market_excess": [
+              -0.0015546081520439502,
+              4.27150547063444e-05
+            ],
+            "trim_best5_mean_market_excess": -0.009084970864432605,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.4635882309008303
+          },
+          "paired": {
+            "paired_days": 884,
+            "selected_minus_control": 0.0007827346774851229,
+            "expected_signed_difference": 0.0007827346774851229,
+            "bootstrap95_expected_signed_difference": [
+              -0.001892541796965784,
+              0.003639966703135358
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.348030490446999
+          },
+          "verdict": "FAIL_SIGN_FLIP"
+        }
+      },
+      "overall_verdict": "FAIL_SIGN_FLIP"
+    },
+    "H10": {
+      "title": "amount acceleration sweet zone",
+      "source_cluster": "放量/资金合力/分歧成交额",
+      "expected_direction": 1,
+      "minute_required": false,
+      "notes": "Pre-registered moderate acceleration; >2x is reported separately as possible distribution.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 14735,
+            "active_days": 1910,
+            "mean_return": -0.003188260541825668,
+            "median_return": -0.004922289679098,
+            "win_rate": 0.43820834747200543,
+            "mean_market_excess": -0.0004957963401645485,
+            "bootstrap95_market_excess": [
+              -0.0014238976039072258,
+              0.000458763300598771
+            ],
+            "trim_best5_mean_market_excess": -0.005550751219539085,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.40423473823875966
+          },
+          "control": {
+            "n": 13391,
+            "active_days": 1915,
+            "mean_return": -0.003734677331432355,
+            "median_return": -0.004673563218390717,
+            "win_rate": 0.43798073332835485,
+            "mean_market_excess": -0.0018246962660729317,
+            "bootstrap95_market_excess": [
+              -0.0029364720805936614,
+              -0.0007735313451677498
+            ],
+            "trim_best5_mean_market_excess": -0.005973779806105152,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.5053155585413532
+          },
+          "paired": {
+            "paired_days": 1882,
+            "selected_minus_control": 0.001334747330487217,
+            "expected_signed_difference": 0.001334747330487217,
+            "bootstrap95_expected_signed_difference": [
+              -1.8615105702864112e-05,
+              0.002758601695829096
+            ],
+            "positive_halfyears_expected_direction": 9,
+            "negative_halfyears_expected_direction": 7,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.23399860091088423
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 14726,
+            "active_days": 1910,
+            "mean_return": -0.00471552273426142,
+            "median_return": -0.0069282051282051095,
+            "win_rate": 0.44553850332744804,
+            "mean_market_excess": -0.0014428483992154168,
+            "bootstrap95_market_excess": [
+              -0.0027372830039409835,
+              -8.171709639246335e-05
+            ],
+            "trim_best5_mean_market_excess": -0.008192721549153048,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.4264386895372686
+          },
+          "control": {
+            "n": 13382,
+            "active_days": 1915,
+            "mean_return": -0.004840959435796281,
+            "median_return": -0.006449618579943726,
+            "win_rate": 0.44216111194141383,
+            "mean_market_excess": -0.0025969163154099134,
+            "bootstrap95_market_excess": [
+              -0.004000322700460334,
+              -0.0012140122152754882
+            ],
+            "trim_best5_mean_market_excess": -0.008529930165577054,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.6710482423886778
+          },
+          "paired": {
+            "paired_days": 1882,
+            "selected_minus_control": 0.0011139658405676415,
+            "expected_signed_difference": 0.0011139658405676415,
+            "bootstrap95_expected_signed_difference": [
+              -0.0006697897130985205,
+              0.002902787217424972
+            ],
+            "positive_halfyears_expected_direction": 8,
+            "negative_halfyears_expected_direction": 8,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.22977018977756727
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 14709,
+            "active_days": 1910,
+            "mean_return": -0.008668034706044658,
+            "median_return": -0.01223059641615407,
+            "win_rate": 0.431980420150928,
+            "mean_market_excess": -0.004963089548220049,
+            "bootstrap95_market_excess": [
+              -0.006949260180253755,
+              -0.003091587888074017
+            ],
+            "trim_best5_mean_market_excess": -0.015119893080326744,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.3932556533380978
+          },
+          "control": {
+            "n": 13361,
+            "active_days": 1915,
+            "mean_return": -0.006814996097219592,
+            "median_return": -0.00971556728232201,
+            "win_rate": 0.4462989297208293,
+            "mean_market_excess": -0.005580295625001087,
+            "bootstrap95_market_excess": [
+              -0.007514137135867538,
+              -0.0037184104109985318
+            ],
+            "trim_best5_mean_market_excess": -0.014246442803128173,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.4223171331732408
+          },
+          "paired": {
+            "paired_days": 1882,
+            "selected_minus_control": 0.0004743843419077336,
+            "expected_signed_difference": 0.0004743843419077336,
+            "bootstrap95_expected_signed_difference": [
+              -0.0020199468306936683,
+              0.0029730846489201827
+            ],
+            "positive_halfyears_expected_direction": 9,
+            "negative_halfyears_expected_direction": 7,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.32278338884410757
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 4170,
+            "active_days": 839,
+            "mean_return": -0.002770263595765647,
+            "median_return": -0.0067226465975926165,
+            "win_rate": 0.41606714628297364,
+            "mean_market_excess": -0.0007562553280633703,
+            "bootstrap95_market_excess": [
+              -0.002497088510881279,
+              0.0010402806111318398
+            ],
+            "trim_best5_mean_market_excess": -0.0060634172343274634,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5046211800699718
+          },
+          "control": {
+            "n": 3891,
+            "active_days": 832,
+            "mean_return": -0.0020124933360453007,
+            "median_return": -0.003983406113537067,
+            "win_rate": 0.43613466975070675,
+            "mean_market_excess": 6.64625830798566e-05,
+            "bootstrap95_market_excess": [
+              -0.0017396235751194543,
+              0.0020413968965792015
+            ],
+            "trim_best5_mean_market_excess": -0.005153811077953462,
+            "halfyears": 8,
+            "positive_halfyears": 5,
+            "negative_halfyears": 3,
+            "best_half_contribution_share": 0.43038682598770467
+          },
+          "paired": {
+            "paired_days": 786,
+            "selected_minus_control": -0.0003543109915794925,
+            "expected_signed_difference": -0.0003543109915794925,
+            "bootstrap95_expected_signed_difference": [
+              -0.003016957921510415,
+              0.002177558780094748
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 4,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.3654585685433714
+          },
+          "verdict": "FAIL"
+        },
+        "2d": {
+          "selected": {
+            "n": 4164,
+            "active_days": 838,
+            "mean_return": -0.0010650381391282453,
+            "median_return": -0.007314741188898497,
+            "win_rate": 0.4423631123919308,
+            "mean_market_excess": 3.711346254235238e-05,
+            "bootstrap95_market_excess": [
+              -0.002645436629470892,
+              0.0027417325714048824
+            ],
+            "trim_best5_mean_market_excess": -0.00865957499000887,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.4096509939806247
+          },
+          "control": {
+            "n": 3887,
+            "active_days": 831,
+            "mean_return": -0.00213775838729241,
+            "median_return": -0.0057062500000001105,
+            "win_rate": 0.4401852328273733,
+            "mean_market_excess": -0.00020967375267098016,
+            "bootstrap95_market_excess": [
+              -0.0023939175686049563,
+              0.002149808656245664
+            ],
+            "trim_best5_mean_market_excess": -0.007286359711619926,
+            "halfyears": 8,
+            "positive_halfyears": 5,
+            "negative_halfyears": 3,
+            "best_half_contribution_share": 0.47274121328684277
+          },
+          "paired": {
+            "paired_days": 785,
+            "selected_minus_control": 0.0003482609534656981,
+            "expected_signed_difference": 0.0003482609534656981,
+            "bootstrap95_expected_signed_difference": [
+              -0.0029920997348096235,
+              0.0038527743827906995
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.40374236872601466
+          },
+          "verdict": "WEAK_TOP_TAIL_DEPENDENT"
+        },
+        "5d": {
+          "selected": {
+            "n": 4131,
+            "active_days": 834,
+            "mean_return": 0.0013475497341084554,
+            "median_return": -0.011800000000000008,
+            "win_rate": 0.43403534253207454,
+            "mean_market_excess": 0.000820207497866028,
+            "bootstrap95_market_excess": [
+              -0.0028862454735372337,
+              0.004802654260978961
+            ],
+            "trim_best5_mean_market_excess": -0.012637550400153914,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.4125301900686379
+          },
+          "control": {
+            "n": 3856,
+            "active_days": 828,
+            "mean_return": -0.000610870191747842,
+            "median_return": -0.008625365792562598,
+            "win_rate": 0.4380186721991701,
+            "mean_market_excess": -0.0016622648761851107,
+            "bootstrap95_market_excess": [
+              -0.006305427476286454,
+              0.004342839079654857
+            ],
+            "trim_best5_mean_market_excess": -0.013966059402444404,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5855403506104143
+          },
+          "paired": {
+            "paired_days": 781,
+            "selected_minus_control": 0.00423334508064145,
+            "expected_signed_difference": 0.00423334508064145,
+            "bootstrap95_expected_signed_difference": [
+              -0.0006298507803877835,
+              0.00897772058678449
+            ],
+            "positive_halfyears_expected_direction": 6,
+            "negative_halfyears_expected_direction": 2,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.49096175154563726
+          },
+          "verdict": "WEAK_TOP_TAIL_DEPENDENT"
+        }
+      },
+      "overall_verdict": "FAIL"
+    },
+    "H11": {
+      "title": "turnover sweet spot",
+      "source_cluster": "板板换手/供给释放",
+      "expected_direction": 1,
+      "minute_required": false,
+      "notes": "Tests inverted-U intuition rather than optimizing one turnover threshold.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 25811,
+            "active_days": 1938,
+            "mean_return": -0.0026378375400512963,
+            "median_return": -0.0050154340836012536,
+            "win_rate": 0.44612762000697376,
+            "mean_market_excess": -0.0005652682501729378,
+            "bootstrap95_market_excess": [
+              -0.0014870424962001704,
+              0.00039097913925954054
+            ],
+            "trim_best5_mean_market_excess": -0.005834916662084513,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.36920117025886146
+          },
+          "control": {
+            "n": 4208,
+            "active_days": 1561,
+            "mean_return": -0.0022140288225600937,
+            "median_return": -0.0024288848190980633,
+            "win_rate": 0.4436787072243346,
+            "mean_market_excess": -0.0015627646071342685,
+            "bootstrap95_market_excess": [
+              -0.0027170523699083775,
+              -0.00039958916076776596
+            ],
+            "trim_best5_mean_market_excess": -0.005303536037917364,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.5597939249002268
+          },
+          "paired": {
+            "paired_days": 1552,
+            "selected_minus_control": 0.0009602788040747037,
+            "expected_signed_difference": 0.0009602788040747037,
+            "bootstrap95_expected_signed_difference": [
+              -0.0006096111447096072,
+              0.0025295017942243304
+            ],
+            "positive_halfyears_expected_direction": 11,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.16148477135625094
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 25791,
+            "active_days": 1938,
+            "mean_return": -0.003995087956896792,
+            "median_return": -0.007063157894736969,
+            "win_rate": 0.44643480283819936,
+            "mean_market_excess": -0.0014551246136835182,
+            "bootstrap95_market_excess": [
+              -0.002723590912467097,
+              -0.00012143044248978686
+            ],
+            "trim_best5_mean_market_excess": -0.008689775208982174,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.31838584280248045
+          },
+          "control": {
+            "n": 4206,
+            "active_days": 1561,
+            "mean_return": -0.0023355097010068775,
+            "median_return": -0.0034380291062075835,
+            "win_rate": 0.4543509272467903,
+            "mean_market_excess": -0.0021990740869655347,
+            "bootstrap95_market_excess": [
+              -0.003700284685309166,
+              -0.0006754491659404407
+            ],
+            "trim_best5_mean_market_excess": -0.006594320454736845,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.692004075815558
+          },
+          "paired": {
+            "paired_days": 1552,
+            "selected_minus_control": 0.0009830459908210642,
+            "expected_signed_difference": 0.0009830459908210642,
+            "bootstrap95_expected_signed_difference": [
+              -0.001162812034165665,
+              0.0031377581951197936
+            ],
+            "positive_halfyears_expected_direction": 8,
+            "negative_halfyears_expected_direction": 8,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.35194006161459435
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 25741,
+            "active_days": 1938,
+            "mean_return": -0.008181955509741653,
+            "median_return": -0.01356470588235301,
+            "win_rate": 0.4312963754321899,
+            "mean_market_excess": -0.004990340663967187,
+            "bootstrap95_market_excess": [
+              -0.00676522110460682,
+              -0.0031568241746097957
+            ],
+            "trim_best5_mean_market_excess": -0.016148743730393704,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.314400293507858
+          },
+          "control": {
+            "n": 4201,
+            "active_days": 1561,
+            "mean_return": -0.002409749065195867,
+            "median_return": -0.004925000000000044,
+            "win_rate": 0.45822423232563675,
+            "mean_market_excess": -0.005751909227308241,
+            "bootstrap95_market_excess": [
+              -0.007971777169121784,
+              -0.003605563735118209
+            ],
+            "trim_best5_mean_market_excess": -0.011440200554713741,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.34624367788147775
+          },
+          "paired": {
+            "paired_days": 1552,
+            "selected_minus_control": 0.001596294263016394,
+            "expected_signed_difference": 0.001596294263016394,
+            "bootstrap95_expected_signed_difference": [
+              -0.0013566173549668077,
+              0.00463823043306117
+            ],
+            "positive_halfyears_expected_direction": 11,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.1583039779330941
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 6984,
+            "active_days": 875,
+            "mean_return": -0.00293886698417145,
+            "median_return": -0.006988076172532141,
+            "win_rate": 0.4215349369988545,
+            "mean_market_excess": -0.0007819744751075646,
+            "bootstrap95_market_excess": [
+              -0.0023428220482517668,
+              0.000837547706044811
+            ],
+            "trim_best5_mean_market_excess": -0.006379511868236067,
+            "halfyears": 8,
+            "positive_halfyears": 5,
+            "negative_halfyears": 3,
+            "best_half_contribution_share": 0.6088001978816883
+          },
+          "control": {
+            "n": 1247,
+            "active_days": 574,
+            "mean_return": -0.0007360895414233348,
+            "median_return": -0.0018,
+            "win_rate": 0.4490777866880513,
+            "mean_market_excess": -0.0012498522230194882,
+            "bootstrap95_market_excess": [
+              -0.003566461637614372,
+              0.0011399571883031236
+            ],
+            "trim_best5_mean_market_excess": -0.005131757077549298,
+            "halfyears": 8,
+            "positive_halfyears": 1,
+            "negative_halfyears": 7,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 567,
+            "selected_minus_control": -0.0004062723065617897,
+            "expected_signed_difference": -0.0004062723065617897,
+            "bootstrap95_expected_signed_difference": [
+              -0.003247041554709167,
+              0.002543975233638983
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.4092109867490591
+          },
+          "verdict": "FAIL"
+        },
+        "2d": {
+          "selected": {
+            "n": 6973,
+            "active_days": 874,
+            "mean_return": -0.0025889412946977987,
+            "median_return": -0.009082483710233877,
+            "win_rate": 0.42951383909364693,
+            "mean_market_excess": -0.0006123664452418172,
+            "bootstrap95_market_excess": [
+              -0.0028053226942190666,
+              0.0015995832964261331
+            ],
+            "trim_best5_mean_market_excess": -0.009291170360743646,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.3142617587954097
+          },
+          "control": {
+            "n": 1245,
+            "active_days": 573,
+            "mean_return": 0.0005775404609413287,
+            "median_return": -0.0018,
+            "win_rate": 0.4771084337349398,
+            "mean_market_excess": -0.0012738774963867543,
+            "bootstrap95_market_excess": [
+              -0.004496379453928572,
+              0.0020558998896241802
+            ],
+            "trim_best5_mean_market_excess": -0.007082659464021761,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.41879291425687326
+          },
+          "paired": {
+            "paired_days": 566,
+            "selected_minus_control": -0.0011570325457484444,
+            "expected_signed_difference": -0.0011570325457484444,
+            "bootstrap95_expected_signed_difference": [
+              -0.0051740537072072134,
+              0.00308540933071491
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.3985654110188087
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 6911,
+            "active_days": 870,
+            "mean_return": -0.002146283992654518,
+            "median_return": -0.015412565445026203,
+            "win_rate": 0.4187527130661265,
+            "mean_market_excess": -0.00022242195253845294,
+            "bootstrap95_market_excess": [
+              -0.0036772507617748233,
+              0.0033778173797146993
+            ],
+            "trim_best5_mean_market_excess": -0.013981065297118192,
+            "halfyears": 8,
+            "positive_halfyears": 5,
+            "negative_halfyears": 3,
+            "best_half_contribution_share": 0.3869218852694034
+          },
+          "control": {
+            "n": 1242,
+            "active_days": 571,
+            "mean_return": 0.005411664550074288,
+            "median_return": -0.0011403553291761998,
+            "win_rate": 0.49033816425120774,
+            "mean_market_excess": -0.0015987573360730187,
+            "bootstrap95_market_excess": [
+              -0.006243568074209902,
+              0.0031627666698073845
+            ],
+            "trim_best5_mean_market_excess": -0.010989134621739945,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.7181882482795393
+          },
+          "paired": {
+            "paired_days": 563,
+            "selected_minus_control": -0.001519061719756244,
+            "expected_signed_difference": -0.001519061719756244,
+            "bootstrap95_expected_signed_difference": [
+              -0.007967396254904958,
+              0.005009067318596498
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.45034970109487127
+          },
+          "verdict": "FAIL"
+        }
+      },
+      "overall_verdict": "FAIL"
+    },
+    "H13": {
+      "title": "price-under-10 placebo",
+      "source_cluster": "上册低价经验规则",
+      "expected_direction": 1,
+      "minute_required": false,
+      "notes": "Modifier/placebo only; never a standalone trading trigger.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 16553,
+            "active_days": 1935,
+            "mean_return": -0.002011398502543358,
+            "median_return": -0.004370694087403624,
+            "win_rate": 0.43744336374071163,
+            "mean_market_excess": -0.0008217858239950578,
+            "bootstrap95_market_excess": [
+              -0.0016502901476182173,
+              2.8591831867224117e-05
+            ],
+            "trim_best5_mean_market_excess": -0.00560608870341718,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.505241239379754
+          },
+          "control": {
+            "n": 29403,
+            "active_days": 1943,
+            "mean_return": -0.0028177658138690193,
+            "median_return": -0.003955172413793149,
+            "win_rate": 0.45002210658776315,
+            "mean_market_excess": -0.0007262811977585555,
+            "bootstrap95_market_excess": [
+              -0.0014497230392863298,
+              2.971503710102836e-05
+            ],
+            "trim_best5_mean_market_excess": -0.005214626467389789,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.585454082570868
+          },
+          "paired": {
+            "paired_days": 1931,
+            "selected_minus_control": -7.225187418439144e-05,
+            "expected_signed_difference": -7.225187418439144e-05,
+            "bootstrap95_expected_signed_difference": [
+              -0.0010596328619665253,
+              0.0009729208913783044
+            ],
+            "positive_halfyears_expected_direction": 7,
+            "negative_halfyears_expected_direction": 9,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.29059541611772993
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 16535,
+            "active_days": 1935,
+            "mean_return": -0.0025277259591377733,
+            "median_return": -0.006397701149425148,
+            "win_rate": 0.43713335349259147,
+            "mean_market_excess": -0.0018348506804319199,
+            "bootstrap95_market_excess": [
+              -0.002910328392423912,
+              -0.0007187544536337649
+            ],
+            "trim_best5_mean_market_excess": -0.008170243206673802,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.7775469466889171
+          },
+          "control": {
+            "n": 29393,
+            "active_days": 1943,
+            "mean_return": -0.003975785666031605,
+            "median_return": -0.005356136149212463,
+            "win_rate": 0.45521042425067193,
+            "mean_market_excess": -0.0015757449488911404,
+            "bootstrap95_market_excess": [
+              -0.0025266014476923028,
+              -0.0006209645047878087
+            ],
+            "trim_best5_mean_market_excess": -0.007687510525558064,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.5912734963888855
+          },
+          "paired": {
+            "paired_days": 1931,
+            "selected_minus_control": -0.00030198113873942207,
+            "expected_signed_difference": -0.00030198113873942207,
+            "bootstrap95_expected_signed_difference": [
+              -0.0016071402226176196,
+              0.0010501564738569075
+            ],
+            "positive_halfyears_expected_direction": 8,
+            "negative_halfyears_expected_direction": 8,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.27816472689757304
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 16488,
+            "active_days": 1935,
+            "mean_return": -0.003651161159502966,
+            "median_return": -0.010560037638288697,
+            "win_rate": 0.430737506065017,
+            "mean_market_excess": -0.004292888254322293,
+            "bootstrap95_market_excess": [
+              -0.005835969719640905,
+              -0.0026743233636442928
+            ],
+            "trim_best5_mean_market_excess": -0.013640255492609736,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.8686030326807934
+          },
+          "control": {
+            "n": 29364,
+            "active_days": 1943,
+            "mean_return": -0.007329093953064476,
+            "median_return": -0.009685000564341604,
+            "win_rate": 0.448882985969214,
+            "mean_market_excess": -0.0039268594153853125,
+            "bootstrap95_market_excess": [
+              -0.005317343644855814,
+              -0.0025695260907525157
+            ],
+            "trim_best5_mean_market_excess": -0.013343236452975025,
+            "halfyears": 16,
+            "positive_halfyears": 2,
+            "negative_halfyears": 14,
+            "best_half_contribution_share": 0.5161027660074056
+          },
+          "paired": {
+            "paired_days": 1931,
+            "selected_minus_control": -0.0004013743096384622,
+            "expected_signed_difference": -0.0004013743096384622,
+            "bootstrap95_expected_signed_difference": [
+              -0.0024106552960262216,
+              0.001664935706550318
+            ],
+            "positive_halfyears_expected_direction": 8,
+            "negative_halfyears_expected_direction": 8,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.3005159912006329
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 4213,
+            "active_days": 851,
+            "mean_return": -0.002512609156164168,
+            "median_return": -0.004858103975535186,
+            "win_rate": 0.42368858295751244,
+            "mean_market_excess": -0.0010100897584363574,
+            "bootstrap95_market_excess": [
+              -0.0026069350032130144,
+              0.0006207316962460492
+            ],
+            "trim_best5_mean_market_excess": -0.0065635689493759655,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.559591390387029
+          },
+          "control": {
+            "n": 8931,
+            "active_days": 888,
+            "mean_return": -0.0026854974877996442,
+            "median_return": -0.005529024238657507,
+            "win_rate": 0.42638002463329977,
+            "mean_market_excess": -0.0011308688683340639,
+            "bootstrap95_market_excess": [
+              -0.002290299533329747,
+              6.255614735429625e-05
+            ],
+            "trim_best5_mean_market_excess": -0.005655453202304418,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5862294862660372
+          },
+          "paired": {
+            "paired_days": 851,
+            "selected_minus_control": 0.0002467064431126983,
+            "expected_signed_difference": 0.0002467064431126983,
+            "bootstrap95_expected_signed_difference": [
+              -0.0016213371049539184,
+              0.0021160355057402176
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.48350877600725894
+          },
+          "verdict": "FAIL_SIGN_FLIP"
+        },
+        "2d": {
+          "selected": {
+            "n": 4204,
+            "active_days": 850,
+            "mean_return": -0.0019975553285285054,
+            "median_return": -0.006107252758125823,
+            "win_rate": 0.42887725975261654,
+            "mean_market_excess": -0.001929219817427946,
+            "bootstrap95_market_excess": [
+              -0.004239520253448033,
+              0.0004869208507692612
+            ],
+            "trim_best5_mean_market_excess": -0.009491819464104738,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.47911035511235694
+          },
+          "control": {
+            "n": 8917,
+            "active_days": 887,
+            "mean_return": -0.002249997593010575,
+            "median_return": -0.007394405594405604,
+            "win_rate": 0.4359089379836268,
+            "mean_market_excess": -0.0009914792410992627,
+            "bootstrap95_market_excess": [
+              -0.002545308003210882,
+              0.0006498180521922735
+            ],
+            "trim_best5_mean_market_excess": -0.008057289730889884,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5077721883381273
+          },
+          "paired": {
+            "paired_days": 850,
+            "selected_minus_control": -0.000555096894763247,
+            "expected_signed_difference": -0.000555096894763247,
+            "bootstrap95_expected_signed_difference": [
+              -0.003161010854401989,
+              0.0021795684513424454
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 3,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.40616687700870985
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 4181,
+            "active_days": 847,
+            "mean_return": 0.0013408171884281132,
+            "median_return": -0.0096125,
+            "win_rate": 0.42430040660129154,
+            "mean_market_excess": -0.00026638728960590044,
+            "bootstrap95_market_excess": [
+              -0.004464316937612448,
+              0.004338365559497875
+            ],
+            "trim_best5_mean_market_excess": -0.01585122687063446,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.47736406113754926
+          },
+          "control": {
+            "n": 8842,
+            "active_days": 884,
+            "mean_return": -0.0011031561362357045,
+            "median_return": -0.009795919195523448,
+            "win_rate": 0.4397195204704818,
+            "mean_market_excess": -0.0012615520702451755,
+            "bootstrap95_market_excess": [
+              -0.0036984000130566826,
+              0.0012415061509571325
+            ],
+            "trim_best5_mean_market_excess": -0.012128610283859623,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.8311508831534284
+          },
+          "paired": {
+            "paired_days": 847,
+            "selected_minus_control": 0.0013380873411093584,
+            "expected_signed_difference": 0.0013380873411093584,
+            "bootstrap95_expected_signed_difference": [
+              -0.0031138579676317783,
+              0.006288886734498033
+            ],
+            "positive_halfyears_expected_direction": 6,
+            "negative_halfyears_expected_direction": 2,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.4760570065919407
+          },
+          "verdict": "FAIL_SIGN_FLIP"
+        }
+      },
+      "overall_verdict": "FAIL_SIGN_FLIP"
+    },
+    "H14": {
+      "title": "high-volume divergence",
+      "source_cluster": "上册高量分歧/成交额",
+      "expected_direction": 1,
+      "minute_required": true,
+      "notes": "",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 3689,
+            "active_days": 798,
+            "mean_return": 0.0034368264123791122,
+            "median_return": -0.00038757062146885625,
+            "win_rate": 0.49661154784494443,
+            "mean_market_excess": 0.0013756077315620937,
+            "bootstrap95_market_excess": [
+              -0.0013418856365523938,
+              0.004071333866316336
+            ],
+            "trim_best5_mean_market_excess": -0.0037932826028305895,
+            "halfyears": 16,
+            "positive_halfyears": 9,
+            "negative_halfyears": 7,
+            "best_half_contribution_share": 0.26785794100704957
+          },
+          "control": {
+            "n": 5109,
+            "active_days": 815,
+            "mean_return": -0.0012669693518731645,
+            "median_return": 9.408926417344126e-06,
+            "win_rate": 0.5000978665100803,
+            "mean_market_excess": -0.0004661795845772224,
+            "bootstrap95_market_excess": [
+              -0.0023976087984649706,
+              0.001408588516924991
+            ],
+            "trim_best5_mean_market_excess": -0.004514444495931816,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.4461669027276698
+          },
+          "paired": {
+            "paired_days": 663,
+            "selected_minus_control": 0.001195704583240494,
+            "expected_signed_difference": 0.001195704583240494,
+            "bootstrap95_expected_signed_difference": [
+              -0.0020851830475676803,
+              0.0044987871158578595
+            ],
+            "positive_halfyears_expected_direction": 7,
+            "negative_halfyears_expected_direction": 9,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.32167487062930233
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 3689,
+            "active_days": 798,
+            "mean_return": 0.00726249090046096,
+            "median_return": 0.0003598272138227959,
+            "win_rate": 0.50365952832746,
+            "mean_market_excess": -0.0008817220504974953,
+            "bootstrap95_market_excess": [
+              -0.0045030653258116525,
+              0.002785252309957377
+            ],
+            "trim_best5_mean_market_excess": -0.008100410052863972,
+            "halfyears": 16,
+            "positive_halfyears": 9,
+            "negative_halfyears": 7,
+            "best_half_contribution_share": 0.2370331283273138
+          },
+          "control": {
+            "n": 5106,
+            "active_days": 815,
+            "mean_return": -0.002305895360434551,
+            "median_return": -0.0018,
+            "win_rate": 0.4855072463768116,
+            "mean_market_excess": -0.002345796542180073,
+            "bootstrap95_market_excess": [
+              -0.0050501001373142555,
+              0.0003578177858060685
+            ],
+            "trim_best5_mean_market_excess": -0.008238195410385533,
+            "halfyears": 16,
+            "positive_halfyears": 5,
+            "negative_halfyears": 11,
+            "best_half_contribution_share": 0.8804605617686989
+          },
+          "paired": {
+            "paired_days": 663,
+            "selected_minus_control": 0.0006231330127889825,
+            "expected_signed_difference": 0.0006231330127889825,
+            "bootstrap95_expected_signed_difference": [
+              -0.004017914870797217,
+              0.005280093684519238
+            ],
+            "positive_halfyears_expected_direction": 9,
+            "negative_halfyears_expected_direction": 7,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.5445465762796645
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 3687,
+            "active_days": 798,
+            "mean_return": 0.001471715380153646,
+            "median_return": -0.005872565716401466,
+            "win_rate": 0.47681041497152155,
+            "mean_market_excess": -0.006339835816132974,
+            "bootstrap95_market_excess": [
+              -0.011151140128564179,
+              -0.0012165173380178547
+            ],
+            "trim_best5_mean_market_excess": -0.017530470270132208,
+            "halfyears": 16,
+            "positive_halfyears": 4,
+            "negative_halfyears": 12,
+            "best_half_contribution_share": 0.3858297238753414
+          },
+          "control": {
+            "n": 5103,
+            "active_days": 814,
+            "mean_return": -0.00014475411680879018,
+            "median_return": -0.001363128003495116,
+            "win_rate": 0.4942190868116794,
+            "mean_market_excess": -0.004526082169501944,
+            "bootstrap95_market_excess": [
+              -0.008175349252019612,
+              -0.0008098208329446394
+            ],
+            "trim_best5_mean_market_excess": -0.012388864936726841,
+            "halfyears": 16,
+            "positive_halfyears": 3,
+            "negative_halfyears": 13,
+            "best_half_contribution_share": 0.9149247064559678
+          },
+          "paired": {
+            "paired_days": 662,
+            "selected_minus_control": -0.00343956202338411,
+            "expected_signed_difference": -0.00343956202338411,
+            "bootstrap95_expected_signed_difference": [
+              -0.009970432291614947,
+              0.0032776277457448448
+            ],
+            "positive_halfyears_expected_direction": 5,
+            "negative_halfyears_expected_direction": 11,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.6724856084817296
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 980,
+            "active_days": 265,
+            "mean_return": -0.007077702428725108,
+            "median_return": -0.008656301338622972,
+            "win_rate": 0.4275510204081633,
+            "mean_market_excess": -0.0026904411748079953,
+            "bootstrap95_market_excess": [
+              -0.007767514588284794,
+              0.0023342054721886382
+            ],
+            "trim_best5_mean_market_excess": -0.0075380318577067,
+            "halfyears": 8,
+            "positive_halfyears": 1,
+            "negative_halfyears": 7,
+            "best_half_contribution_share": 1.0
+          },
+          "control": {
+            "n": 1220,
+            "active_days": 262,
+            "mean_return": -0.0005372517262286173,
+            "median_return": -0.0009118439031499987,
+            "win_rate": 0.489344262295082,
+            "mean_market_excess": -0.00033430389377563276,
+            "bootstrap95_market_excess": [
+              -0.004112866792360212,
+              0.003441442291456152
+            ],
+            "trim_best5_mean_market_excess": -0.005474194043160154,
+            "halfyears": 8,
+            "positive_halfyears": 4,
+            "negative_halfyears": 4,
+            "best_half_contribution_share": 0.6276488276395903
+          },
+          "paired": {
+            "paired_days": 197,
+            "selected_minus_control": -0.0038125992199149455,
+            "expected_signed_difference": -0.0038125992199149455,
+            "bootstrap95_expected_signed_difference": [
+              -0.010301688070072486,
+              0.0029695511265182893
+            ],
+            "positive_halfyears_expected_direction": 1,
+            "negative_halfyears_expected_direction": 7,
+            "halfyears": 8,
+            "best_half_contribution_share": 1.0
+          },
+          "verdict": "FAIL"
+        },
+        "2d": {
+          "selected": {
+            "n": 976,
+            "active_days": 264,
+            "mean_return": -0.010543065083010767,
+            "median_return": -0.01740965938000902,
+            "win_rate": 0.39959016393442626,
+            "mean_market_excess": -0.0011671562268620367,
+            "bootstrap95_market_excess": [
+              -0.008120641970783245,
+              0.005709198358469162
+            ],
+            "trim_best5_mean_market_excess": -0.008896519745255568,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.6374117917543342
+          },
+          "control": {
+            "n": 1220,
+            "active_days": 262,
+            "mean_return": -0.0051860245493231105,
+            "median_return": -0.008501882443334583,
+            "win_rate": 0.43278688524590164,
+            "mean_market_excess": -0.0043452211421655,
+            "bootstrap95_market_excess": [
+              -0.009503316521455984,
+              0.0008308860114959379
+            ],
+            "trim_best5_mean_market_excess": -0.012829331930197932,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.8223885026027973
+          },
+          "paired": {
+            "paired_days": 197,
+            "selected_minus_control": -8.16870326656731e-05,
+            "expected_signed_difference": -8.16870326656731e-05,
+            "bootstrap95_expected_signed_difference": [
+              -0.008903250714484095,
+              0.008809142988617121
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 4,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.48651969360996405
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 971,
+            "active_days": 263,
+            "mean_return": -0.01601245085890961,
+            "median_return": -0.025829574861367808,
+            "win_rate": 0.388259526261586,
+            "mean_market_excess": -0.0034081656236861157,
+            "bootstrap95_market_excess": [
+              -0.01401365981192777,
+              0.008116539879358446
+            ],
+            "trim_best5_mean_market_excess": -0.017658241741812825,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.5356329224047465
+          },
+          "control": {
+            "n": 1217,
+            "active_days": 260,
+            "mean_return": 0.0006441921080525539,
+            "median_return": -0.006659986114325365,
+            "win_rate": 0.4552177485620378,
+            "mean_market_excess": -0.0030659723084173383,
+            "bootstrap95_market_excess": [
+              -0.011234385627815936,
+              0.0052262669537959106
+            ],
+            "trim_best5_mean_market_excess": -0.016483573800934716,
+            "halfyears": 8,
+            "positive_halfyears": 2,
+            "negative_halfyears": 6,
+            "best_half_contribution_share": 0.9388580228633455
+          },
+          "paired": {
+            "paired_days": 196,
+            "selected_minus_control": -0.007864631255027227,
+            "expected_signed_difference": -0.007864631255027227,
+            "bootstrap95_expected_signed_difference": [
+              -0.020547086961207547,
+              0.004799171574843585
+            ],
+            "positive_halfyears_expected_direction": 2,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.852436261831647
+          },
+          "verdict": "FAIL"
+        }
+      },
+      "overall_verdict": "FAIL"
+    },
+    "H15": {
+      "title": "trend pullback",
+      "source_cluster": "乔帮主/糊涂118低吸",
+      "expected_direction": 1,
+      "minute_required": true,
+      "notes": "Strong-trend pullback versus similarly weak recent return in a downtrend.",
+      "development": {
+        "1d": {
+          "selected": {
+            "n": 10638,
+            "active_days": 1055,
+            "mean_return": -0.0019329872119405848,
+            "median_return": -0.0018,
+            "win_rate": 0.4730212445948487,
+            "mean_market_excess": -0.00024928590420906013,
+            "bootstrap95_market_excess": [
+              -0.0014075897441780123,
+              0.0009080715442509514
+            ],
+            "trim_best5_mean_market_excess": -0.003936277350440081,
+            "halfyears": 16,
+            "positive_halfyears": 8,
+            "negative_halfyears": 8,
+            "best_half_contribution_share": 0.2968395041455477
+          },
+          "control": {
+            "n": 307688,
+            "active_days": 1866,
+            "mean_return": -0.0016523252335363516,
+            "median_return": -0.0018,
+            "win_rate": 0.4577949091287278,
+            "mean_market_excess": 0.00016469546639602919,
+            "bootstrap95_market_excess": [
+              -0.00029467507230344887,
+              0.0006208018212938958
+            ],
+            "trim_best5_mean_market_excess": -0.0026406643259153997,
+            "halfyears": 16,
+            "positive_halfyears": 8,
+            "negative_halfyears": 8,
+            "best_half_contribution_share": 0.418928959588794
+          },
+          "paired": {
+            "paired_days": 1038,
+            "selected_minus_control": -0.0008684195387457179,
+            "expected_signed_difference": -0.0008684195387457179,
+            "bootstrap95_expected_signed_difference": [
+              -0.0020302149400409208,
+              0.00033436835265358806
+            ],
+            "positive_halfyears_expected_direction": 6,
+            "negative_halfyears_expected_direction": 10,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.33094985636509705
+          }
+        },
+        "2d": {
+          "selected": {
+            "n": 10636,
+            "active_days": 1055,
+            "mean_return": -0.005163882194012874,
+            "median_return": -0.006546847327269543,
+            "win_rate": 0.43268145919518614,
+            "mean_market_excess": -0.0008880357804759455,
+            "bootstrap95_market_excess": [
+              -0.0024264633791582883,
+              0.0006244467045793347
+            ],
+            "trim_best5_mean_market_excess": -0.005759916300019644,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.40789302943300737
+          },
+          "control": {
+            "n": 307572,
+            "active_days": 1866,
+            "mean_return": -0.001449970991930085,
+            "median_return": -0.0018,
+            "win_rate": 0.4686382375508824,
+            "mean_market_excess": 0.000311097299529203,
+            "bootstrap95_market_excess": [
+              -0.0003272892560581352,
+              0.0009838858003561528
+            ],
+            "trim_best5_mean_market_excess": -0.003856207252831306,
+            "halfyears": 16,
+            "positive_halfyears": 7,
+            "negative_halfyears": 9,
+            "best_half_contribution_share": 0.6486052835883485
+          },
+          "paired": {
+            "paired_days": 1038,
+            "selected_minus_control": -0.002010773696361082,
+            "expected_signed_difference": -0.002010773696361082,
+            "bootstrap95_expected_signed_difference": [
+              -0.0036244416646536654,
+              -0.0003656005474816842
+            ],
+            "positive_halfyears_expected_direction": 4,
+            "negative_halfyears_expected_direction": 12,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.6366001646734759
+          }
+        },
+        "5d": {
+          "selected": {
+            "n": 10607,
+            "active_days": 1054,
+            "mean_return": -0.00917359078666344,
+            "median_return": -0.015222818791946289,
+            "win_rate": 0.39954746865277646,
+            "mean_market_excess": -0.0024518440958410373,
+            "bootstrap95_market_excess": [
+              -0.004794537242066147,
+              -5.401256743375847e-05
+            ],
+            "trim_best5_mean_market_excess": -0.01023448643229607,
+            "halfyears": 16,
+            "positive_halfyears": 6,
+            "negative_halfyears": 10,
+            "best_half_contribution_share": 0.2235699085131768
+          },
+          "control": {
+            "n": 307266,
+            "active_days": 1866,
+            "mean_return": -0.00042340375362943266,
+            "median_return": -0.0018,
+            "win_rate": 0.48652307772418685,
+            "mean_market_excess": 8.73727281082462e-05,
+            "bootstrap95_market_excess": [
+              -0.0009329857289193736,
+              0.0012212516616662025
+            ],
+            "trim_best5_mean_market_excess": -0.006960388916749686,
+            "halfyears": 16,
+            "positive_halfyears": 7,
+            "negative_halfyears": 9,
+            "best_half_contribution_share": 0.6710247096592823
+          },
+          "paired": {
+            "paired_days": 1037,
+            "selected_minus_control": -0.0037274073549575467,
+            "expected_signed_difference": -0.0037274073549575467,
+            "bootstrap95_expected_signed_difference": [
+              -0.006652568188676931,
+              -0.0010555884960123997
+            ],
+            "positive_halfyears_expected_direction": 6,
+            "negative_halfyears_expected_direction": 10,
+            "halfyears": 16,
+            "best_half_contribution_share": 0.29871073788842667
+          }
+        }
+      },
+      "oos": {
+        "1d": {
+          "selected": {
+            "n": 3946,
+            "active_days": 444,
+            "mean_return": -0.0006392103290046189,
+            "median_return": -0.0019321699239767437,
+            "win_rate": 0.46325392802838317,
+            "mean_market_excess": -0.001362943128966309,
+            "bootstrap95_market_excess": [
+              -0.002863260859738179,
+              0.00016299715300963132
+            ],
+            "trim_best5_mean_market_excess": -0.0044064791366076935,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.5488569281361947
+          },
+          "control": {
+            "n": 151641,
+            "active_days": 885,
+            "mean_return": -0.0021049070233134055,
+            "median_return": -0.002446551724137967,
+            "win_rate": 0.42611826616812076,
+            "mean_market_excess": -0.00033446481251575355,
+            "bootstrap95_market_excess": [
+              -0.0007476354264769895,
+              5.4776652823884915e-05
+            ],
+            "trim_best5_mean_market_excess": -0.0026219848836326527,
+            "halfyears": 8,
+            "positive_halfyears": 1,
+            "negative_halfyears": 7,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 444,
+            "selected_minus_control": -0.0008967164884453264,
+            "expected_signed_difference": -0.0008967164884453264,
+            "bootstrap95_expected_signed_difference": [
+              -0.0025920306103886497,
+              0.0007948908328696804
+            ],
+            "positive_halfyears_expected_direction": 2,
+            "negative_halfyears_expected_direction": 6,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.8159185191113962
+          },
+          "verdict": "FAIL"
+        },
+        "2d": {
+          "selected": {
+            "n": 3942,
+            "active_days": 442,
+            "mean_return": 0.0007928791580903492,
+            "median_return": -0.002683109794135972,
+            "win_rate": 0.4687975646879756,
+            "mean_market_excess": -0.002114249209835817,
+            "bootstrap95_market_excess": [
+              -0.004208817275868226,
+              -0.00012511380764502342
+            ],
+            "trim_best5_mean_market_excess": -0.006562736406547478,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.48435815082760864
+          },
+          "control": {
+            "n": 151440,
+            "active_days": 884,
+            "mean_return": -0.002127869498002867,
+            "median_return": -0.0036518518518519933,
+            "win_rate": 0.43043449550977286,
+            "mean_market_excess": -0.0007064656364991024,
+            "bootstrap95_market_excess": [
+              -0.0012646661057106948,
+              -0.00014340907128630953
+            ],
+            "trim_best5_mean_market_excess": -0.0039286656322797976,
+            "halfyears": 8,
+            "positive_halfyears": 1,
+            "negative_halfyears": 7,
+            "best_half_contribution_share": 1.0
+          },
+          "paired": {
+            "paired_days": 442,
+            "selected_minus_control": -0.0013581591280156203,
+            "expected_signed_difference": -0.0013581591280156203,
+            "bootstrap95_expected_signed_difference": [
+              -0.0036903237527839213,
+              0.0009415769016075463
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.49170462263005354
+          },
+          "verdict": "FAIL"
+        },
+        "5d": {
+          "selected": {
+            "n": 3917,
+            "active_days": 439,
+            "mean_return": 0.006713479634527607,
+            "median_return": -0.003028312605558113,
+            "win_rate": 0.48072504467704874,
+            "mean_market_excess": -0.0015724769967513966,
+            "bootstrap95_market_excess": [
+              -0.005570665962911423,
+              0.0024752636203874767
+            ],
+            "trim_best5_mean_market_excess": -0.010147563332169086,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.8119130631273052
+          },
+          "control": {
+            "n": 150771,
+            "active_days": 881,
+            "mean_return": -0.0010543267721458236,
+            "median_return": -0.004152941176470557,
+            "win_rate": 0.4505972633994601,
+            "mean_market_excess": -0.0011763369085960368,
+            "bootstrap95_market_excess": [
+              -0.00202835246780726,
+              -0.00031933711346741217
+            ],
+            "trim_best5_mean_market_excess": -0.00681977815355044,
+            "halfyears": 8,
+            "positive_halfyears": 3,
+            "negative_halfyears": 5,
+            "best_half_contribution_share": 0.8281136332614674
+          },
+          "paired": {
+            "paired_days": 439,
+            "selected_minus_control": -4.82538453884191e-05,
+            "expected_signed_difference": -4.82538453884191e-05,
+            "bootstrap95_expected_signed_difference": [
+              -0.004426456378989904,
+              0.004569238012025765
+            ],
+            "positive_halfyears_expected_direction": 3,
+            "negative_halfyears_expected_direction": 5,
+            "halfyears": 8,
+            "best_half_contribution_share": 0.5091544494274692
+          },
+          "verdict": "FAIL"
+        }
+      },
+      "overall_verdict": "FAIL"
+    }
+  },
+  "oos_bin_diagnostics": {
+    "amount_bin": {
+      "lt0.8": {
+        "return_1d": {
+          "n": 2877,
+          "active_days": 764,
+          "mean_return": -0.003049857602893912,
+          "median_return": -0.004190914524805665,
+          "win_rate": 0.4264859228362878,
+          "mean_market_excess": -0.0013432867549490433,
+          "bootstrap95_market_excess": [
+            -0.0027859311245300752,
+            0.00013310060478410616
+          ],
+          "trim_best5_mean_market_excess": -0.005427288383113543,
+          "halfyears": 8,
+          "positive_halfyears": 1,
+          "negative_halfyears": 7,
+          "best_half_contribution_share": 1.0
+        },
+        "return_2d": {
+          "n": 2870,
+          "active_days": 763,
+          "mean_return": -0.003228702318289969,
+          "median_return": -0.00617477272872272,
+          "win_rate": 0.4299651567944251,
+          "mean_market_excess": -0.0015428381148060936,
+          "bootstrap95_market_excess": [
+            -0.003518959369921027,
+            0.0003926837885385967
+          ],
+          "trim_best5_mean_market_excess": -0.00718086298824189,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.5323072297970157
+        },
+        "return_5d": {
+          "n": 2846,
+          "active_days": 760,
+          "mean_return": 0.0014310746091783784,
+          "median_return": -0.004477611298301019,
+          "win_rate": 0.4631061138439916,
+          "mean_market_excess": 0.0015001433775947038,
+          "bootstrap95_market_excess": [
+            -0.003328167830978669,
+            0.0071847761270777
+          ],
+          "trim_best5_mean_market_excess": -0.010591996280693811,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.36903099322204685
+        }
+      },
+      "0.8-1.2": {
+        "return_1d": {
+          "n": 3891,
+          "active_days": 832,
+          "mean_return": -0.0020124933360453007,
+          "median_return": -0.003983406113537067,
+          "win_rate": 0.43613466975070675,
+          "mean_market_excess": 6.64625830798566e-05,
+          "bootstrap95_market_excess": [
+            -0.0017051949634104076,
+            0.0020028949017452803
+          ],
+          "trim_best5_mean_market_excess": -0.005153811077953462,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.43038682598770467
+        },
+        "return_2d": {
+          "n": 3887,
+          "active_days": 831,
+          "mean_return": -0.00213775838729241,
+          "median_return": -0.0057062500000001105,
+          "win_rate": 0.4401852328273733,
+          "mean_market_excess": -0.00020967375267098016,
+          "bootstrap95_market_excess": [
+            -0.0024603790366122045,
+            0.002161779309725235
+          ],
+          "trim_best5_mean_market_excess": -0.007286359711619926,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.47274121328684277
+        },
+        "return_5d": {
+          "n": 3856,
+          "active_days": 828,
+          "mean_return": -0.000610870191747842,
+          "median_return": -0.008625365792562598,
+          "win_rate": 0.4380186721991701,
+          "mean_market_excess": -0.0016622648761851107,
+          "bootstrap95_market_excess": [
+            -0.0063435721357507765,
+            0.00425826269398734
+          ],
+          "trim_best5_mean_market_excess": -0.013966059402444404,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.5855403506104143
+        }
+      },
+      "1.2-2.0": {
+        "return_1d": {
+          "n": 4170,
+          "active_days": 839,
+          "mean_return": -0.002770263595765647,
+          "median_return": -0.0067226465975926165,
+          "win_rate": 0.41606714628297364,
+          "mean_market_excess": -0.0007562553280633703,
+          "bootstrap95_market_excess": [
+            -0.0025239749719067946,
+            0.0010103812442789912
+          ],
+          "trim_best5_mean_market_excess": -0.0060634172343274634,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.5046211800699718
+        },
+        "return_2d": {
+          "n": 4164,
+          "active_days": 838,
+          "mean_return": -0.0010650381391282453,
+          "median_return": -0.007314741188898497,
+          "win_rate": 0.4423631123919308,
+          "mean_market_excess": 3.711346254235238e-05,
+          "bootstrap95_market_excess": [
+            -0.002630384537096425,
+            0.002786829653485004
+          ],
+          "trim_best5_mean_market_excess": -0.00865957499000887,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.4096509939806247
+        },
+        "return_5d": {
+          "n": 4131,
+          "active_days": 834,
+          "mean_return": 0.0013475497341084554,
+          "median_return": -0.011800000000000008,
+          "win_rate": 0.43403534253207454,
+          "mean_market_excess": 0.000820207497866028,
+          "bootstrap95_market_excess": [
+            -0.0030188497244062126,
+            0.004622750013527327
+          ],
+          "trim_best5_mean_market_excess": -0.012637550400153914,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.4125301900686379
+        }
+      },
+      "gt2.0": {
+        "return_1d": {
+          "n": 2206,
+          "active_days": 731,
+          "mean_return": -0.0029069580009236026,
+          "median_return": -0.007197067780004094,
+          "win_rate": 0.42339075249320035,
+          "mean_market_excess": -0.0010850231037121151,
+          "bootstrap95_market_excess": [
+            -0.00363465766712682,
+            0.0015063814159946118
+          ],
+          "trim_best5_mean_market_excess": -0.006634448296742117,
+          "halfyears": 8,
+          "positive_halfyears": 3,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.729745244188553
+        },
+        "return_2d": {
+          "n": 2200,
+          "active_days": 730,
+          "mean_return": -0.0029319499189915076,
+          "median_return": -0.010781513462506585,
+          "win_rate": 0.41045454545454546,
+          "mean_market_excess": -0.0019190035111619006,
+          "bootstrap95_market_excess": [
+            -0.005378120483985991,
+            0.0016234597108943287
+          ],
+          "trim_best5_mean_market_excess": -0.010029645432178285,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.7525950060219949
+        },
+        "return_5d": {
+          "n": 2190,
+          "active_days": 725,
+          "mean_return": -0.005220182977955333,
+          "median_return": -0.018831534608378917,
+          "win_rate": 0.39360730593607307,
+          "mean_market_excess": -0.005882536147108032,
+          "bootstrap95_market_excess": [
+            -0.011162659262594313,
+            -0.0003931489076327258
+          ],
+          "trim_best5_mean_market_excess": -0.018248683031837035,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.65130823819011
+        }
+      }
+    },
+    "turnover_bin": {
+      "lt1": {
+        "return_1d": {
+          "n": 1123,
+          "active_days": 533,
+          "mean_return": -0.0006426182200422885,
+          "median_return": -0.0018,
+          "win_rate": 0.44345503116651824,
+          "mean_market_excess": -0.0012220870299205196,
+          "bootstrap95_market_excess": [
+            -0.0028996180301993175,
+            0.00042050197566075243
+          ],
+          "trim_best5_mean_market_excess": -0.004134766853593989,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.6089262926351852
+        },
+        "return_2d": {
+          "n": 1121,
+          "active_days": 532,
+          "mean_return": 0.00014553619954049804,
+          "median_return": -0.0018,
+          "win_rate": 0.47725245316681536,
+          "mean_market_excess": -0.0003387040601714912,
+          "bootstrap95_market_excess": [
+            -0.0027318251492403707,
+            0.00207657305005389
+          ],
+          "trim_best5_mean_market_excess": -0.004645900964823052,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.40917389020821915
+        },
+        "return_5d": {
+          "n": 1118,
+          "active_days": 530,
+          "mean_return": 0.0038114418869926205,
+          "median_return": -0.00011233928978291287,
+          "win_rate": 0.49821109123434704,
+          "mean_market_excess": -0.0006943573962228786,
+          "bootstrap95_market_excess": [
+            -0.0041499161239346265,
+            0.0029423030294904243
+          ],
+          "trim_best5_mean_market_excess": -0.0072509544858011775,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.4492368935158801
+        }
+      },
+      "1-3": {
+        "return_1d": {
+          "n": 4403,
+          "active_days": 856,
+          "mean_return": -0.0026456492544424002,
+          "median_return": -0.004406882168926016,
+          "win_rate": 0.4240290710878946,
+          "mean_market_excess": -0.00039063646223855546,
+          "bootstrap95_market_excess": [
+            -0.0014397912780745805,
+            0.0005649153118759815
+          ],
+          "trim_best5_mean_market_excess": -0.004031207208542743,
+          "halfyears": 8,
+          "positive_halfyears": 3,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.6934955796414373
+        },
+        "return_2d": {
+          "n": 4394,
+          "active_days": 855,
+          "mean_return": -0.0017780989745103417,
+          "median_return": -0.005618723042342486,
+          "win_rate": 0.43172507965407375,
+          "mean_market_excess": -0.0005782128828297931,
+          "bootstrap95_market_excess": [
+            -0.0022246836192784726,
+            0.001187170585891357
+          ],
+          "trim_best5_mean_market_excess": -0.006198230270645598,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.48140838593439406
+        },
+        "return_5d": {
+          "n": 4363,
+          "active_days": 851,
+          "mean_return": 0.002069693414295006,
+          "median_return": -0.0060372881355932086,
+          "win_rate": 0.45198258079303233,
+          "mean_market_excess": 0.00170305266686882,
+          "bootstrap95_market_excess": [
+            -0.0022207611721837763,
+            0.0064103985384736445
+          ],
+          "trim_best5_mean_market_excess": -0.009930446456670917,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.34304048386608255
+        }
+      },
+      "3-15": {
+        "return_1d": {
+          "n": 6984,
+          "active_days": 875,
+          "mean_return": -0.00293886698417145,
+          "median_return": -0.006988076172532141,
+          "win_rate": 0.4215349369988545,
+          "mean_market_excess": -0.0007819744751075646,
+          "bootstrap95_market_excess": [
+            -0.002335955995909037,
+            0.0007945019413749071
+          ],
+          "trim_best5_mean_market_excess": -0.006379511868236067,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.6088001978816883
+        },
+        "return_2d": {
+          "n": 6973,
+          "active_days": 874,
+          "mean_return": -0.0025889412946977987,
+          "median_return": -0.009082483710233877,
+          "win_rate": 0.42951383909364693,
+          "mean_market_excess": -0.0006123664452418172,
+          "bootstrap95_market_excess": [
+            -0.0027542035128639212,
+            0.001591828615150505
+          ],
+          "trim_best5_mean_market_excess": -0.009291170360743646,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.3142617587954097
+        },
+        "return_5d": {
+          "n": 6911,
+          "active_days": 870,
+          "mean_return": -0.002146283992654518,
+          "median_return": -0.015412565445026203,
+          "win_rate": 0.4187527130661265,
+          "mean_market_excess": -0.00022242195253845294,
+          "bootstrap95_market_excess": [
+            -0.0037108098970396455,
+            0.0033613875842608033
+          ],
+          "trim_best5_mean_market_excess": -0.013981065297118192,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.3869218852694034
+        }
+      },
+      "15-25": {
+        "return_1d": {
+          "n": 510,
+          "active_days": 331,
+          "mean_return": -0.002898149206941325,
+          "median_return": -0.010917640114279401,
+          "win_rate": 0.43529411764705883,
+          "mean_market_excess": -0.005504989408560889,
+          "bootstrap95_market_excess": [
+            -0.011205476008476328,
+            0.0005863336194284463
+          ],
+          "trim_best5_mean_market_excess": -0.01158260272674907,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.791736556035621
+        },
+        "return_2d": {
+          "n": 509,
+          "active_days": 330,
+          "mean_return": -0.006511462612878,
+          "median_return": -0.02005442099258412,
+          "win_rate": 0.40078585461689586,
+          "mean_market_excess": -0.01019215467565806,
+          "bootstrap95_market_excess": [
+            -0.018101907408857257,
+            -0.001998549051312051
+          ],
+          "trim_best5_mean_market_excess": -0.019692420588472224,
+          "halfyears": 8,
+          "positive_halfyears": 1,
+          "negative_halfyears": 7,
+          "best_half_contribution_share": 1.0
+        },
+        "return_5d": {
+          "n": 507,
+          "active_days": 328,
+          "mean_return": -0.009993177428607825,
+          "median_return": -0.03480330033003285,
+          "win_rate": 0.368836291913215,
+          "mean_market_excess": -0.01686039837533228,
+          "bootstrap95_market_excess": [
+            -0.028630693537550697,
+            -0.0048052385467389665
+          ],
+          "trim_best5_mean_market_excess": -0.03228869743218066,
+          "halfyears": 8,
+          "positive_halfyears": 0,
+          "negative_halfyears": 8,
+          "best_half_contribution_share": null
+        }
+      },
+      "gt25": {
+        "return_1d": {
+          "n": 124,
+          "active_days": 98,
+          "mean_return": -0.0015826080407049096,
+          "median_return": -0.0005574683360683769,
+          "win_rate": 0.5,
+          "mean_market_excess": -0.0005407216086708352,
+          "bootstrap95_market_excess": [
+            -0.01439818202559732,
+            0.012982103388623704
+          ],
+          "trim_best5_mean_market_excess": -0.008060026742738516,
+          "halfyears": 7,
+          "positive_halfyears": 3,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.3818300656678753
+        },
+        "return_2d": {
+          "n": 124,
+          "active_days": 98,
+          "mean_return": 0.004482998340218186,
+          "median_return": -0.009470454545454563,
+          "win_rate": 0.47580645161290325,
+          "mean_market_excess": -0.0036129065097800007,
+          "bootstrap95_market_excess": [
+            -0.02108505618441609,
+            0.014941206612816359
+          ],
+          "trim_best5_mean_market_excess": -0.01205133932174992,
+          "halfyears": 7,
+          "positive_halfyears": 2,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.6050222128678506
+        },
+        "return_5d": {
+          "n": 124,
+          "active_days": 98,
+          "mean_return": 0.01983947856076223,
+          "median_return": -0.018280111662269703,
+          "win_rate": 0.41935483870967744,
+          "mean_market_excess": 0.00675583388846891,
+          "bootstrap95_market_excess": [
+            -0.02170698955868677,
+            0.037026820008673175
+          ],
+          "trim_best5_mean_market_excess": -0.012533210679503783,
+          "halfyears": 7,
+          "positive_halfyears": 4,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.45335893687706863
+        }
+      }
+    },
+    "price_bin": {
+      "lt10": {
+        "return_1d": {
+          "n": 4213,
+          "active_days": 851,
+          "mean_return": -0.002512609156164168,
+          "median_return": -0.004858103975535186,
+          "win_rate": 0.42368858295751244,
+          "mean_market_excess": -0.0010100897584363574,
+          "bootstrap95_market_excess": [
+            -0.0026192379846575317,
+            0.0006240276502174611
+          ],
+          "trim_best5_mean_market_excess": -0.0065635689493759655,
+          "halfyears": 8,
+          "positive_halfyears": 3,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.559591390387029
+        },
+        "return_2d": {
+          "n": 4204,
+          "active_days": 850,
+          "mean_return": -0.0019975553285285054,
+          "median_return": -0.006107252758125823,
+          "win_rate": 0.42887725975261654,
+          "mean_market_excess": -0.001929219817427946,
+          "bootstrap95_market_excess": [
+            -0.004271199007889175,
+            0.00044047583352992457
+          ],
+          "trim_best5_mean_market_excess": -0.009491819464104738,
+          "halfyears": 8,
+          "positive_halfyears": 3,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.47911035511235694
+        },
+        "return_5d": {
+          "n": 4181,
+          "active_days": 847,
+          "mean_return": 0.0013408171884281132,
+          "median_return": -0.0096125,
+          "win_rate": 0.42430040660129154,
+          "mean_market_excess": -0.00026638728960590044,
+          "bootstrap95_market_excess": [
+            -0.004543857947588441,
+            0.004172030729303548
+          ],
+          "trim_best5_mean_market_excess": -0.01585122687063446,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.47736406113754926
+        }
+      },
+      "10-20": {
+        "return_1d": {
+          "n": 3384,
+          "active_days": 835,
+          "mean_return": -0.0015426060667406486,
+          "median_return": -0.004903272279039337,
+          "win_rate": 0.4258274231678487,
+          "mean_market_excess": -0.00011195852901361045,
+          "bootstrap95_market_excess": [
+            -0.0016937288687092922,
+            0.001490515584906278
+          ],
+          "trim_best5_mean_market_excess": -0.004887394466035188,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.6023964014980637
+        },
+        "return_2d": {
+          "n": 3379,
+          "active_days": 834,
+          "mean_return": -0.0008708710006514171,
+          "median_return": -0.007371030640668439,
+          "win_rate": 0.4279372595442439,
+          "mean_market_excess": 0.0006095568666495341,
+          "bootstrap95_market_excess": [
+            -0.0016722947277388112,
+            0.0030115295537392795
+          ],
+          "trim_best5_mean_market_excess": -0.007186098640074823,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.555603443124579
+        },
+        "return_5d": {
+          "n": 3356,
+          "active_days": 831,
+          "mean_return": 0.001965171419428888,
+          "median_return": -0.008557065242204207,
+          "win_rate": 0.4445768772348033,
+          "mean_market_excess": 0.0024791236653296587,
+          "bootstrap95_market_excess": [
+            -0.0009249294409600117,
+            0.006061003059632888
+          ],
+          "trim_best5_mean_market_excess": -0.009886460203601607,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.3517905683126737
+        }
+      },
+      "20-50": {
+        "return_1d": {
+          "n": 3659,
+          "active_days": 838,
+          "mean_return": -0.0031196854944459725,
+          "median_return": -0.005185416666666585,
+          "win_rate": 0.4315386717682427,
+          "mean_market_excess": -0.001639787054296608,
+          "bootstrap95_market_excess": [
+            -0.003377610831103567,
+            7.536078836681618e-05
+          ],
+          "trim_best5_mean_market_excess": -0.006508004158997625,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.6782807177910741
+        },
+        "return_2d": {
+          "n": 3654,
+          "active_days": 836,
+          "mean_return": -0.0032550002138670097,
+          "median_return": -0.007389816571789918,
+          "win_rate": 0.4395183360700602,
+          "mean_market_excess": -0.002824147461467187,
+          "bootstrap95_market_excess": [
+            -0.005086255434838671,
+            -0.0005750854699796996
+          ],
+          "trim_best5_mean_market_excess": -0.009363744998051687,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.9722355586515931
+        },
+        "return_5d": {
+          "n": 3621,
+          "active_days": 833,
+          "mean_return": -0.003137933279344511,
+          "median_return": -0.010357457212713948,
+          "win_rate": 0.43496271748135873,
+          "mean_market_excess": -0.005473030487950394,
+          "bootstrap95_market_excess": [
+            -0.009214135081867018,
+            -0.0016891740098714737
+          ],
+          "trim_best5_mean_market_excess": -0.015450591769413451,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.9518381256020754
+        }
+      },
+      "gte50": {
+        "return_1d": {
+          "n": 1888,
+          "active_days": 657,
+          "mean_return": -0.0038925158419017263,
+          "median_return": -0.007307303320443079,
+          "win_rate": 0.4173728813559322,
+          "mean_market_excess": -0.0014374289526727954,
+          "bootstrap95_market_excess": [
+            -0.0038739714128004916,
+            0.001050285590023448
+          ],
+          "trim_best5_mean_market_excess": -0.006188011556409937,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.6331951110217156
+        },
+        "return_2d": {
+          "n": 1884,
+          "active_days": 656,
+          "mean_return": -0.002774301828133818,
+          "median_return": -0.007580346820809245,
+          "win_rate": 0.4432059447983015,
+          "mean_market_excess": -0.0011032967272484016,
+          "bootstrap95_market_excess": [
+            -0.004485889473638214,
+            0.002312123094669305
+          ],
+          "trim_best5_mean_market_excess": -0.007638237514723278,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.38256055804853645
+        },
+        "return_5d": {
+          "n": 1865,
+          "active_days": 653,
+          "mean_return": -0.0026738688663233193,
+          "median_return": -0.011492307692307666,
+          "win_rate": 0.44021447721179624,
+          "mean_market_excess": -0.00121620195545819,
+          "bootstrap95_market_excess": [
+            -0.005940554048806196,
+            0.003648099174848989
+          ],
+          "trim_best5_mean_market_excess": -0.011200438335970354,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.5494532298185252
+        }
+      }
+    },
+    "board_bin": {
+      "0": {
+        "return_1d": {
+          "n": 11462,
+          "active_days": 888,
+          "mean_return": -0.001965578068573106,
+          "median_return": -0.004640332841600623,
+          "win_rate": 0.4297679288082359,
+          "mean_market_excess": -0.00038898834857669723,
+          "bootstrap95_market_excess": [
+            -0.0013479842622230581,
+            0.000598156973447269
+          ],
+          "trim_best5_mean_market_excess": -0.005356468789739282,
+          "halfyears": 8,
+          "positive_halfyears": 3,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.5441516334974718
+        },
+        "return_2d": {
+          "n": 11440,
+          "active_days": 887,
+          "mean_return": -0.0014517709320421728,
+          "median_return": -0.006162821186653043,
+          "win_rate": 0.4375,
+          "mean_market_excess": -0.00045080025629431103,
+          "bootstrap95_market_excess": [
+            -0.0017352107717514425,
+            0.0008976820496439344
+          ],
+          "trim_best5_mean_market_excess": -0.007901817288315644,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.380970015670333
+        },
+        "return_5d": {
+          "n": 11353,
+          "active_days": 884,
+          "mean_return": 0.0017628401238792796,
+          "median_return": -0.008331678641410798,
+          "win_rate": 0.4412930502950762,
+          "mean_market_excess": 0.0012231354670822572,
+          "bootstrap95_market_excess": [
+            -0.001395241629497828,
+            0.004044611202844496
+          ],
+          "trim_best5_mean_market_excess": -0.011924220928237923,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.30435369617898106
+        }
+      },
+      "1": {
+        "return_1d": {
+          "n": 1151,
+          "active_days": 498,
+          "mean_return": -0.005023934986370651,
+          "median_return": -0.009567995857068776,
+          "win_rate": 0.40834057341442226,
+          "mean_market_excess": -0.0031343541236674424,
+          "bootstrap95_market_excess": [
+            -0.00742446973171595,
+            0.0010101501959392186
+          ],
+          "trim_best5_mean_market_excess": -0.00973707811891778,
+          "halfyears": 8,
+          "positive_halfyears": 3,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.8391524613413777
+        },
+        "return_2d": {
+          "n": 1151,
+          "active_days": 498,
+          "mean_return": -0.002343509856092194,
+          "median_return": -0.01278901098901095,
+          "win_rate": 0.42311033883579496,
+          "mean_market_excess": -0.0011777583106107874,
+          "bootstrap95_market_excess": [
+            -0.007218406116714088,
+            0.00520574944681221
+          ],
+          "trim_best5_mean_market_excess": -0.012771107474812854,
+          "halfyears": 8,
+          "positive_halfyears": 4,
+          "negative_halfyears": 4,
+          "best_half_contribution_share": 0.33756582167877286
+        },
+        "return_5d": {
+          "n": 1144,
+          "active_days": 495,
+          "mean_return": -0.003077062229962259,
+          "median_return": -0.01914398961896899,
+          "win_rate": 0.42744755244755245,
+          "mean_market_excess": -0.0016727023934288256,
+          "bootstrap95_market_excess": [
+            -0.010901006497955851,
+            0.007794733798842492
+          ],
+          "trim_best5_mean_market_excess": -0.019261843248078354,
+          "halfyears": 8,
+          "positive_halfyears": 5,
+          "negative_halfyears": 3,
+          "best_half_contribution_share": 0.285329298200631
+        }
+      },
+      "2": {
+        "return_1d": {
+          "n": 375,
+          "active_days": 216,
+          "mean_return": -0.00745543514998482,
+          "median_return": -0.019657142857142904,
+          "win_rate": 0.37866666666666665,
+          "mean_market_excess": -0.0054992331359556635,
+          "bootstrap95_market_excess": [
+            -0.013770289400362554,
+            0.0032985381710993866
+          ],
+          "trim_best5_mean_market_excess": -0.014746749225876005,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.5676999034576576
+        },
+        "return_2d": {
+          "n": 374,
+          "active_days": 215,
+          "mean_return": -0.006367465965337753,
+          "median_return": -0.019312188554817842,
+          "win_rate": 0.4117647058823529,
+          "mean_market_excess": 0.0006277704226238253,
+          "bootstrap95_market_excess": [
+            -0.011109204171595942,
+            0.013623901012233942
+          ],
+          "trim_best5_mean_market_excess": -0.015579076580012766,
+          "halfyears": 8,
+          "positive_halfyears": 3,
+          "negative_halfyears": 5,
+          "best_half_contribution_share": 0.42248591703108046
+        },
+        "return_5d": {
+          "n": 370,
+          "active_days": 212,
+          "mean_return": -0.02586379025396249,
+          "median_return": -0.04210579327987627,
+          "win_rate": 0.33783783783783783,
+          "mean_market_excess": -0.015881269542211068,
+          "bootstrap95_market_excess": [
+            -0.031369986649603394,
+            0.0007982459621453634
+          ],
+          "trim_best5_mean_market_excess": -0.03714029308382364,
+          "halfyears": 8,
+          "positive_halfyears": 2,
+          "negative_halfyears": 6,
+          "best_half_contribution_share": 0.8337342714061778
+        }
+      },
+      "3plus": {
+        "return_1d": {
+          "n": 156,
+          "active_days": 94,
+          "mean_return": -0.022192354268694852,
+          "median_return": -0.02912933249579239,
+          "win_rate": 0.3525641025641026,
+          "mean_market_excess": -0.007767452139331699,
+          "bootstrap95_market_excess": [
+            -0.023595220254366788,
+            0.008226297994383552
+          ],
+          "trim_best5_mean_market_excess": -0.02094539597968741,
+          "halfyears": 8,
+          "positive_halfyears": 1,
+          "negative_halfyears": 7,
+          "best_half_contribution_share": 1.0
+        },
+        "return_2d": {
+          "n": 156,
+          "active_days": 94,
+          "mean_return": -0.04342230487210412,
+          "median_return": -0.06841663874410522,
+          "win_rate": 0.28205128205128205,
+          "mean_market_excess": -0.01770043283971345,
+          "bootstrap95_market_excess": [
+            -0.039045691449179826,
+            0.0050606886481953375
+          ],
+          "trim_best5_mean_market_excess": -0.031770978739966364,
+          "halfyears": 8,
+          "positive_halfyears": 1,
+          "negative_halfyears": 7,
+          "best_half_contribution_share": 1.0
+        },
+        "return_5d": {
+          "n": 156,
+          "active_days": 94,
+          "mean_return": -0.07097379636626075,
+          "median_return": -0.10517910319673887,
+          "win_rate": 0.24358974358974358,
+          "mean_market_excess": -0.03990932911420713,
+          "bootstrap95_market_excess": [
+            -0.07149995742575183,
+            -0.008555517715641368
+          ],
+          "trim_best5_mean_market_excess": -0.0677263471759431,
+          "halfyears": 8,
+          "positive_halfyears": 0,
+          "negative_halfyears": 8,
+          "best_half_contribution_share": null
+        }
+      }
+    }
+  }
+}

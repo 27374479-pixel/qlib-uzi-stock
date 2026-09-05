@@ -1,0 +1,48 @@
+# Alpha Evidence Registry v1
+
+人物与书籍只记录来源，模块是否保留由样本外证据决定。日线通过不等于可实盘；需分钟执行的模块必须再通过真实成交测试。
+
+| Module | Source | Daily verdict | Promotion |
+|---|---|---|---|
+| `AMOUNT_ACCELERATION` | 48_trader_books | FAIL | **REJECTED** |
+| `ATTENTION_SATURATION_VETO` | external_A_share_evidence_challenger | PASS | **DAILY_PASS** |
+| `BREADTH_WITH_LEADER` | 48_trader_books | FAIL_SIGN_FLIP | **REJECTED** |
+| `CLIMAX_AVOIDANCE` | 48_trader_books | PROMISING | **PROMISING_RETEST** |
+| `DIVERGENCE_SURVIVOR` | 48_trader_books | FAIL | **REJECTED** |
+| `HIGH_VOLUME_DIVERGENCE` | 48_trader_books | FAIL | **REJECTED** |
+| `LIMIT_ADJUSTED_MOMENTUM` | external_A_share_evidence_challenger | PASS | **DAILY_PASS** |
+| `LOTTERY_CROWDING_VETO` | external_A_share_evidence_challenger | PROMISING | **PROMISING_RETEST** |
+| `LOW_PRICE_PLACEBO` | 48_trader_books | FAIL_SIGN_FLIP | **REJECTED** |
+| `NEW_EVENT_PROBE` | 48_trader_books | FAIL | **REJECTED** |
+| `NO_TRADE_WEAK` | 48_trader_books | INSUFFICIENT_CONTROL | **INSUFFICIENT** |
+| `OVERNIGHT_INFORMATION` | external_A_share_evidence_challenger | FAIL | **REJECTED** |
+| `OVERNIGHT_VS_INTRADAY_STRENGTH` | external_A_share_evidence_challenger | PROMISING | **PROMISING_RETEST** |
+| `PANIC_REPAIR` | 48_trader_books | INSUFFICIENT_CONTROL | **INSUFFICIENT** |
+| `POST_DIVERGENCE_REPAIR` | 48_trader_books | FAIL_SIGN_FLIP | **REJECTED** |
+| `ROLE_PERSISTENCE` | 48_trader_books | FAIL_SIGN_FLIP | **REJECTED** |
+| `T1_DELAYED_REVERSAL` | external_A_share_evidence_challenger | FAIL | **REJECTED** |
+| `TREND_PULLBACK` | 48_trader_books | FAIL | **REJECTED** |
+| `TURNOVER_SWEET_SPOT` | 48_trader_books | FAIL | **REJECTED** |
+
+## Timing evidence
+
+- `ACTIVE_CORE_STATE`: **NO_POSITIVE_POST_OPEN_EDGE**
+- `CLIMAX_CORE_TIMING`: **PRE_ENTRY_PREMIUM_ONLY**
+- `DIVERGENCE_SURVIVOR_TIMING`: **NO_POSITIVE_POST_OPEN_EDGE**
+- `FIRST_ATTENTION_STATE`: **PRE_ENTRY_PREMIUM_ONLY**
+- `LIMIT_TOUCH_STATE`: **PRE_ENTRY_PREMIUM_ONLY**
+- `REPAIR_CORE_TIMING`: **PRE_ENTRY_PREMIUM_ONLY**
+- `REPEATED_ATTENTION_STATE`: **PRE_ENTRY_PREMIUM_ONLY**
+- `SEALED_LIMIT_STATE`: **PRE_ENTRY_PREMIUM_ONLY**
+
+## Next-stage modules
+
+`ATTENTION_SATURATION_VETO`, `LIMIT_ADJUSTED_MOMENTUM`
+
+## Promising but not admitted
+
+`CLIMAX_AVOIDANCE`, `LOTTERY_CROWDING_VETO`, `OVERNIGHT_VS_INTRADAY_STRENGTH`
+
+## Rejected / weak
+
+`NEW_EVENT_PROBE`, `BREADTH_WITH_LEADER`, `POST_DIVERGENCE_REPAIR`, `DIVERGENCE_SURVIVOR`, `ROLE_PERSISTENCE`, `AMOUNT_ACCELERATION`, `TURNOVER_SWEET_SPOT`, `LOW_PRICE_PLACEBO`, `HIGH_VOLUME_DIVERGENCE`, `TREND_PULLBACK`, `T1_DELAYED_REVERSAL`, `OVERNIGHT_INFORMATION`
