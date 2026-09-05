@@ -1,0 +1,56 @@
+{
+  "config": {
+    "universe": "csi800",
+    "start": "2015-01-01",
+    "end": "2026-09-03",
+    "entry_times": [
+      "14:00",
+      "14:30",
+      "14:45",
+      "14:55"
+    ],
+    "exit_times": [
+      "09:30",
+      "10:00",
+      "15:00"
+    ],
+    "buy_cost": 0.0003,
+    "sell_cost": 0.0013,
+    "min_complete_names_per_day": 1,
+    "require_all_selected_names_complete": true,
+    "bootstrap_samples": 5000,
+    "seed": 20260905,
+    "output": "output/v4_intraday_survivor_validation.json"
+  },
+  "pass_hypotheses": [
+    "ATTENTION_SATURATION_VETO",
+    "LIMIT_ADJUSTED_MOMENTUM"
+  ],
+  "coverage": {
+    "14:00": {
+      "accepted_days": 0,
+      "rejected_days": 2826
+    },
+    "14:30": {
+      "accepted_days": 0,
+      "rejected_days": 2826
+    },
+    "14:45": {
+      "accepted_days": 0,
+      "rejected_days": 2826
+    },
+    "14:55": {
+      "accepted_days": 0,
+      "rejected_days": 2826
+    }
+  },
+  "methodology": {
+    "signal": "original frozen v3 PASS hypothesis selectors on completed daily data",
+    "sample_gate": "only dates with required local 5m bars; no network backfill",
+    "entry": "first 5m bar open at or after requested late-day time",
+    "exit": "next trading session first 5m bar at/after requested time; 15:00 uses final close",
+    "cost": 0.0015999999999999999,
+    "anti_leakage": "daily selector has no same-day intraday inputs; minute price only determines execution after signal"
+  },
+  "results": {}
+}
