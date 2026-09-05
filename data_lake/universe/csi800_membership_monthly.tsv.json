@@ -1,0 +1,12 @@
+{
+  "source": "BaoStock historical HS300 + ZZ500",
+  "point_in_time_policy": "snapshot membership is carried forward only until the next observed snapshot; changes are never back-dated",
+  "cadence": "monthly",
+  "start": "2014-01-01",
+  "end": "2026-09-03",
+  "snapshot_dates": 153,
+  "unique_instruments": 1515,
+  "intervals": 1926,
+  "generated_utc": "2026-09-05T02:39:05.982677+00:00",
+  "final_validation_note": "weekly/monthly cadence is a conservative screening approximation; rerun daily cadence for final membership-sensitive claims"
+}
