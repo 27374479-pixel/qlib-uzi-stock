@@ -5,9 +5,10 @@ on trading day T they are therefore evaluated on T-1 and carried forward to T.
 This makes every 14:xx entry causal: no T close, high, limit-touch or cross-
 sectional rank is used before it exists.
 
-When available, the filtered TraderHarness 2025/2026 files are preferred over
-older per-symbol provider caches. They are unadjusted public historical bars
-and are queried with a stock filter from two sorted yearly Parquet files.
+When available, filtered TraderHarness 2025/2026 history is merged with older
+per-symbol provider caches. TraderHarness supplies broad historical coverage;
+provider caches can extend the newest dates. Duplicate timestamps prefer the
+TraderHarness canonical bar.
 """
 import json
 from pathlib import Path
@@ -93,31 +94,45 @@ def _load_traderharness_minute(instrument):
             pieces.append(piece)
     if not pieces:
         return None
-    frame = pd.concat(pieces, ignore_index=True, sort=False)
     try:
-        frame = v4._normalize_minute(frame)
+        frame = v4._normalize_minute(pd.concat(pieces, ignore_index=True, sort=False))
     except Exception:
         return None
     return frame if not frame.empty else None
 
 
 def safe_load_minute(instrument, cache):
-    # Normalize cached empties back to None and prefer the complete bulk source.
     if instrument in cache:
         frame = cache[instrument]
         if frame is None or frame.empty or "datetime" not in frame.columns:
             return None
         return frame
 
+    # Load both sources. Use a throwaway provider cache so we can merge before
+    # publishing the final instrument frame into the real v4 cache.
     trader = _load_traderharness_minute(instrument)
-    if trader is not None:
-        cache[instrument] = trader
-        return trader
+    provider = _base_load_minute(instrument, {})
 
-    frame = _base_load_minute(instrument, cache)
-    if frame is None or frame.empty or "datetime" not in frame.columns:
+    pieces = []
+    if provider is not None and not provider.empty and "datetime" in provider.columns:
+        pieces.append(provider)
+    if trader is not None and not trader.empty and "datetime" in trader.columns:
+        pieces.append(trader)
+    if not pieces:
+        cache[instrument] = pd.DataFrame()
         return None
-    return frame
+
+    # Provider first, TraderHarness second => canonical TraderHarness wins on
+    # overlapping timestamps, while newer provider-only dates are retained.
+    merged = pd.concat(pieces, ignore_index=True, sort=False)
+    merged = merged.drop_duplicates(subset=["datetime"], keep="last").sort_values("datetime")
+    try:
+        merged = v4._normalize_minute(merged)
+    except Exception:
+        cache[instrument] = pd.DataFrame()
+        return None
+    cache[instrument] = merged
+    return merged if not merged.empty else None
 
 
 v4._load_pass_ids = load_modules
