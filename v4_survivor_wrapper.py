@@ -4,6 +4,10 @@ The external challenger selectors are daily-close definitions. For an entry
 on trading day T they are therefore evaluated on T-1 and carried forward to T.
 This makes every 14:xx entry causal: no T close, high, limit-touch or cross-
 sectional rank is used before it exists.
+
+When available, the filtered TraderHarness 2025/2026 files are preferred over
+older per-symbol provider caches. They are unadjusted public historical bars
+and are queried with a stock filter from two sorted yearly Parquet files.
 """
 import json
 from pathlib import Path
@@ -14,6 +18,10 @@ from external_challenger_daily_screen import add_challenger_features, challenger
 
 ROOT = Path(__file__).resolve().parent
 REGISTRY = ROOT / "output" / "alpha_evidence_registry_v1.json"
+TRADERHARNESS_FILES = (
+    ROOT / "data_lake" / "raw" / "traderharness" / "survivor_5min_2025.parquet",
+    ROOT / "data_lake" / "raw" / "traderharness" / "survivor_5min_2026.parquet",
+)
 MAP = {
     "ATTENTION_SATURATION_VETO": "X01_attention_saturation",
     "LIMIT_ADJUSTED_MOMENTUM": "X02_limit_adjusted_momentum",
@@ -64,12 +72,48 @@ def candidates(frame, modules):
     return pd.concat(parts, ignore_index=True).drop_duplicates()
 
 
-# The base loader caches a missing file as an empty DataFrame. On the next
-# access that empty frame used to escape as if it were valid and later caused
-# KeyError('datetime'). Normalize cached empties back to None.
 _base_load_minute = v4._load_minute
 
+
+def _load_traderharness_minute(instrument):
+    pieces = []
+    for path in TRADERHARNESS_FILES:
+        if not path.exists():
+            continue
+        try:
+            piece = pd.read_parquet(
+                path,
+                filters=[("instrument", "=", instrument)],
+                columns=["instrument", "datetime", "open", "high", "low", "close", "volume", "amount", "source"],
+            )
+        except Exception as exc:
+            print(f"TraderHarness minute read failed {instrument} {path.name}: {exc}")
+            continue
+        if not piece.empty:
+            pieces.append(piece)
+    if not pieces:
+        return None
+    frame = pd.concat(pieces, ignore_index=True, sort=False)
+    try:
+        frame = v4._normalize_minute(frame)
+    except Exception:
+        return None
+    return frame if not frame.empty else None
+
+
 def safe_load_minute(instrument, cache):
+    # Normalize cached empties back to None and prefer the complete bulk source.
+    if instrument in cache:
+        frame = cache[instrument]
+        if frame is None or frame.empty or "datetime" not in frame.columns:
+            return None
+        return frame
+
+    trader = _load_traderharness_minute(instrument)
+    if trader is not None:
+        cache[instrument] = trader
+        return trader
+
     frame = _base_load_minute(instrument, cache)
     if frame is None or frame.empty or "datetime" not in frame.columns:
         return None
