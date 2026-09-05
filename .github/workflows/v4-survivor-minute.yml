@@ -1,0 +1,90 @@
+name: V4 survivor minute validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v4-survivor-minute.yml"
+      - "v4_survivor_wrapper.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-survivor-minute
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow baostock requests
+
+      - name: Build frozen v3 survivor code set
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import v4_survivor_wrapper as w
+          import v4_intraday_survivor_validation as v4
+          cfg = v4.Config(start='2015-01-01', end='2026-09-03')
+          frame = w.prepare(cfg)
+          c = w.candidates(frame, w.load_modules())
+          c = c[c['date'] >= '2025-01-02']
+          codes = sorted(c['instrument'].astype(str).unique())
+          Path('output').mkdir(exist_ok=True)
+          Path('output/v4_survivor_codes.txt').write_text('\n'.join(codes)+'\n', encoding='utf-8')
+          print('survivor instruments', len(codes))
+          PY
+
+      - name: Backfill only required 5-minute histories
+        shell: bash
+        run: |
+          CODES="$(paste -sd, output/v4_survivor_codes.txt)"
+          timeout 14400 python baostock_parallel_backfill.py \
+            --start 20250102 \
+            --end 20260903 \
+            --codes "$CODES" \
+            --workers 3 \
+            --retries 2 \
+            --retry-delay 1 || true
+
+      - name: Run fixed-signal late-day timing matrix
+        run: |
+          python v4_survivor_wrapper.py \
+            --start 2015-01-01 \
+            --end 2026-09-03 \
+            --entry-times 14:00,14:30,14:45,14:55 \
+            --exit-times 09:30,10:00,15:00 \
+            --output output/v4_intraday_survivor_validation.json
+
+      - name: Persist v4 outputs and reusable minute files
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git lfs install
+          git lfs track "data_lake/raw/baostock/equity_5min/*.parquet"
+          git add .gitattributes
+          test ! -f output/v4_survivor_codes.txt || git add -f output/v4_survivor_codes.txt
+          test ! -f output/v4_intraday_survivor_validation.json || git add -f output/v4_intraday_survivor_validation.json
+          test ! -d data_lake/raw/baostock/equity_5min || git add -f data_lake/raw/baostock/equity_5min/*.parquet || true
+          if ! git diff --cached --quiet; then
+            git commit -m "research: persist v4 survivor minute validation [skip ci]"
+            git push
+          fi
