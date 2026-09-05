@@ -6,6 +6,13 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/v3-repair-and-screen.yml"
+      - "book_alpha_daily_screen_v3.py"
+      - "book_alpha_daily_screen_v2.py"
+      - "daily_event_role_backtest.py"
+      - "attention_timing_decomposition.py"
+      - "external_challenger_daily_screen.py"
+      - "build_alpha_evidence_registry.py"
+      - "validate_and_repair_daily_cache.py"
 
 permissions:
   contents: write
