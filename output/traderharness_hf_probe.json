@@ -1,0 +1,73 @@
+{
+  "repo_id": "ANTICH/traderharness-ashare-5y",
+  "five_minute_file_count": 18,
+  "five_minute_total_bytes": 4799888374,
+  "years": {
+    "2021": {
+      "files": 3,
+      "bytes": 551876796,
+      "paths": [
+        "5min_clean/year=2021/part-0.parquet",
+        "5min_clean/year=2021/part-3.parquet",
+        "5min_clean/year=2021/part-6.parquet"
+      ]
+    },
+    "2022": {
+      "files": 3,
+      "bytes": 887549317,
+      "paths": [
+        "5min_clean/year=2022/part-0.parquet",
+        "5min_clean/year=2022/part-3.parquet",
+        "5min_clean/year=2022/part-6.parquet"
+      ]
+    },
+    "2023": {
+      "files": 3,
+      "bytes": 931243546,
+      "paths": [
+        "5min_clean/year=2023/part-0.parquet",
+        "5min_clean/year=2023/part-3.parquet",
+        "5min_clean/year=2023/part-6.parquet"
+      ]
+    },
+    "2024": {
+      "files": 3,
+      "bytes": 915801491,
+      "paths": [
+        "5min_clean/year=2024/part-0.parquet",
+        "5min_clean/year=2024/part-3.parquet",
+        "5min_clean/year=2024/part-6.parquet"
+      ]
+    },
+    "2025": {
+      "files": 3,
+      "bytes": 955530316,
+      "paths": [
+        "5min_clean/year=2025/part-0.parquet",
+        "5min_clean/year=2025/part-3.parquet",
+        "5min_clean/year=2025/part-6.parquet"
+      ]
+    },
+    "2026": {
+      "files": 3,
+      "bytes": 557886908,
+      "paths": [
+        "5min_clean/year=2026/part-0.parquet",
+        "5min_clean/year=2026/part-3.parquet",
+        "5min_clean/year=2026/part-6.parquet"
+      ]
+    }
+  },
+  "target_2025_2026": {
+    "files": 6,
+    "bytes": 1513417224,
+    "paths": [
+      "5min_clean/year=2025/part-0.parquet",
+      "5min_clean/year=2025/part-3.parquet",
+      "5min_clean/year=2025/part-6.parquet",
+      "5min_clean/year=2026/part-0.parquet",
+      "5min_clean/year=2026/part-3.parquet",
+      "5min_clean/year=2026/part-6.parquet"
+    ]
+  }
+}
