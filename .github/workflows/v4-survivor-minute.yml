@@ -6,7 +6,7 @@ on:
     paths:
       - ".github/workflows/v4-survivor-minute.yml"
       - "v4_survivor_wrapper.py"
-      - "akshare_minute_gap_backfill.py"
+      - "direct_minute_gap_backfill.py"
   workflow_dispatch:
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "numpy<3" pandas pyarrow baostock requests akshare
+          pip install "numpy<3" pandas pyarrow baostock requests
 
       - name: Materialize frozen CSI800 membership for legacy loader
         run: |
@@ -60,15 +60,17 @@ jobs:
           print('candidate rows', len(c))
           PY
 
-      - name: Politely fill missing 5-minute histories via AKShare
+      - name: Pilot direct Eastmoney/Sina minute fetch
         shell: bash
         run: |
-          timeout 10800 python akshare_minute_gap_backfill.py \
+          timeout 1800 python direct_minute_gap_backfill.py \
             --codes-file output/v4_survivor_codes.txt \
             --start 2025-01-02 \
             --end 2026-09-03 \
             --sleep 2.0 \
-            --max-consecutive-failures 8 || true
+            --timeout 15 \
+            --max-symbols 30 \
+            --max-consecutive-failures 5 || true
 
       - name: Run leakage-safe late-day timing matrix
         run: |
@@ -88,12 +90,16 @@ jobs:
           git lfs install
           git lfs track "data_lake/raw/baostock/equity_5min/*.parquet"
           git lfs track "data_lake/raw/eastmoney/equity_5min/*.parquet"
+          git lfs track "data_lake/raw/sina/equity_5min/*.parquet"
           git add .gitattributes
           test ! -f output/v4_survivor_codes.txt || git add -f output/v4_survivor_codes.txt
           test ! -f output/v4_intraday_survivor_validation.json || git add -f output/v4_intraday_survivor_validation.json
           test ! -d data_lake/raw/baostock/equity_5min || git add -f data_lake/raw/baostock/equity_5min/*.parquet || true
           test ! -d data_lake/raw/eastmoney/equity_5min || git add -f data_lake/raw/eastmoney/equity_5min/*.parquet || true
+          test ! -d data_lake/raw/sina/equity_5min || git add -f data_lake/raw/sina/equity_5min/*.parquet || true
+          latest_manifest=$(ls -1t data_lake/manifests/direct_minute_gap_*.json 2>/dev/null | head -1 || true)
+          test -z "$latest_manifest" || git add -f "$latest_manifest"
           if ! git diff --cached --quiet; then
-            git commit -m "research: persist leakage-safe v4 minute validation [skip ci]"
+            git commit -m "research: persist direct minute pilot [skip ci]"
             git push
           fi
