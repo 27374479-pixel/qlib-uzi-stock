@@ -8,11 +8,21 @@ on:
       - ".github/workflows/actions-smoke.yml"
 
 jobs:
-  smoke:
+  ubuntu-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Echo runner health
+      - name: Echo Ubuntu runner health
         run: |
-          echo "runner ok"
+          echo "ubuntu runner ok"
+          python --version
+
+  windows-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Echo Windows runner health
+        shell: pwsh
+        run: |
+          Write-Host "windows runner ok"
           python --version
