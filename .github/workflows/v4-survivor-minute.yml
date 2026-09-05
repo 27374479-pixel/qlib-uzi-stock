@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/v4-survivor-minute.yml"
       - "v4_survivor_wrapper.py"
+      - "baostock_parallel_backfill.py"
   workflow_dispatch:
 
 permissions:
@@ -13,12 +14,12 @@ permissions:
 
 concurrency:
   group: v4-survivor-minute
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,7 +43,7 @@ jobs:
           test -s qlib_data/cn_data/instruments/csi800.txt
           echo "membership rows: $(wc -l < qlib_data/cn_data/instruments/csi800.txt)"
 
-      - name: Build frozen v3 survivor code set
+      - name: Build leakage-safe T-1 survivor code set
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -51,26 +52,27 @@ jobs:
           cfg = v4.Config(start='2015-01-01', end='2026-09-03')
           frame = w.prepare(cfg)
           c = w.candidates(frame, w.load_modules())
-          c = c[c['date'] >= '2025-01-02']
+          c = c[pd.to_datetime(c['date']) >= pd.Timestamp('2025-01-02')] if False else c[c['date'] >= '2025-01-02']
           codes = sorted(c['instrument'].astype(str).unique())
           Path('output').mkdir(exist_ok=True)
           Path('output/v4_survivor_codes.txt').write_text('\n'.join(codes)+'\n', encoding='utf-8')
-          print('survivor instruments', len(codes))
+          print('leakage-safe survivor instruments', len(codes))
+          print('candidate rows', len(c))
           PY
 
-      - name: Backfill only required 5-minute histories
+      - name: Backfill required 5-minute histories symbol by symbol
         shell: bash
         run: |
           CODES="$(paste -sd, output/v4_survivor_codes.txt)"
-          timeout 14400 python baostock_parallel_backfill.py \
+          timeout 7200 python baostock_parallel_backfill.py \
             --start 20250102 \
             --end 20260903 \
             --codes "$CODES" \
-            --workers 3 \
-            --retries 2 \
+            --workers 6 \
+            --retries 1 \
             --retry-delay 1 || true
 
-      - name: Run fixed-signal late-day timing matrix
+      - name: Run leakage-safe late-day timing matrix
         run: |
           python v4_survivor_wrapper.py \
             --start 2015-01-01 \
@@ -92,6 +94,6 @@ jobs:
           test ! -f output/v4_intraday_survivor_validation.json || git add -f output/v4_intraday_survivor_validation.json
           test ! -d data_lake/raw/baostock/equity_5min || git add -f data_lake/raw/baostock/equity_5min/*.parquet || true
           if ! git diff --cached --quiet; then
-            git commit -m "research: persist v4 survivor minute validation [skip ci]"
+            git commit -m "research: persist leakage-safe v4 minute validation [skip ci]"
             git push
           fi
