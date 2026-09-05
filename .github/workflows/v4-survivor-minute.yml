@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/v4-survivor-minute.yml"
-      - "v4_survivor_wrapper.py"
+      - "eastmoney_history_probe.py"
       - "direct_minute_gap_backfill.py"
   workflow_dispatch:
 
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,78 +31,21 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install dependencies
+      - name: Install probe dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "numpy<3" pandas pyarrow baostock requests
+          pip install pandas requests
 
-      - name: Materialize frozen CSI800 membership for legacy loader
-        run: |
-          mkdir -p qlib_data/cn_data/instruments
-          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
-          test -s qlib_data/cn_data/instruments/csi800.txt
-          echo "membership rows: $(wc -l < qlib_data/cn_data/instruments/csi800.txt)"
+      - name: Low-frequency Eastmoney historical 5-minute probe
+        run: python eastmoney_history_probe.py
 
-      - name: Build leakage-safe T-1 survivor code set
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import v4_survivor_wrapper as w
-          import v4_intraday_survivor_validation as v4
-          cfg = v4.Config(start='2015-01-01', end='2026-09-03')
-          frame = w.prepare(cfg)
-          c = w.candidates(frame, w.load_modules())
-          c = c[c['date'] >= '2025-01-02']
-          codes = sorted(c['instrument'].astype(str).unique())
-          Path('output').mkdir(exist_ok=True)
-          Path('output/v4_survivor_codes.txt').write_text('\n'.join(codes)+'\n', encoding='utf-8')
-          print('leakage-safe survivor instruments', len(codes))
-          print('candidate rows', len(c))
-          PY
-
-      - name: Slowly collect direct Eastmoney/Sina minute histories
-        shell: bash
-        run: |
-          timeout 18000 python direct_minute_gap_backfill.py \
-            --codes-file output/v4_survivor_codes.txt \
-            --start 2025-01-02 \
-            --end 2026-09-03 \
-            --sleep 15 \
-            --jitter 10 \
-            --timeout 20 \
-            --max-symbols 813 \
-            --max-consecutive-failures 6 \
-            --failure-backoff 60 \
-            --max-backoff 600 || true
-
-      - name: Run leakage-safe late-day timing matrix
-        run: |
-          python v4_survivor_wrapper.py \
-            --start 2015-01-01 \
-            --end 2026-09-03 \
-            --entry-times 14:00,14:30,14:45,14:55 \
-            --exit-times 09:30,10:00,15:00 \
-            --output output/v4_intraday_survivor_validation.json
-
-      - name: Persist v4 outputs and reusable minute files
+      - name: Persist probe result
         if: always()
-        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git lfs install
-          git lfs track "data_lake/raw/baostock/equity_5min/*.parquet"
-          git lfs track "data_lake/raw/eastmoney/equity_5min/*.parquet"
-          git lfs track "data_lake/raw/sina/equity_5min/*.parquet"
-          git add .gitattributes
-          test ! -f output/v4_survivor_codes.txt || git add -f output/v4_survivor_codes.txt
-          test ! -f output/v4_intraday_survivor_validation.json || git add -f output/v4_intraday_survivor_validation.json
-          test ! -d data_lake/raw/baostock/equity_5min || git add -f data_lake/raw/baostock/equity_5min/*.parquet || true
-          test ! -d data_lake/raw/eastmoney/equity_5min || git add -f data_lake/raw/eastmoney/equity_5min/*.parquet || true
-          test ! -d data_lake/raw/sina/equity_5min || git add -f data_lake/raw/sina/equity_5min/*.parquet || true
-          latest_manifest=$(ls -1t data_lake/manifests/direct_minute_gap_*.json 2>/dev/null | head -1 || true)
-          test -z "$latest_manifest" || git add -f "$latest_manifest"
+          test ! -f output/eastmoney_history_probe.json || git add -f output/eastmoney_history_probe.json
           if ! git diff --cached --quiet; then
-            git commit -m "research: persist slow direct minute collection [skip ci]"
+            git commit -m "research: persist Eastmoney history probe [skip ci]"
             git push
           fi
