@@ -1,0 +1,49 @@
+{
+  "symbol": "1.600295",
+  "results": [
+    {
+      "name": "plain_range_lmt",
+      "params": {
+        "beg": "20250102",
+        "end": "20260903",
+        "lmt": "1000000"
+      },
+      "http_status": 200,
+      "rc": 0,
+      "bars": 1440,
+      "min_datetime": "2026-07-24 09:35:00",
+      "max_datetime": "2026-09-03 15:00:00",
+      "has_2025": false,
+      "has_jan_2025": false
+    },
+    {
+      "name": "ut_fa_range_lmt",
+      "params": {
+        "beg": "20250102",
+        "end": "20260903",
+        "lmt": "1000000",
+        "ut": "fa5fd1943c7b386f172d6893dbbd1d0c"
+      },
+      "error": "ConnectionError(ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response')))"
+    },
+    {
+      "name": "ut_7ee_range",
+      "params": {
+        "beg": "20250102",
+        "end": "20260903",
+        "ut": "7eea3edcaed734bea9cbfc24409ed989"
+      },
+      "error": "ConnectionError(ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response')))"
+    },
+    {
+      "name": "ut_7ee_from_zero_lmt",
+      "params": {
+        "beg": "0",
+        "end": "20260903",
+        "lmt": "1000000",
+        "ut": "7eea3edcaed734bea9cbfc24409ed989"
+      },
+      "error": "ConnectionError(ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response')))"
+    }
+  ]
+}
