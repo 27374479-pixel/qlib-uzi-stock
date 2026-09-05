@@ -5,7 +5,8 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/v4-survivor-minute.yml"
-      - "traderharness_hf_probe.py"
+      - "traderharness_hf_import.py"
+      - "v4_survivor_wrapper.py"
   workflow_dispatch:
 
 permissions:
@@ -18,7 +19,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,21 +31,69 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install probe dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install huggingface_hub
+          pip install "numpy<3" pandas pyarrow duckdb huggingface_hub baostock requests
 
-      - name: Inspect TraderHarness 5-minute yearly partitions
-        run: python traderharness_hf_probe.py
+      - name: Materialize frozen CSI800 membership for legacy loader
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+          echo "membership rows: $(wc -l < qlib_data/cn_data/instruments/csi800.txt)"
 
-      - name: Persist dataset partition probe
+      - name: Build leakage-safe T-1 survivor code set
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import v4_survivor_wrapper as w
+          import v4_intraday_survivor_validation as v4
+          cfg = v4.Config(start='2015-01-01', end='2026-09-03')
+          frame = w.prepare(cfg)
+          c = w.candidates(frame, w.load_modules())
+          c = c[c['date'] >= '2025-01-02']
+          codes = sorted(c['instrument'].astype(str).unique())
+          Path('output').mkdir(exist_ok=True)
+          Path('output/v4_survivor_codes.txt').write_text('\n'.join(codes)+'\n', encoding='utf-8')
+          print('leakage-safe survivor instruments', len(codes))
+          print('candidate rows', len(c))
+          PY
+
+      - name: Sequentially import TraderHarness 2025-2026 minute history
+        env:
+          HF_HUB_DISABLE_XET: "1"
+        shell: bash
+        run: |
+          timeout 10800 python traderharness_hf_import.py \
+            --sleep 20 \
+            --retries 3 \
+            --end 2026-09-03
+
+      - name: Run leakage-safe late-day timing matrix
+        run: |
+          python v4_survivor_wrapper.py \
+            --start 2015-01-01 \
+            --end 2026-09-03 \
+            --entry-times 14:00,14:30,14:45,14:55 \
+            --exit-times 09:30,10:00,15:00 \
+            --output output/v4_intraday_survivor_validation.json
+
+      - name: Persist filtered minute data and v4 outputs
         if: always()
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          test ! -f output/traderharness_hf_probe.json || git add -f output/traderharness_hf_probe.json
+          git lfs install
+          git lfs track "data_lake/raw/traderharness/*.parquet"
+          git add .gitattributes
+          test ! -f data_lake/raw/traderharness/survivor_5min_2025.parquet || git add -f data_lake/raw/traderharness/survivor_5min_2025.parquet
+          test ! -f data_lake/raw/traderharness/survivor_5min_2026.parquet || git add -f data_lake/raw/traderharness/survivor_5min_2026.parquet
+          test ! -f output/traderharness_survivor_5min_manifest.json || git add -f output/traderharness_survivor_5min_manifest.json
+          test ! -f output/v4_survivor_codes.txt || git add -f output/v4_survivor_codes.txt
+          test ! -f output/v4_intraday_survivor_validation.json || git add -f output/v4_intraday_survivor_validation.json
           if ! git diff --cached --quiet; then
-            git commit -m "research: persist TraderHarness partition probe [skip ci]"
+            git commit -m "research: persist TraderHarness minute slice and v4 results [skip ci]"
             git push
           fi
