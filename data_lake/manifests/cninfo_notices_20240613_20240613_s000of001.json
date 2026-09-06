@@ -1,0 +1,31 @@
+{
+  "schema_version": "v1",
+  "provider": "cninfo",
+  "source_endpoint": "akshare.stock_zh_a_disclosure_report_cninfo",
+  "requested_start": "2024-06-13",
+  "requested_end": "2024-06-13",
+  "universe_file": null,
+  "requested_symbols": 1,
+  "successful_symbols": 1,
+  "failed_symbols": [],
+  "fresh_rows": 2,
+  "unique_equity_instruments": 1,
+  "shard_count": 1,
+  "shard_index": 0,
+  "collected_at_utc": "2026-09-06T10:36:35+00:00",
+  "point_in_time_policy": {
+    "source_time_precision": "date",
+    "eligible_from": "published_date + 1 calendar day",
+    "reason": "CNINFO historical output is treated as date-only even if provider internals contain richer timestamps; no intraday availability is inferred.",
+    "historical_first_seen": "not claimed; collected_at_utc is ingestion time only"
+  },
+  "symbols": [
+    {
+      "symbol": "000006",
+      "fresh_rows": 2,
+      "old_rows": 0,
+      "final_rows": 2,
+      "path": "data_lake/raw/cninfo/notices/000006.parquet"
+    }
+  ]
+}
