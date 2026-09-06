@@ -7,6 +7,7 @@ on:
       - ".github/workflows/v4-paired-execution.yml"
       - "v4_paired_execution.py"
       - "traderharness_paired_import.py"
+      - "v4_paired_evidence_gate.py"
   workflow_dispatch:
 
 permissions:
@@ -76,6 +77,9 @@ jobs:
             --bootstrap-samples 5000 \
             --output output/v4_paired_execution.json
 
+      - name: Apply sample-size and stability evidence gate
+        run: python v4_paired_evidence_gate.py
+
       - name: Persist paired minute slice and V4.1 results
         if: always()
         shell: bash
@@ -90,6 +94,7 @@ jobs:
           test ! -f output/traderharness_paired_5min_manifest.json || git add -f output/traderharness_paired_5min_manifest.json
           test ! -f output/v4_paired_codes.txt || git add -f output/v4_paired_codes.txt
           test ! -f output/v4_paired_execution.json || git add -f output/v4_paired_execution.json
+          test ! -f output/v4_paired_evidence_gate.json || git add -f output/v4_paired_evidence_gate.json
           if ! git diff --cached --quiet; then
             git commit -m "research: persist v4.1 paired execution results [skip ci]"
             git push
