@@ -1,0 +1,109 @@
+{
+  "source_repo": "ANTICH/traderharness-ashare-5y",
+  "years": [
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "source_paths": {
+    "2021": [
+      "5min_clean/year=2021/part-0.parquet",
+      "5min_clean/year=2021/part-3.parquet",
+      "5min_clean/year=2021/part-6.parquet"
+    ],
+    "2022": [
+      "5min_clean/year=2022/part-0.parquet",
+      "5min_clean/year=2022/part-3.parquet",
+      "5min_clean/year=2022/part-6.parquet"
+    ],
+    "2023": [
+      "5min_clean/year=2023/part-0.parquet",
+      "5min_clean/year=2023/part-3.parquet",
+      "5min_clean/year=2023/part-6.parquet"
+    ],
+    "2024": [
+      "5min_clean/year=2024/part-0.parquet",
+      "5min_clean/year=2024/part-3.parquet",
+      "5min_clean/year=2024/part-6.parquet"
+    ],
+    "2025": [
+      "5min_clean/year=2025/part-0.parquet",
+      "5min_clean/year=2025/part-3.parquet",
+      "5min_clean/year=2025/part-6.parquet"
+    ],
+    "2026": [
+      "5min_clean/year=2026/part-0.parquet",
+      "5min_clean/year=2026/part-3.parquet",
+      "5min_clean/year=2026/part-6.parquet"
+    ]
+  },
+  "paired_instruments_requested": 1081,
+  "end": "2026-09-03",
+  "outputs": [
+    {
+      "year": 2021,
+      "path": "data_lake/raw/traderharness/paired_ext_5min_2021.parquet",
+      "bytes": 120075892,
+      "rows": 7630817,
+      "instruments": 1018,
+      "min_datetime": "2021-05-17 09:35:00",
+      "max_datetime": "2021-12-31 15:00:00",
+      "duplicate_rows": 0
+    },
+    {
+      "year": 2022,
+      "path": "data_lake/raw/traderharness/paired_ext_5min_2022.parquet",
+      "bytes": 174360454,
+      "rows": 11797777,
+      "instruments": 1032,
+      "min_datetime": "2022-01-04 09:35:00",
+      "max_datetime": "2022-12-30 15:00:00",
+      "duplicate_rows": 0
+    },
+    {
+      "year": 2023,
+      "path": "data_lake/raw/traderharness/paired_ext_5min_2023.parquet",
+      "bytes": 169466742,
+      "rows": 11925644,
+      "instruments": 1041,
+      "min_datetime": "2023-01-03 09:35:00",
+      "max_datetime": "2023-12-29 15:00:00",
+      "duplicate_rows": 0
+    },
+    {
+      "year": 2024,
+      "path": "data_lake/raw/traderharness/paired_ext_5min_2024.parquet",
+      "bytes": 167512715,
+      "rows": 12070588,
+      "instruments": 1046,
+      "min_datetime": "2024-01-02 09:35:00",
+      "max_datetime": "2024-12-31 15:00:00",
+      "duplicate_rows": 0
+    },
+    {
+      "year": 2025,
+      "path": "data_lake/raw/traderharness/paired_ext_5min_2025.parquet",
+      "bytes": 165868663,
+      "rows": 12075168,
+      "instruments": 1052,
+      "min_datetime": "2025-01-02 09:35:00",
+      "max_datetime": "2025-12-31 15:00:00",
+      "duplicate_rows": 0
+    },
+    {
+      "year": 2026,
+      "path": "data_lake/raw/traderharness/paired_ext_5min_2026.parquet",
+      "bytes": 102575118,
+      "rows": 6456209,
+      "instruments": 1052,
+      "min_datetime": "2026-01-05 09:35:00",
+      "max_datetime": "2026-07-16 15:00:00",
+      "duplicate_rows": 0
+    }
+  ],
+  "total_filtered_bytes": 899859584,
+  "total_rows": 61956203
+}

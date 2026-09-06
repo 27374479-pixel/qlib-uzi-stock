@@ -1,0 +1,1027 @@
+{
+  "source": "output/v4_paired_execution_2021_2026.json",
+  "principle": "sample size first; no low-count result can be promoted to alpha",
+  "gates": {
+    "formal_min_paired_dates": 120,
+    "suggestive_min_paired_dates": 60,
+    "min_half_years": 3,
+    "min_coverage_fraction": 0.25,
+    "pass_requires": "formal sample + >=2/3 positive half-years + bootstrap95 lower bound > 0"
+  },
+  "modules": {
+    "ATTENTION_SATURATION_VETO": {
+      "eligible_signal_dates": 1374,
+      "thresholds": {
+        "5": {
+          "14:30": {
+            "09:30": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 100,
+              "non_positive_paired_dates": 64,
+              "win_rate": 0.6097560975609756,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.005081276175870479,
+              "bootstrap95": [
+                0.0026560896977544306,
+                0.007545185723815404
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 96,
+              "non_positive_paired_dates": 68,
+              "win_rate": 0.5853658536585366,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.0035925914100026295,
+              "bootstrap95": [
+                0.0002733841148838173,
+                0.006841722063470559
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 92,
+              "non_positive_paired_dates": 72,
+              "win_rate": 0.5609756097560976,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.004772173758580486,
+              "bootstrap95": [
+                0.0009997338915757876,
+                0.008571289046784503
+              ],
+              "half_year_positive": 8,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:45": {
+            "09:30": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 98,
+              "non_positive_paired_dates": 66,
+              "win_rate": 0.5975609756097561,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.005205405142607718,
+              "bootstrap95": [
+                0.0028666855039450496,
+                0.00762481665951929
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 91,
+              "non_positive_paired_dates": 73,
+              "win_rate": 0.5548780487804879,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.003711557565040581,
+              "bootstrap95": [
+                0.0005134911402495282,
+                0.006993562815343944
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 93,
+              "non_positive_paired_dates": 71,
+              "win_rate": 0.5670731707317073,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.004885819689940196,
+              "bootstrap95": [
+                0.0009543632004898397,
+                0.008739184082304275
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:55": {
+            "09:30": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 99,
+              "non_positive_paired_dates": 65,
+              "win_rate": 0.6036585365853658,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.004922365106544337,
+              "bootstrap95": [
+                0.0026732826411277597,
+                0.007223408741351801
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 96,
+              "non_positive_paired_dates": 68,
+              "win_rate": 0.5853658536585366,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.0034166232287122463,
+              "bootstrap95": [
+                0.00024611876627200763,
+                0.0066999872624039355
+              ],
+              "half_year_positive": 8,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INSUFFICIENT_COVERAGE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 164,
+              "positive_paired_dates": 93,
+              "non_positive_paired_dates": 71,
+              "win_rate": 0.5670731707317073,
+              "coverage_fraction": 0.11935953420669577,
+              "mean_spread": 0.004588988046231621,
+              "bootstrap95": [
+                0.0008191265362249029,
+                0.008377586332203325
+              ],
+              "half_year_positive": 7,
+              "half_year_total": 9,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          }
+        },
+        "10": {
+          "14:30": {
+            "09:30": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 19,
+              "non_positive_paired_dates": 11,
+              "win_rate": 0.6333333333333333,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.003163234572039244,
+              "bootstrap95": [
+                -0.0016903042126565366,
+                0.007931226273780179
+              ],
+              "half_year_positive": 2,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 16,
+              "non_positive_paired_dates": 14,
+              "win_rate": 0.5333333333333333,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.001402890181289787,
+              "bootstrap95": [
+                -0.005683560579511887,
+                0.008330055602420455
+              ],
+              "half_year_positive": 1,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 15,
+              "non_positive_paired_dates": 15,
+              "win_rate": 0.5,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.00212705302299604,
+              "bootstrap95": [
+                -0.0053404795488686315,
+                0.0099116547513901
+              ],
+              "half_year_positive": 2,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:45": {
+            "09:30": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 16,
+              "non_positive_paired_dates": 14,
+              "win_rate": 0.5333333333333333,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.002783620668093226,
+              "bootstrap95": [
+                -0.0017974064363526381,
+                0.007069511813109347
+              ],
+              "half_year_positive": 2,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 17,
+              "non_positive_paired_dates": 13,
+              "win_rate": 0.5666666666666667,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.001061444013496925,
+              "bootstrap95": [
+                -0.006179019037393116,
+                0.007855766761247425
+              ],
+              "half_year_positive": 1,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 15,
+              "non_positive_paired_dates": 15,
+              "win_rate": 0.5,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.0018048060385080944,
+              "bootstrap95": [
+                -0.005814867520150123,
+                0.009605521200428268
+              ],
+              "half_year_positive": 2,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:55": {
+            "09:30": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 15,
+              "non_positive_paired_dates": 15,
+              "win_rate": 0.5,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.0016940003125418138,
+              "bootstrap95": [
+                -0.0027981146688307985,
+                0.0061466291537793875
+              ],
+              "half_year_positive": 1,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 14,
+              "non_positive_paired_dates": 16,
+              "win_rate": 0.4666666666666667,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": -1.3114469449297151e-05,
+              "bootstrap95": [
+                -0.007010882046866143,
+                0.006810914801884171
+              ],
+              "half_year_positive": 1,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INSUFFICIENT_SAMPLE",
+              "sample_tier": "INSUFFICIENT",
+              "paired_dates": 30,
+              "positive_paired_dates": 16,
+              "non_positive_paired_dates": 14,
+              "win_rate": 0.5333333333333333,
+              "coverage_fraction": 0.021834061135371178,
+              "mean_spread": 0.0007072367676186447,
+              "bootstrap95": [
+                -0.006868291504249592,
+                0.008175345599357656
+              ],
+              "half_year_positive": 2,
+              "half_year_total": 3,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "LIMIT_ADJUSTED_MOMENTUM": {
+      "eligible_signal_dates": 1375,
+      "thresholds": {
+        "5": {
+          "14:30": {
+            "09:30": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 538,
+              "non_positive_paired_dates": 284,
+              "win_rate": 0.6545012165450121,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0026186099185060577,
+              "bootstrap95": [
+                0.0019871212103727627,
+                0.0032607810384708545
+              ],
+              "half_year_positive": 12,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 466,
+              "non_positive_paired_dates": 356,
+              "win_rate": 0.5669099756690997,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0017758443676150037,
+              "bootstrap95": [
+                0.0008293762297293676,
+                0.0026945294690898748
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INCONCLUSIVE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 441,
+              "non_positive_paired_dates": 381,
+              "win_rate": 0.5364963503649635,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0013270504784311833,
+              "bootstrap95": [
+                0.00013469593492641398,
+                0.0025582877069750985
+              ],
+              "half_year_positive": 7,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:45": {
+            "09:30": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 536,
+              "non_positive_paired_dates": 286,
+              "win_rate": 0.6520681265206812,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.002270845838668316,
+              "bootstrap95": [
+                0.0016653783463353071,
+                0.002882564101973342
+              ],
+              "half_year_positive": 12,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 460,
+              "non_positive_paired_dates": 362,
+              "win_rate": 0.559610705596107,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0014221246503137155,
+              "bootstrap95": [
+                0.0004819590031212978,
+                0.002361415900349339
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INCONCLUSIVE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 431,
+              "non_positive_paired_dates": 391,
+              "win_rate": 0.524330900243309,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0009680394399139308,
+              "bootstrap95": [
+                -0.0002342501419596955,
+                0.002168758531844806
+              ],
+              "half_year_positive": 7,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:55": {
+            "09:30": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 541,
+              "non_positive_paired_dates": 281,
+              "win_rate": 0.6581508515815085,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0021217631048795088,
+              "bootstrap95": [
+                0.001548645953906422,
+                0.0027042616964519277
+              ],
+              "half_year_positive": 12,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 466,
+              "non_positive_paired_dates": 356,
+              "win_rate": 0.5669099756690997,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0012762711220701134,
+              "bootstrap95": [
+                0.0003850794369213213,
+                0.002172453684370714
+              ],
+              "half_year_positive": 9,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INCONCLUSIVE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 822,
+              "positive_paired_dates": 433,
+              "non_positive_paired_dates": 389,
+              "win_rate": 0.5267639902676399,
+              "coverage_fraction": 0.5978181818181818,
+              "mean_spread": 0.0008222027387635564,
+              "bootstrap95": [
+                -0.00042375994998227444,
+                0.00198738050869751
+              ],
+              "half_year_positive": 7,
+              "half_year_total": 12,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          }
+        },
+        "10": {
+          "14:30": {
+            "09:30": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 300,
+              "non_positive_paired_dates": 167,
+              "win_rate": 0.6423982869379015,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.002451090728421138,
+              "bootstrap95": [
+                0.0016827401895767094,
+                0.0032056380806451006
+              ],
+              "half_year_positive": 11,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 259,
+              "non_positive_paired_dates": 208,
+              "win_rate": 0.5546038543897216,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.0018763100387000093,
+              "bootstrap95": [
+                0.0007192390390669787,
+                0.0030161091132902516
+              ],
+              "half_year_positive": 11,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INCONCLUSIVE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 241,
+              "non_positive_paired_dates": 226,
+              "win_rate": 0.5160599571734475,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.0011891059453942824,
+              "bootstrap95": [
+                -0.00033828824713148087,
+                0.002690553865754836
+              ],
+              "half_year_positive": 8,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:45": {
+            "09:30": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 301,
+              "non_positive_paired_dates": 166,
+              "win_rate": 0.6445396145610278,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.002246722368975949,
+              "bootstrap95": [
+                0.0014930930936175807,
+                0.00298324127679366
+              ],
+              "half_year_positive": 11,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 255,
+              "non_positive_paired_dates": 212,
+              "win_rate": 0.5460385438972163,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.00166748229742396,
+              "bootstrap95": [
+                0.0005334777065872308,
+                0.0028153639704681767
+              ],
+              "half_year_positive": 11,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INCONCLUSIVE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 239,
+              "non_positive_paired_dates": 228,
+              "win_rate": 0.5117773019271948,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.0009726717968088431,
+              "bootstrap95": [
+                -0.0005414615633408641,
+                0.002486563420940483
+              ],
+              "half_year_positive": 7,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          },
+          "14:55": {
+            "09:30": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 301,
+              "non_positive_paired_dates": 166,
+              "win_rate": 0.6445396145610278,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.002017717515088047,
+              "bootstrap95": [
+                0.0013192206935123062,
+                0.002740076402281206
+              ],
+              "half_year_positive": 11,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "10:00": {
+              "verdict": "PASS",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 259,
+              "non_positive_paired_dates": 208,
+              "win_rate": 0.5546038543897216,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.0014380352742390154,
+              "bootstrap95": [
+                0.00028628481636474765,
+                0.002586673770751247
+              ],
+              "half_year_positive": 10,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            },
+            "15:00": {
+              "verdict": "INCONCLUSIVE",
+              "sample_tier": "FORMAL",
+              "paired_dates": 467,
+              "positive_paired_dates": 240,
+              "non_positive_paired_dates": 227,
+              "win_rate": 0.5139186295503212,
+              "coverage_fraction": 0.3396363636363636,
+              "mean_spread": 0.0007406448697311364,
+              "bootstrap95": [
+                -0.0008023625211641239,
+                0.0022971654172102363
+              ],
+              "half_year_positive": 7,
+              "half_year_total": 11,
+              "minimums": {
+                "formal_min_paired_dates": 120,
+                "suggestive_min_paired_dates": 60,
+                "min_half_years": 3,
+                "min_coverage_fraction": 0.25
+              },
+              "notes": [
+                "paired trade dates are treated as the primary independent hit count",
+                "same-day stock observations are not counted as independent hits",
+                "results below 120 paired dates cannot PASS regardless of mean return or win rate"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
