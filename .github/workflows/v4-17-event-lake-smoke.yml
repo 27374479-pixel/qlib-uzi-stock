@@ -1,0 +1,108 @@
+name: V4.17 Point-in-Time Event Lake Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: Start date YYYYMMDD
+        required: true
+        default: "20240613"
+      end_date:
+        description: End date YYYYMMDD
+        required: true
+        default: "20240613"
+  push:
+    branches: [main]
+    paths:
+      - "v4_17_event_lake.py"
+      - "POINT_IN_TIME_EVENT_LAKE.md"
+      - ".gitattributes"
+      - ".github/workflows/v4-17-event-lake-smoke.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-17-event-lake-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      START_DATE: ${{ github.event.inputs.start_date || '20240613' }}
+      END_DATE: ${{ github.event.inputs.end_date || '20240613' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "akshare>=1.17.82" pandas pyarrow
+
+      - name: Collect historical notices
+        run: |
+          python v4_17_event_lake.py \
+            --start-date "$START_DATE" \
+            --end-date "$END_DATE" \
+            --symbol "全部" \
+            --strict \
+            --sleep-seconds 0.20
+
+      - name: Validate causal schema
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import pandas as pd
+
+          parquet_paths = sorted(glob.glob("data_lake/raw/eastmoney/notices/**/*.parquet", recursive=True))
+          manifest_paths = sorted(glob.glob("data_lake/manifests/eastmoney_notices_*.json"))
+          assert parquet_paths, "no notice parquet produced"
+          assert manifest_paths, "no notice manifest produced"
+
+          frame = pd.concat([pd.read_parquet(path) for path in parquet_paths], ignore_index=True)
+          required = {
+              "event_id", "security_code", "title", "published_date", "eligible_from_date",
+              "event_time_precision", "knowledge_policy", "collected_at_utc"
+          }
+          assert required.issubset(frame.columns), sorted(required.difference(frame.columns))
+          assert len(frame) > 0, "smoke date returned no rows"
+          assert not frame["event_id"].duplicated().any(), "duplicate event_id"
+          assert (pd.to_datetime(frame["eligible_from_date"]) > pd.to_datetime(frame["published_date"])).all()
+          assert set(frame["event_time_precision"].unique()) == {"date"}
+          assert set(frame["knowledge_policy"].unique()) == {"published_date_plus_1_calendar_day"}
+
+          manifest = json.load(open(manifest_paths[-1], encoding="utf-8"))
+          assert not manifest["failed_days"], manifest["failed_days"]
+          assert manifest["run_rows"] > 0
+          print("rows", len(frame))
+          print("unique securities", frame["security_code"].nunique())
+          print("equity instruments", frame.loc[frame["instrument"].ne(""), "instrument"].nunique())
+          print("published range", frame["published_date"].min(), frame["published_date"].max())
+          print(frame[["security_code", "instrument", "event_type", "title", "published_date", "eligible_from_date"]].head(10).to_string(index=False))
+          PY
+
+      - name: Persist smoke data and manifest
+        run: |
+          git lfs install
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data_lake/raw/eastmoney/notices data_lake/manifests
+          if git diff --cached --quiet; then
+            echo "No data changes to persist"
+            exit 0
+          fi
+          git commit -m "data: persist V4.17 event lake smoke [skip ci]"
+          git push origin HEAD:main
