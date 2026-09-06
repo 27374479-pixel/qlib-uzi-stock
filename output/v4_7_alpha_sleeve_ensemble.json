@@ -1,0 +1,921 @@
+{
+  "question": "Do mechanistically distinct alpha sleeves diversify the overnight strategy better than factor-score blending?",
+  "preregistration": {
+    "development": "2021-2023 only",
+    "oos": "2024-2026 untouched for sleeve selection",
+    "execution": "T-1 signal, T 14:45 close entry, >=0.5% below upper limit, Top3, T+1 10:00 exit",
+    "new_sleeve_gate": "BASE CAGR>0; CONS CAGR>=0; both MDD>-35%; abs PnL corr to CORE<=0.25; active-day Jaccard<=0.60",
+    "pair_gate": "abs development PnL corr<=0.35",
+    "allocation": "fixed equal capital across CORE and selected new sleeves; idle sleeve capital remains cash",
+    "max_new_sleeves": 2
+  },
+  "sleeve_definitions": {
+    "CORE_X02": "limit-adjusted momentum + breadth5>0 + money_effect>0; rank clean_mom20",
+    "REVERSAL_X06": "weak broad day + stock down >2% + top20% turnover; rank turnover",
+    "OVERNIGHT_X07": "mid raw momentum + top20% overnight momentum; rank overnight momentum",
+    "OVERNIGHT_VS_INTRADAY_X07B": "top20% overnight momentum + intraday rank<=60%; rank overnight minus intraday rank"
+  },
+  "coverage": {
+    "candidate_rows": 389431,
+    "feature_rows": 389431,
+    "selected_rows": {
+      "CORE_X02": 1077,
+      "REVERSAL_X06": 1611,
+      "OVERNIGHT_X07": 3762,
+      "OVERNIGHT_VS_INTRADAY_X07B": 3762
+    },
+    "active_dates": {
+      "CORE_X02": 359,
+      "REVERSAL_X06": 537,
+      "OVERNIGHT_X07": 1254,
+      "OVERNIGHT_VS_INTRADAY_X07B": 1254
+    }
+  },
+  "development_pair_diagnostics": {
+    "CORE_X02|REVERSAL_X06": {
+      "pnl_corr": -0.016911134945329663,
+      "active_day_jaccard": 0.06293706293706294,
+      "holding_overlap_when_both_active": 0.037037037037037035
+    },
+    "CORE_X02|OVERNIGHT_X07": {
+      "pnl_corr": 0.04016095834232753,
+      "active_day_jaccard": 0.2823712948517941,
+      "holding_overlap_when_both_active": 0.0
+    },
+    "CORE_X02|OVERNIGHT_VS_INTRADAY_X07B": {
+      "pnl_corr": 0.03692731310488101,
+      "active_day_jaccard": 0.2823712948517941,
+      "holding_overlap_when_both_active": 0.0
+    },
+    "REVERSAL_X06|OVERNIGHT_X07": {
+      "pnl_corr": 0.12183379652559158,
+      "active_day_jaccard": 0.4290171606864275,
+      "holding_overlap_when_both_active": 0.00606060606060606
+    },
+    "REVERSAL_X06|OVERNIGHT_VS_INTRADAY_X07B": {
+      "pnl_corr": 0.1672246226607188,
+      "active_day_jaccard": 0.4290171606864275,
+      "holding_overlap_when_both_active": 0.007272727272727273
+    },
+    "OVERNIGHT_X07|OVERNIGHT_VS_INTRADAY_X07B": {
+      "pnl_corr": 0.4072176728889204,
+      "active_day_jaccard": 1.0,
+      "holding_overlap_when_both_active": 0.2059282371294852
+    }
+  },
+  "development_selected_new_sleeves": [],
+  "individual_results": [
+    {
+      "name": "CORE_X02",
+      "cost": "BASE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 359,
+          "exposure_fraction": 0.2862838915470494,
+          "total_return": 0.47516668394215866,
+          "cagr": 0.07819773384604245,
+          "max_drawdown": -0.4406616638727361,
+          "sharpe": 0.4878823292944887,
+          "calmar": 0.17745526842250137,
+          "mean_active_day": 0.0013583855603631523,
+          "active_win_rate": 0.5041782729805014,
+          "worst_day": -0.07550212706037125,
+          "best_day": 0.12970174840738022,
+          "yearly_returns": {
+            "2021": -0.05040079705641365,
+            "2022": -0.24246594810147382,
+            "2023": -0.1970370161933237,
+            "2024": 0.3106916337828749,
+            "2025": 0.4522715603948555,
+            "2026": 0.3416978055106563
+          },
+          "trade_rows": 1077,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 181,
+          "exposure_fraction": 0.2823712948517941,
+          "total_return": -0.422385581032779,
+          "cagr": -0.18916728201520017,
+          "max_drawdown": -0.43608280903830476,
+          "sharpe": -1.4040166634097186,
+          "calmar": -0.43378752405390975,
+          "mean_active_day": -0.0028802427547648985,
+          "active_win_rate": 0.4419889502762431,
+          "worst_day": -0.06160986357359858,
+          "best_day": 0.03835156083516914,
+          "yearly_returns": {
+            "2021": -0.05040079705641365,
+            "2022": -0.24246594810147382,
+            "2023": -0.1970370161933237
+          },
+          "trade_rows": 543,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 178,
+          "exposure_fraction": 0.2903752039151713,
+          "total_return": 1.5538951859611942,
+          "cagr": 0.44749324435247306,
+          "max_drawdown": -0.13289064116300164,
+          "sharpe": 1.6998600148077565,
+          "calmar": 3.367379677276029,
+          "mean_active_day": 0.005668451431364149,
+          "active_win_rate": 0.5674157303370787,
+          "worst_day": -0.07550212706037125,
+          "best_day": 0.12970174840738022,
+          "yearly_returns": {
+            "2024": 0.3106916337828749,
+            "2025": 0.4522715603948555,
+            "2026": 0.3416978055106563
+          },
+          "trade_rows": 534,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    },
+    {
+      "name": "CORE_X02",
+      "cost": "CONSERVATIVE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 359,
+          "exposure_fraction": 0.2862838915470494,
+          "total_return": -0.006123639450839602,
+          "cagr": -0.0011888662498403813,
+          "max_drawdown": -0.5312968076741134,
+          "sharpe": 0.09267712113878408,
+          "calmar": -0.002237668724276634,
+          "mean_active_day": 0.00025745949584234996,
+          "active_win_rate": 0.48746518105849584,
+          "worst_day": -0.07651853926141934,
+          "best_day": 0.12845973079518647,
+          "yearly_returns": {
+            "2021": -0.09824972701240053,
+            "2022": -0.30475483606159315,
+            "2023": -0.2450088301367369,
+            "2024": 0.21756534532210514,
+            "2025": 0.33285988859397087,
+            "2026": 0.2938664525869066
+          },
+          "trade_rows": 1077,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 181,
+          "exposure_fraction": 0.2823712948517941,
+          "total_return": -0.5266677110810453,
+          "cagr": -0.2485609596549625,
+          "max_drawdown": -0.5243810971179729,
+          "sharpe": -1.9231956669304135,
+          "calmar": -0.4740082375605587,
+          "mean_active_day": -0.003976520403624245,
+          "active_win_rate": 0.425414364640884,
+          "worst_day": -0.06264157270030923,
+          "best_day": 0.037209949536773035,
+          "yearly_returns": {
+            "2021": -0.09824972701240053,
+            "2022": -0.30475483606159315,
+            "2023": -0.2450088301367369
+          },
+          "trade_rows": 543,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 178,
+          "exposure_fraction": 0.2903752039151713,
+          "total_return": 1.0997434229958816,
+          "cagr": 0.33990727959937295,
+          "max_drawdown": -0.13765536910909282,
+          "sharpe": 1.3765924743448255,
+          "calmar": 2.469262781388455,
+          "mean_active_day": 0.004562798607097708,
+          "active_win_rate": 0.550561797752809,
+          "worst_day": -0.07651853926141934,
+          "best_day": 0.12845973079518647,
+          "yearly_returns": {
+            "2024": 0.21756534532210514,
+            "2025": 0.33285988859397087,
+            "2026": 0.2938664525869066
+          },
+          "trade_rows": 534,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    },
+    {
+      "name": "REVERSAL_X06",
+      "cost": "BASE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 537,
+          "exposure_fraction": 0.42822966507177035,
+          "total_return": -0.9027703453071155,
+          "cagr": -0.3632437462280076,
+          "max_drawdown": -0.9110402501582568,
+          "sharpe": -2.04407141956208,
+          "calmar": -0.3987131700985862,
+          "mean_active_day": -0.004116664271365003,
+          "active_win_rate": 0.37243947858473,
+          "worst_day": -0.08588510567611012,
+          "best_day": 0.09250040487486395,
+          "yearly_returns": {
+            "2021": -0.05125410874600356,
+            "2022": -0.5519099812764573,
+            "2023": -0.35181562658361354,
+            "2024": -0.420252782500242,
+            "2025": -0.2607572061071368,
+            "2026": -0.1766978759948008
+          },
+          "trade_rows": 1610,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 275,
+          "exposure_fraction": 0.4290171606864275,
+          "total_return": -0.7244415489301117,
+          "cagr": -0.38887832860472127,
+          "max_drawdown": -0.7306452060288755,
+          "sharpe": -2.4707448812916764,
+          "calmar": -0.5322396224541198,
+          "mean_active_day": -0.00450204605883117,
+          "active_win_rate": 0.3527272727272727,
+          "worst_day": -0.06132859967856278,
+          "best_day": 0.0512669693433615,
+          "yearly_returns": {
+            "2021": -0.05125410874600356,
+            "2022": -0.5519099812764573,
+            "2023": -0.35181562658361354
+          },
+          "trade_rows": 824,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 262,
+          "exposure_fraction": 0.4274061990212072,
+          "total_return": -0.6471541543531729,
+          "cagr": -0.3369441145976183,
+          "max_drawdown": -0.6721799842146505,
+          "sharpe": -1.6879399639198867,
+          "calmar": -0.5012706752809531,
+          "mean_active_day": -0.0037121604868108208,
+          "active_win_rate": 0.3931297709923664,
+          "worst_day": -0.08588510567611012,
+          "best_day": 0.09250040487486395,
+          "yearly_returns": {
+            "2024": -0.420252782500242,
+            "2025": -0.2607572061071368,
+            "2026": -0.1766978759948008
+          },
+          "trade_rows": 786,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    },
+    {
+      "name": "REVERSAL_X06",
+      "cost": "CONSERVATIVE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 537,
+          "exposure_fraction": 0.42822966507177035,
+          "total_return": -0.9461417222271679,
+          "cagr": -0.4320769686323215,
+          "max_drawdown": -0.9497372127907961,
+          "sharpe": -2.5733559405416457,
+          "calmar": -0.4549437073889801,
+          "mean_active_day": -0.005211570035883342,
+          "active_win_rate": 0.34450651769087526,
+          "worst_day": -0.08689010261439012,
+          "best_day": 0.09129928719393939,
+          "yearly_returns": {
+            "2021": -0.10891652504490179,
+            "2022": -0.6025422560114153,
+            "2023": -0.4250571400014377,
+            "2024": -0.4868904689839283,
+            "2025": -0.3333774439185542,
+            "2026": -0.22673502786074362
+          },
+          "trade_rows": 1610,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 275,
+          "exposure_fraction": 0.4290171606864275,
+          "total_return": -0.7963736212564416,
+          "cagr": -0.4555817567501439,
+          "max_drawdown": -0.798142511840042,
+          "sharpe": -3.0479039963747256,
+          "calmar": -0.5708025195899455,
+          "mean_active_day": -0.005596538511406754,
+          "active_win_rate": 0.33454545454545453,
+          "worst_day": -0.06236061803969121,
+          "best_day": 0.050111158252879005,
+          "yearly_returns": {
+            "2021": -0.10891652504490179,
+            "2022": -0.6025422560114153,
+            "2023": -0.4250571400014377
+          },
+          "trade_rows": 824,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 262,
+          "exposure_fraction": 0.4274061990212072,
+          "total_return": -0.7355044169367673,
+          "cagr": -0.408193649245173,
+          "max_drawdown": -0.7509986492580641,
+          "sharpe": -2.17718643815462,
+          "calmar": -0.5435344652729278,
+          "mean_active_day": -0.004807500071116402,
+          "active_win_rate": 0.3549618320610687,
+          "worst_day": -0.08689010261439012,
+          "best_day": 0.09129928719393939,
+          "yearly_returns": {
+            "2024": -0.4868904689839283,
+            "2025": -0.3333774439185542,
+            "2026": -0.22673502786074362
+          },
+          "trade_rows": 786,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    },
+    {
+      "name": "OVERNIGHT_X07",
+      "cost": "BASE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 1253,
+          "exposure_fraction": 0.9992025518341308,
+          "total_return": -0.9537012043967663,
+          "cagr": -0.4484700460420711,
+          "max_drawdown": -0.9531358027377441,
+          "sharpe": -2.7419336564234764,
+          "calmar": -0.4705206170557291,
+          "mean_active_day": -0.002356053497677488,
+          "active_win_rate": 0.39265762170790103,
+          "worst_day": -0.09411683738399712,
+          "best_day": 0.07502254668755744,
+          "yearly_returns": {
+            "2021": -0.409047511464541,
+            "2022": -0.5139582418109068,
+            "2023": -0.5822137654501883,
+            "2024": -0.33898987483899534,
+            "2025": -0.3981835188606295,
+            "2026": -0.03012172995957163
+          },
+          "trade_rows": 3757,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 641,
+          "exposure_fraction": 1.0,
+          "total_return": -0.8800002681631321,
+          "cagr": -0.555173143858759,
+          "max_drawdown": -0.8791901321866756,
+          "sharpe": -4.16616919817634,
+          "calmar": -0.6314597076720612,
+          "mean_active_day": -0.003226507389857043,
+          "active_win_rate": 0.35257410296411856,
+          "worst_day": -0.08338525205752527,
+          "best_day": 0.05385681712933136,
+          "yearly_returns": {
+            "2021": -0.409047511464541,
+            "2022": -0.5139582418109068,
+            "2023": -0.5822137654501883
+          },
+          "trade_rows": 1922,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 612,
+          "exposure_fraction": 0.99836867862969,
+          "total_return": -0.6141758411079286,
+          "cagr": -0.31315920020496857,
+          "max_drawdown": -0.616663519035791,
+          "sharpe": -1.5410602565410114,
+          "calmar": -0.5078283221530945,
+          "mean_active_day": -0.0014443526073390984,
+          "active_win_rate": 0.434640522875817,
+          "worst_day": -0.09411683738399712,
+          "best_day": 0.07502254668755744,
+          "yearly_returns": {
+            "2024": -0.33898987483899534,
+            "2025": -0.3981835188606295,
+            "2026": -0.03012172995957163
+          },
+          "trade_rows": 1835,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    },
+    {
+      "name": "OVERNIGHT_X07",
+      "cost": "CONSERVATIVE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 1253,
+          "exposure_fraction": 0.9992025518341308,
+          "total_return": -0.9883329352235413,
+          "cagr": -0.5776812489299303,
+          "max_drawdown": -0.9881150633440684,
+          "sharpe": -4.022786090877234,
+          "calmar": -0.5846295339076091,
+          "mean_active_day": -0.0034528951051868598,
+          "active_win_rate": 0.3463687150837989,
+          "worst_day": -0.09511278418512843,
+          "best_day": 0.07384064452765227,
+          "yearly_returns": {
+            "2021": -0.502782444586588,
+            "2022": -0.6275576425936786,
+            "2023": -0.6798595698827291,
+            "2024": -0.4934804311819523,
+            "2025": -0.5393464116628268,
+            "2026": -0.1565780931400511
+          },
+          "trade_rows": 3757,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 641,
+          "exposure_fraction": 1.0,
+          "total_return": -0.9407148333515647,
+          "cagr": -0.6602253729152852,
+          "max_drawdown": -0.9398012570999277,
+          "sharpe": -5.587367224716514,
+          "calmar": -0.7025159499707759,
+          "mean_active_day": -0.004322402591425763,
+          "active_win_rate": 0.31201248049922,
+          "worst_day": -0.08439302032407074,
+          "best_day": 0.05269815864148845,
+          "yearly_returns": {
+            "2021": -0.502782444586588,
+            "2022": -0.6275576425936786,
+            "2023": -0.6798595698827291
+          },
+          "trade_rows": 1922,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 612,
+          "exposure_fraction": 0.99836867862969,
+          "total_return": -0.8032043184487414,
+          "cagr": -0.473337256706462,
+          "max_drawdown": -0.8036109641766376,
+          "sharpe": -2.715340567038553,
+          "calmar": -0.5890129401002301,
+          "mean_active_day": -0.0025421854668222564,
+          "active_win_rate": 0.38235294117647056,
+          "worst_day": -0.09511278418512843,
+          "best_day": 0.07384064452765227,
+          "yearly_returns": {
+            "2024": -0.4934804311819523,
+            "2025": -0.5393464116628268,
+            "2026": -0.1565780931400511
+          },
+          "trade_rows": 1835,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    },
+    {
+      "name": "OVERNIGHT_VS_INTRADAY_X07B",
+      "cost": "BASE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 1253,
+          "exposure_fraction": 0.9992025518341308,
+          "total_return": -0.9590252156945482,
+          "cagr": -0.4613648968602483,
+          "max_drawdown": -0.9717790582265471,
+          "sharpe": -2.655909658474555,
+          "calmar": -0.47476316036509203,
+          "mean_active_day": -0.002440058151665432,
+          "active_win_rate": 0.3902633679169992,
+          "worst_day": -0.10311568391968777,
+          "best_day": 0.09550454260554601,
+          "yearly_returns": {
+            "2021": -0.44398812188827563,
+            "2022": -0.6415791799917099,
+            "2023": -0.49294430674860024,
+            "2024": -0.4516385658592563,
+            "2025": -0.46399135302146255,
+            "2026": 0.37957404374536097
+          },
+          "trade_rows": 3759,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 641,
+          "exposure_fraction": 1.0,
+          "total_return": -0.8989507808251221,
+          "cagr": -0.583446107561636,
+          "max_drawdown": -0.8997477235262463,
+          "sharpe": -4.362492521221633,
+          "calmar": -0.6484552195086675,
+          "mean_active_day": -0.003488554007399772,
+          "active_win_rate": 0.3541341653666147,
+          "worst_day": -0.07931536466315026,
+          "best_day": 0.04325401227607576,
+          "yearly_returns": {
+            "2021": -0.44398812188827563,
+            "2022": -0.6415791799917099,
+            "2023": -0.49294430674860024
+          },
+          "trade_rows": 1923,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 612,
+          "exposure_fraction": 0.99836867862969,
+          "total_return": -0.5945066707092501,
+          "cagr": -0.2995555382018841,
+          "max_drawdown": -0.7189037209686635,
+          "sharpe": -1.3091172172306498,
+          "calmar": -0.41668380544512645,
+          "mean_active_day": -0.001341878668780281,
+          "active_win_rate": 0.42810457516339867,
+          "worst_day": -0.10311568391968777,
+          "best_day": 0.09550454260554601,
+          "yearly_returns": {
+            "2024": -0.4516385658592563,
+            "2025": -0.46399135302146255,
+            "2026": 0.37957404374536097
+          },
+          "trade_rows": 1836,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    },
+    {
+      "name": "OVERNIGHT_VS_INTRADAY_X07B",
+      "cost": "CONSERVATIVE",
+      "metrics": {
+        "all": {
+          "n_days": 1254,
+          "active_days": 1253,
+          "exposure_fraction": 0.9992025518341308,
+          "total_return": -0.9896745594250459,
+          "cagr": -0.5875551229664846,
+          "max_drawdown": -0.9923107739449598,
+          "sharpe": -3.853868395183494,
+          "calmar": -0.5921079750355248,
+          "mean_active_day": -0.003536807397014772,
+          "active_win_rate": 0.3559457302474062,
+          "worst_day": -0.10410173720166456,
+          "best_day": 0.09430012211308192,
+          "yearly_returns": {
+            "2021": -0.5321808907164912,
+            "2022": -0.7253505632010739,
+            "2023": -0.6114543412234894,
+            "2024": -0.5798009945615257,
+            "2025": -0.5897182706878447,
+            "2026": 0.19970001037521934
+          },
+          "trade_rows": 3759,
+          "median_names_per_active_day": 3.0
+        },
+        "development_2021_2023": {
+          "n_days": 641,
+          "active_days": 641,
+          "exposure_fraction": 1.0,
+          "total_return": -0.9500772234506247,
+          "cagr": -0.6818212715578671,
+          "max_drawdown": -0.9501429653154997,
+          "sharpe": -5.7388762791338515,
+          "calmar": -0.7175986103643518,
+          "mean_active_day": -0.004584161098330967,
+          "active_win_rate": 0.31357254290171604,
+          "worst_day": -0.08032760755043866,
+          "best_day": 0.04210701099786348,
+          "yearly_returns": {
+            "2021": -0.5321808907164912,
+            "2022": -0.7253505632010739,
+            "2023": -0.6114543412234894
+          },
+          "trade_rows": 1923,
+          "median_names_per_active_day": 3.0
+        },
+        "oos_2024_2026": {
+          "n_days": 613,
+          "active_days": 612,
+          "exposure_fraction": 0.99836867862969,
+          "total_return": -0.7931717486758406,
+          "cagr": -0.4629061030074971,
+          "max_drawdown": -0.845145904206926,
+          "sharpe": -2.382845929981566,
+          "calmar": -0.5477232992590578,
+          "mean_active_day": -0.0024398241902440524,
+          "active_win_rate": 0.40032679738562094,
+          "worst_day": -0.10410173720166456,
+          "best_day": 0.09430012211308192,
+          "yearly_returns": {
+            "2024": -0.5798009945615257,
+            "2025": -0.5897182706878447,
+            "2026": 0.19970001037521934
+          },
+          "trade_rows": 1836,
+          "median_names_per_active_day": 3.0
+        }
+      }
+    }
+  ],
+  "selected_ensemble": {
+    "BASE": {
+      "all": {
+        "n_days": 1254,
+        "active_days": 359,
+        "exposure_fraction": 0.2862838915470494,
+        "total_return": 0.47516668394215866,
+        "cagr": 0.07819773384604245,
+        "max_drawdown": -0.4406616638727361,
+        "sharpe": 0.4878823292944887,
+        "calmar": 0.17745526842250137,
+        "mean_active_day": 0.0013583855603631523,
+        "active_win_rate": 0.5041782729805014,
+        "worst_day": -0.07550212706037125,
+        "best_day": 0.12970174840738022,
+        "yearly_returns": {
+          "2021": -0.05040079705641365,
+          "2022": -0.24246594810147382,
+          "2023": -0.1970370161933237,
+          "2024": 0.3106916337828749,
+          "2025": 0.4522715603948555,
+          "2026": 0.3416978055106563
+        },
+        "trade_rows": 1077,
+        "median_names_per_active_day": 3.0
+      },
+      "development_2021_2023": {
+        "n_days": 641,
+        "active_days": 181,
+        "exposure_fraction": 0.2823712948517941,
+        "total_return": -0.422385581032779,
+        "cagr": -0.18916728201520017,
+        "max_drawdown": -0.43608280903830476,
+        "sharpe": -1.4040166634097186,
+        "calmar": -0.43378752405390975,
+        "mean_active_day": -0.0028802427547648985,
+        "active_win_rate": 0.4419889502762431,
+        "worst_day": -0.06160986357359858,
+        "best_day": 0.03835156083516914,
+        "yearly_returns": {
+          "2021": -0.05040079705641365,
+          "2022": -0.24246594810147382,
+          "2023": -0.1970370161933237
+        },
+        "trade_rows": 543,
+        "median_names_per_active_day": 3.0
+      },
+      "oos_2024_2026": {
+        "n_days": 613,
+        "active_days": 178,
+        "exposure_fraction": 0.2903752039151713,
+        "total_return": 1.5538951859611942,
+        "cagr": 0.44749324435247306,
+        "max_drawdown": -0.13289064116300164,
+        "sharpe": 1.6998600148077565,
+        "calmar": 3.367379677276029,
+        "mean_active_day": 0.005668451431364149,
+        "active_win_rate": 0.5674157303370787,
+        "worst_day": -0.07550212706037125,
+        "best_day": 0.12970174840738022,
+        "yearly_returns": {
+          "2024": 0.3106916337828749,
+          "2025": 0.4522715603948555,
+          "2026": 0.3416978055106563
+        },
+        "trade_rows": 534,
+        "median_names_per_active_day": 3.0
+      }
+    },
+    "CONSERVATIVE": {
+      "all": {
+        "n_days": 1254,
+        "active_days": 359,
+        "exposure_fraction": 0.2862838915470494,
+        "total_return": -0.006123639450839602,
+        "cagr": -0.0011888662498403813,
+        "max_drawdown": -0.5312968076741134,
+        "sharpe": 0.09267712113878408,
+        "calmar": -0.002237668724276634,
+        "mean_active_day": 0.00025745949584234996,
+        "active_win_rate": 0.48746518105849584,
+        "worst_day": -0.07651853926141934,
+        "best_day": 0.12845973079518647,
+        "yearly_returns": {
+          "2021": -0.09824972701240053,
+          "2022": -0.30475483606159315,
+          "2023": -0.2450088301367369,
+          "2024": 0.21756534532210514,
+          "2025": 0.33285988859397087,
+          "2026": 0.2938664525869066
+        },
+        "trade_rows": 1077,
+        "median_names_per_active_day": 3.0
+      },
+      "development_2021_2023": {
+        "n_days": 641,
+        "active_days": 181,
+        "exposure_fraction": 0.2823712948517941,
+        "total_return": -0.5266677110810453,
+        "cagr": -0.2485609596549625,
+        "max_drawdown": -0.5243810971179729,
+        "sharpe": -1.9231956669304135,
+        "calmar": -0.4740082375605587,
+        "mean_active_day": -0.003976520403624245,
+        "active_win_rate": 0.425414364640884,
+        "worst_day": -0.06264157270030923,
+        "best_day": 0.037209949536773035,
+        "yearly_returns": {
+          "2021": -0.09824972701240053,
+          "2022": -0.30475483606159315,
+          "2023": -0.2450088301367369
+        },
+        "trade_rows": 543,
+        "median_names_per_active_day": 3.0
+      },
+      "oos_2024_2026": {
+        "n_days": 613,
+        "active_days": 178,
+        "exposure_fraction": 0.2903752039151713,
+        "total_return": 1.0997434229958816,
+        "cagr": 0.33990727959937295,
+        "max_drawdown": -0.13765536910909282,
+        "sharpe": 1.3765924743448255,
+        "calmar": 2.469262781388455,
+        "mean_active_day": 0.004562798607097708,
+        "active_win_rate": 0.550561797752809,
+        "worst_day": -0.07651853926141934,
+        "best_day": 0.12845973079518647,
+        "yearly_returns": {
+          "2024": 0.21756534532210514,
+          "2025": 0.33285988859397087,
+          "2026": 0.2938664525869066
+        },
+        "trade_rows": 534,
+        "median_names_per_active_day": 3.0
+      }
+    }
+  },
+  "all_four_sleeves_descriptive_only": {
+    "BASE": {
+      "all": {
+        "n_days": 1254,
+        "active_days": 1253,
+        "exposure_fraction": 0.9992025518341308,
+        "total_return": -0.8622654548554872,
+        "cagr": -0.31881709724319895,
+        "max_drawdown": -0.8808094146458867,
+        "sharpe": -2.8021673368212534,
+        "calmar": -0.36195922970620553,
+        "mean_active_day": -0.001542800517593638,
+        "active_win_rate": 0.39984038308060654,
+        "worst_day": -0.049308130325921226,
+        "best_day": 0.0629749706068676,
+        "yearly_returns": {
+          "2021": -0.2570113923557077,
+          "2022": -0.5007928699098998,
+          "2023": -0.4182111203940775,
+          "2024": -0.2651716642091313,
+          "2025": -0.22177061735417347,
+          "2026": 0.11614600774940387
+        },
+        "trade_rows": 10203,
+        "median_names_per_active_day": 8.0
+      },
+      "development_2021_2023": {
+        "n_days": 641,
+        "active_days": 641,
+        "exposure_fraction": 1.0,
+        "total_return": -0.7842114731363719,
+        "cagr": -0.44338048874981406,
+        "max_drawdown": -0.7825341485729335,
+        "sharpe": -5.371246870592469,
+        "calmar": -0.5665957064728534,
+        "mean_active_day": -0.002364953572711637,
+        "active_win_rate": 0.3541341653666147,
+        "worst_day": -0.03284887686104593,
+        "best_day": 0.020348551430742184,
+        "yearly_returns": {
+          "2021": -0.2570113923557077,
+          "2022": -0.5007928699098998,
+          "2023": -0.4182111203940775
+        },
+        "trade_rows": 5212,
+        "median_names_per_active_day": 8.0
+      },
+      "oos_2024_2026": {
+        "n_days": 613,
+        "active_days": 612,
+        "exposure_fraction": 0.99836867862969,
+        "total_return": -0.36171516091976075,
+        "cagr": -0.16229668509189987,
+        "max_drawdown": -0.44934854510045874,
+        "sharpe": -1.0614067895457822,
+        "calmar": -0.3611821755328394,
+        "mean_active_day": -0.0006816892294716818,
+        "active_win_rate": 0.4477124183006536,
+        "worst_day": -0.049308130325921226,
+        "best_day": 0.0629749706068676,
+        "yearly_returns": {
+          "2024": -0.2651716642091313,
+          "2025": -0.22177061735417347,
+          "2026": 0.11614600774940387
+        },
+        "trade_rows": 4991,
+        "median_names_per_active_day": 8.0
+      }
+    },
+    "CONSERVATIVE": {
+      "all": {
+        "n_days": 1254,
+        "active_days": 1253,
+        "exposure_fraction": 0.9992025518341308,
+        "total_return": -0.9459107166905282,
+        "cagr": -0.4316060366009986,
+        "max_drawdown": -0.9503961841592307,
+        "sharpe": -4.159465533386892,
+        "calmar": -0.454132754102774,
+        "mean_active_day": -0.0022873667967918186,
+        "active_win_rate": 0.36233040702314445,
+        "worst_day": -0.04980363034669825,
+        "best_day": 0.06208116900552466,
+        "yearly_returns": {
+          "2021": -0.33760581668343814,
+          "2022": -0.5848044957362721,
+          "2023": -0.513211462746066,
+          "2024": -0.3874019165257816,
+          "2025": -0.3504963562599407,
+          "2026": 0.01541717742672466
+        },
+        "trade_rows": 10203,
+        "median_names_per_active_day": 8.0
+      },
+      "development_2021_2023": {
+        "n_days": 641,
+        "active_days": 641,
+        "exposure_fraction": 1.0,
+        "total_return": -0.8661219137859861,
+        "cagr": -0.5361793873405589,
+        "max_drawdown": -0.8646120393430995,
+        "sharpe": -7.058663501727253,
+        "calmar": -0.6201387014549651,
+        "mean_active_day": -0.0031076074917421644,
+        "active_win_rate": 0.31513260530421217,
+        "worst_day": -0.03363734567614973,
+        "best_day": 0.019501594924692167,
+        "yearly_returns": {
+          "2021": -0.33760581668343814,
+          "2022": -0.5848044957362721,
+          "2023": -0.513211462746066
+        },
+        "trade_rows": 5212,
+        "median_names_per_active_day": 8.0
+      },
+      "oos_2024_2026": {
+        "n_days": 613,
+        "active_days": 612,
+        "exposure_fraction": 0.99836867862969,
+        "total_return": -0.5959810538148409,
+        "cagr": -0.300561214851661,
+        "max_drawdown": -0.6306236012318291,
+        "sharpe": -2.2276711259855264,
+        "calmar": -0.47660952470627405,
+        "mean_active_day": -0.001428258487211473,
+        "active_win_rate": 0.4117647058823529,
+        "worst_day": -0.04980363034669825,
+        "best_day": 0.06208116900552466,
+        "yearly_returns": {
+          "2024": -0.3874019165257816,
+          "2025": -0.3504963562599407,
+          "2026": 0.01541717742672466
+        },
+        "trade_rows": 4991,
+        "median_names_per_active_day": 8.0
+      }
+    }
+  }
+}
