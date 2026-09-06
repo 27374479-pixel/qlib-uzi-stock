@@ -1,0 +1,74 @@
+name: V4.8 recent holdout replay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v4-8-recent-holdout.yml"
+      - "v4_8_recent_holdout.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-8-recent-holdout
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow duckdb baostock requests scikit-learn
+
+      - name: Materialize frozen CSI800 membership
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+
+      - name: Verify historical minute slices and code list
+        shell: bash
+        run: |
+          for y in 2021 2022 2023 2024 2025 2026; do
+            f="data_lake/raw/traderharness/paired_ext_5min_${y}.parquet"
+            test -s "$f" || { echo "missing $f"; exit 1; }
+          done
+          test -s output/v4_paired_ext_codes.txt
+
+      - name: Backfill recent Eastmoney 5-minute bars
+        run: |
+          python eastmoney_recent_backfill.py \
+            --start 20260701 --end 20260904 \
+            --codes-file output/v4_paired_ext_codes.txt \
+            --workers 12 --skip-events --timeout 12
+
+      - name: Run recent frozen-spec holdout replay
+        run: python v4_8_recent_holdout.py
+
+      - name: Persist holdout result only
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test ! -f output/v4_8_recent_holdout.json || git add -f output/v4_8_recent_holdout.json
+          test ! -f output/v4_8_recent_holdout.csv || git add -f output/v4_8_recent_holdout.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "research: persist V4.8 recent holdout [skip ci]"
+            git push
+          fi
