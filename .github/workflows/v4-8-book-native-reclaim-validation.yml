@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/v4-8-book-native-reclaim-validation.yml"
       - "v4_8_book_native_reclaim_validation.py"
+      - "v4_8_book_native_runner.py"
   workflow_dispatch:
 
 permissions:
@@ -50,7 +51,7 @@ jobs:
           done
 
       - name: Run V4.8 book-native validation
-        run: python v4_8_book_native_reclaim_validation.py
+        run: python v4_8_book_native_runner.py
 
       - name: Persist V4.8 results
         if: always()
