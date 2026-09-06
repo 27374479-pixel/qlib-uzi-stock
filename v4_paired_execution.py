@@ -4,9 +4,9 @@ This tests the exact quantity that made the two v3 challengers pass:
 selected minus control, not selected-side absolute return.
 
 For an executable entry on trading day T, both frozen daily masks are evaluated
-on T-1 and carried forward to T.  Both sides must meet the same minute-data
-coverage threshold.  Returns are equal-weighted within side, then paired by
-trade date and bootstrapped by date.
+on T-1 and carried forward to T. Both sides use the same data-availability rule.
+Returns are equal-weighted within side, paired by trade date, and bootstrapped
+by trade date. No factor thresholds are tuned here.
 """
 from __future__ import annotations
 
@@ -72,12 +72,15 @@ def build_side_rows(frame: pd.DataFrame) -> pd.DataFrame:
             pieces.append(x[["date", "signal_date", "instrument", "module", "side"]])
     if not pieces:
         return pd.DataFrame(columns=["date", "signal_date", "instrument", "module", "side"])
-    return pd.concat(pieces, ignore_index=True).drop_duplicates()
+    out = pd.concat(pieces, ignore_index=True).drop_duplicates()
+    out["date"] = pd.to_datetime(out["date"]).dt.normalize()
+    out["signal_date"] = pd.to_datetime(out["signal_date"]).dt.normalize()
+    return out
 
 
 def write_paired_codes(frame: pd.DataFrame, sample_start: str) -> pd.DataFrame:
     rows = build_side_rows(frame)
-    rows = rows[pd.to_datetime(rows["date"]) >= pd.Timestamp(sample_start)].copy()
+    rows = rows[rows["date"] >= pd.Timestamp(sample_start)].copy()
     codes = sorted(rows["instrument"].astype(str).unique())
     OUT_DIR.mkdir(exist_ok=True)
     PAIRED_CODES.write_text("\n".join(codes) + "\n", encoding="utf-8")
@@ -85,10 +88,15 @@ def write_paired_codes(frame: pd.DataFrame, sample_start: str) -> pd.DataFrame:
     print("paired candidate-side rows", len(rows), flush=True)
     for module in MODULE_MAP:
         m = rows[rows["module"] == module]
-        print(module, {
-            side: {"rows": int(len(g)), "instruments": int(g["instrument"].nunique()), "dates": int(g["date"].nunique())}
+        details = {
+            side: {
+                "rows": int(len(g)),
+                "instruments": int(g["instrument"].nunique()),
+                "dates": int(g["date"].nunique()),
+            }
             for side, g in m.groupby("side")
-        }, flush=True)
+        }
+        print(module, json.dumps(details, ensure_ascii=False), flush=True)
     return rows
 
 
@@ -110,16 +118,18 @@ def _paired_history(instrument: str) -> pd.DataFrame | None:
                 filters=[("instrument", "=", instrument)],
                 columns=["instrument", "datetime", "open", "high", "low", "close", "volume", "amount", "source"],
             )
-        except Exception:
+        except Exception as exc:
+            print(f"paired TraderHarness read failed {instrument} {path.name}: {exc}", flush=True)
             continue
         if not p.empty:
             pieces.append(p)
     if not pieces:
         return None
     try:
-        return base._normalize_minute(pd.concat(pieces, ignore_index=True, sort=False))
+        x = base._normalize_minute(pd.concat(pieces, ignore_index=True, sort=False))
     except Exception:
         return None
+    return x if not x.empty else None
 
 
 def load_minute(instrument: str, cache: dict[str, pd.DataFrame]) -> pd.DataFrame | None:
@@ -132,7 +142,8 @@ def load_minute(instrument: str, cache: dict[str, pd.DataFrame]) -> pd.DataFrame
     if not pieces:
         cache[instrument] = pd.DataFrame()
         return None
-    # Provider first, canonical TraderHarness second on overlap; provider can extend recent dates.
+    # Provider first, TraderHarness second => canonical TraderHarness wins on overlap,
+    # while provider-only recent dates are retained.
     x = pd.concat(pieces, ignore_index=True, sort=False)
     x = x.drop_duplicates(subset=["datetime"], keep="last").sort_values("datetime")
     try:
@@ -141,16 +152,26 @@ def load_minute(instrument: str, cache: dict[str, pd.DataFrame]) -> pd.DataFrame
         cache[instrument] = pd.DataFrame()
         return None
     cache[instrument] = x
-    return x
+    return x if not x.empty else None
 
 
-def _return_for_name(minute: pd.DataFrame, date: pd.Timestamp, next_date: pd.Timestamp,
-                     entry_time: str, exit_time: str, cost: float) -> float | None:
+def _prices_for_name(
+    minute: pd.DataFrame,
+    date: pd.Timestamp,
+    next_date: pd.Timestamp,
+    entry_time: str,
+    exit_times: tuple[str, ...],
+    cost: float,
+) -> dict[str, float]:
     entry = base._bar_price(minute, date, entry_time, "entry")
-    exit_price = base._bar_price(minute, next_date, exit_time, "exit")
-    if entry is None or exit_price is None or not np.isfinite(entry) or not np.isfinite(exit_price) or entry <= 0:
-        return None
-    return float(exit_price / entry - 1.0 - cost)
+    if entry is None or not np.isfinite(entry) or entry <= 0:
+        return {}
+    out: dict[str, float] = {}
+    for exit_time in exit_times:
+        px = base._bar_price(minute, next_date, exit_time, "exit")
+        if px is not None and np.isfinite(px):
+            out[exit_time] = float(px / entry - 1.0 - cost)
+    return out
 
 
 def _bootstrap(values: np.ndarray, n: int, seed: int) -> list[float | None]:
@@ -179,9 +200,15 @@ def _half_year_stats(dates: pd.Series, spreads: pd.Series) -> dict[str, Any]:
 
 def _summary(df: pd.DataFrame, cfg: Config, seed: int) -> dict[str, Any]:
     if df.empty:
-        return {"n_dates": 0}
-    x = df["spread"].to_numpy(float)
-    out = {
+        return {
+            "n_dates": 0,
+            "mean_spread": None,
+            "median_spread": None,
+            "win_rate": None,
+            "bootstrap95": [None, None],
+        }
+    x = pd.to_numeric(df["spread"], errors="coerce").dropna().to_numpy(float)
+    return {
         "n_dates": int(len(df)),
         "mean_spread": float(np.mean(x)),
         "median_spread": float(np.median(x)),
@@ -193,92 +220,113 @@ def _summary(df: pd.DataFrame, cfg: Config, seed: int) -> dict[str, Any]:
         "control_names_median": float(df["control_n"].median()),
         "half_year": _half_year_stats(df["date"], df["spread"]),
     }
-    return out
 
 
 def run(cfg: Config) -> dict[str, Any]:
-    # survivor.prepare is the canonical frozen daily challenger frame.
-    daily_cfg = base.Config(start=cfg.start, end=cfg.end, bootstrap_samples=cfg.bootstrap_samples, seed=cfg.seed)
+    daily_cfg = base.Config(
+        start=cfg.start,
+        end=cfg.end,
+        bootstrap_samples=cfg.bootstrap_samples,
+        seed=cfg.seed,
+    )
     frame = survivor.prepare(daily_cfg)
     side_rows = write_paired_codes(frame, cfg.sample_start)
 
-    dates = [pd.Timestamp(x).normalize() for x in sorted(pd.to_datetime(frame["date"]).dt.normalize().unique())]
-    nxt = {dates[i]: dates[i + 1] for i in range(len(dates) - 1)}
+    trading_dates = [pd.Timestamp(x).normalize() for x in sorted(pd.to_datetime(frame["date"]).dt.normalize().unique())]
+    next_date = {trading_dates[i]: trading_dates[i + 1] for i in range(len(trading_dates) - 1)}
     cache: dict[str, pd.DataFrame] = {}
     cost = cfg.buy_cost + cfg.sell_cost
     report: dict[str, Any] = {
         "config": asdict(cfg),
         "methodology": {
             "signal_timing": "frozen X01/X02 selected and control masks evaluated on T-1, executed on T",
-            "pairing": "equal-weight selected minus equal-weight control on the same trade date",
-            "coverage": "both sides must independently have at least min_side_size complete entry+exit names",
+            "pairing": "same-date equal-weight selected return minus equal-weight control return",
+            "coverage": "both sides independently require min_side_size complete names for the exact entry+exit window",
             "bootstrap_unit": "trade date",
             "cost_per_side": cost,
-            "availability_rule": "same TraderHarness/provider availability rule for both sides; no return-conditioned filtering",
+            "spread_cost_note": "identical round-trip cost is charged to both sides; therefore it cancels in selected-control spread but remains in side absolute returns",
+            "availability_rule": "same TraderHarness/provider availability rule for both sides; no future-return-conditioned filtering",
         },
         "modules": {},
     }
 
     for mi, module in enumerate(MODULE_MAP):
-        module_rows = side_rows[side_rows["module"] == module]
-        eligible_dates = sorted(pd.to_datetime(module_rows["date"]).dt.normalize().unique())
-        module_out: dict[str, Any] = {"eligible_signal_dates": int(len(eligible_dates)), "thresholds": {}}
-        for threshold in cfg.min_side_sizes:
-            threshold_out: dict[str, Any] = {}
-            for ei, entry_time in enumerate(cfg.entry_times):
-                entry_out: dict[str, Any] = {}
+        mrows = side_rows[side_rows["module"] == module].copy()
+        groups = {pd.Timestamp(d).normalize(): g for d, g in mrows.groupby("date", sort=True)}
+        eligible_dates = sorted(groups)
+        module_out: dict[str, Any] = {
+            "eligible_signal_dates": int(len(eligible_dates)),
+            "thresholds": {str(t): {} for t in cfg.min_side_sizes},
+        }
+
+        # Compute each entry/exit/name observation once. Threshold sensitivity is
+        # applied afterwards, not by recomputing the same minute prices.
+        for ei, entry_time in enumerate(cfg.entry_times):
+            records_by_exit: dict[str, list[dict[str, Any]]] = {x: [] for x in cfg.exit_times}
+            for date in eligible_dates:
+                nd = next_date.get(date)
+                if nd is None:
+                    continue
+                day = groups[date]
+                names_by_side = {
+                    side: day.loc[day["side"] == side, "instrument"].astype(str).drop_duplicates().tolist()
+                    for side in ("selected", "control")
+                }
+                returns: dict[str, dict[str, list[float]]] = {
+                    exit_time: {"selected": [], "control": []}
+                    for exit_time in cfg.exit_times
+                }
+                for side in ("selected", "control"):
+                    for instrument in names_by_side[side]:
+                        minute = load_minute(instrument, cache)
+                        if minute is None:
+                            continue
+                        vals = _prices_for_name(minute, date, nd, entry_time, cfg.exit_times, cost)
+                        for exit_time, ret in vals.items():
+                            returns[exit_time][side].append(ret)
+                for exit_time in cfg.exit_times:
+                    sr = returns[exit_time]["selected"]
+                    cr = returns[exit_time]["control"]
+                    if not sr or not cr:
+                        continue
+                    records_by_exit[exit_time].append({
+                        "date": str(date.date()),
+                        "selected_return": float(np.mean(sr)),
+                        "control_return": float(np.mean(cr)),
+                        "spread": float(np.mean(sr) - np.mean(cr)),
+                        "selected_n": int(len(sr)),
+                        "control_n": int(len(cr)),
+                        "selected_raw_n": int(len(names_by_side["selected"])),
+                        "control_raw_n": int(len(names_by_side["control"])),
+                    })
+
+            for threshold in cfg.min_side_sizes:
+                threshold_key = str(threshold)
+                module_out["thresholds"][threshold_key].setdefault(entry_time, {})
                 for xi, exit_time in enumerate(cfg.exit_times):
-                    records = []
-                    for raw_date in eligible_dates:
-                        date = pd.Timestamp(raw_date).normalize()
-                        next_date = nxt.get(date)
-                        if next_date is None:
-                            continue
-                        day_rows = module_rows[pd.to_datetime(module_rows["date"]).dt.normalize() == date]
-                        side_returns: dict[str, list[float]] = {"selected": [], "control": []}
-                        raw_counts = {"selected": 0, "control": 0}
-                        for side in ("selected", "control"):
-                            names = day_rows.loc[day_rows["side"] == side, "instrument"].astype(str).drop_duplicates().tolist()
-                            raw_counts[side] = len(names)
-                            for instrument in names:
-                                minute = load_minute(instrument, cache)
-                                if minute is None:
-                                    continue
-                                ret = _return_for_name(minute, date, next_date, entry_time, exit_time, cost)
-                                if ret is not None and np.isfinite(ret):
-                                    side_returns[side].append(ret)
-                        ns, nc = len(side_returns["selected"]), len(side_returns["control"])
-                        if ns < threshold or nc < threshold:
-                            continue
-                        sr, cr = float(np.mean(side_returns["selected"])), float(np.mean(side_returns["control"]))
-                        records.append({
-                            "date": str(date.date()),
-                            "selected_return": sr,
-                            "control_return": cr,
-                            "spread": sr - cr,
-                            "selected_n": ns,
-                            "control_n": nc,
-                            "selected_raw_n": raw_counts["selected"],
-                            "control_raw_n": raw_counts["control"],
-                        })
-                    df = pd.DataFrame(records)
-                    summary = _summary(df, cfg, cfg.seed + mi * 1000 + threshold * 100 + ei * 10 + xi)
-                    summary["coverage_fraction"] = float(len(df) / len(eligible_dates)) if eligible_dates else 0.0
-                    entry_out[exit_time] = summary
-                threshold_out[entry_time] = entry_out
-            module_out["thresholds"][str(threshold)] = threshold_out
+                    raw_df = pd.DataFrame(records_by_exit[exit_time])
+                    if raw_df.empty:
+                        df = raw_df
+                    else:
+                        df = raw_df[(raw_df["selected_n"] >= threshold) & (raw_df["control_n"] >= threshold)].copy()
+                    stats = _summary(df, cfg, cfg.seed + mi * 1000 + threshold * 100 + ei * 10 + xi)
+                    stats["coverage_fraction"] = float(len(df) / len(eligible_dates)) if eligible_dates else 0.0
+                    module_out["thresholds"][threshold_key][entry_time][exit_time] = stats
+
+            print(f"completed {module} entry={entry_time} cache={len(cache)}", flush=True)
         report["modules"][module] = module_out
 
     out = ROOT / cfg.output
     out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    concise = {}
+    concise: dict[str, Any] = {}
     for module, m in report["modules"].items():
         concise[module] = {}
-        for threshold, tt in m["thresholds"].items():
+        for threshold, entries in m["thresholds"].items():
             concise[module][threshold] = {
-                f"{entry}->{exit_}": stats
-                for entry, exits in tt.items() for exit_, stats in exits.items()
+                f"{entry}->{exit_time}": stats
+                for entry, exits in entries.items()
+                for exit_time, stats in exits.items()
             }
     print(json.dumps(concise, ensure_ascii=False, indent=2), flush=True)
     return report
