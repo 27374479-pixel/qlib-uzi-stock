@@ -52,7 +52,7 @@ TRADE_OUTPUT = ROOT / "output" / "v4_8_book_native_reclaim_trades.csv"
 DEV_END = v43.OOS_START - pd.Timedelta(days=1)
 MAX_POSITIONS = 3
 COSTS = ("BASE", "CONSERVATIVE")
-DELAYS = (0, 1, 2)  # additional completed 5m bars after the first executable next bar
+DELAYS = (0, 1, 2)  # extra completed 5m bars after the first executable next bar
 VETOES = (False, True)
 H16_VARIANTS = ("VWAP", "VWAP_AND_PREVCLOSE")
 H17_VARIANTS = ("VWAP_PREVHIGH",)
@@ -69,41 +69,28 @@ def _daily_context() -> tuple[pd.DataFrame, pd.DataFrame, list[pd.Timestamp]]:
     frame["date"] = pd.to_datetime(frame["date"]).dt.normalize()
     nxt = _next_map(frame)
 
-    prior_active = (
-        pd.to_numeric(frame.get("prior_touch20", 0), errors="coerce").fillna(0).gt(0)
-        | pd.to_numeric(frame.get("prior_seal5", 0), errors="coerce").fillna(0).gt(0)
-    )
-    core = frame.get("core", False)
-    if not isinstance(core, pd.Series):
-        core = pd.Series(bool(core), index=frame.index)
-    core = core.fillna(False).astype(bool)
-    one_word = frame.get("one_word", False)
-    if not isinstance(one_word, pd.Series):
-        one_word = pd.Series(bool(one_word), index=frame.index)
-    one_word = one_word.fillna(False).astype(bool)
-    climax = frame.get("climax", False)
-    if not isinstance(climax, pd.Series):
-        climax = pd.Series(bool(climax), index=frame.index)
-    climax = climax.fillna(False).astype(bool)
+    prior_touch = pd.to_numeric(frame["prior_touch20"], errors="coerce").fillna(0) if "prior_touch20" in frame else pd.Series(0.0, index=frame.index)
+    prior_seal = pd.to_numeric(frame["prior_seal5"], errors="coerce").fillna(0) if "prior_seal5" in frame else pd.Series(0.0, index=frame.index)
+    prior_active = prior_touch.gt(0) | prior_seal.gt(0)
 
-    # These are context proxies only. No role_score is used to rank trades.
+    core = frame["core"].fillna(False).astype(bool) if "core" in frame else pd.Series(False, index=frame.index)
+    one_word = frame["one_word"].fillna(False).astype(bool) if "one_word" in frame else pd.Series(False, index=frame.index)
+    climax = frame["climax"].fillna(False).astype(bool) if "climax" in frame else pd.Series(False, index=frame.index)
+
+    # Context proxies only. No role_score is used to rank trades.
     h16_mask = core & ~one_word
     h17_mask = core & prior_active & ~one_word
 
-    keep = [
-        "date", "instrument", "close", "preclose", "upper_limit", "lower_limit",
-        "industry_code", "breadth", "breadth5", "money_effect", "weak_market",
+    signal_keep = [
+        "date", "instrument", "close", "industry_code",
+        "breadth", "breadth5", "money_effect", "weak_market",
     ]
-    for optional in ("trade_status", "is_st"):
-        if optional in frame.columns:
-            keep.append(optional)
-
-    parts = []
+    parts: list[pd.DataFrame] = []
     for setup, mask in (("H16_LOW_OPEN_RECLAIM", h16_mask), ("H17_FIRST_DIVERGENCE_RECLAIM", h17_mask)):
-        x = frame.loc[mask, keep].copy()
+        x = frame.loc[mask, signal_keep].copy()
         x["setup"] = setup
         x["setup_climax"] = climax.loc[x.index].to_numpy(bool)
-        x = x.rename(columns={"date": "setup_date", "close": "previous_close"})
+        x = x.rename(columns={"date": "setup_date", "close": "previous_close", "industry_code": "setup_industry_code"})
         x["trade_date"] = x["setup_date"].map(nxt)
         x["exit_date"] = x["trade_date"].map(nxt)
         parts.append(x)
@@ -113,16 +100,29 @@ def _daily_context() -> tuple[pd.DataFrame, pd.DataFrame, list[pd.Timestamp]]:
     cand["exit_date"] = pd.to_datetime(cand["exit_date"]).dt.normalize()
     cand = cand[cand["trade_date"] >= v43.SAMPLE_START].copy()
     cand = cand[~cand["instrument"].astype(str).str.upper().str.startswith("SH688")].copy()
+
+    # Execution state must come from T, not from the T-1 signal row.
+    exec_cols = ["date", "instrument", "upper_limit", "lower_limit", "industry_code"]
+    for optional in ("trade_status", "is_st"):
+        if optional in frame.columns:
+            exec_cols.append(optional)
+    exec_ref = frame[exec_cols].copy().rename(columns={
+        "date": "trade_date",
+        "upper_limit": "entry_upper_limit",
+        "lower_limit": "entry_lower_limit",
+        "industry_code": "trade_industry_code",
+    })
+    exec_ref["trade_date"] = pd.to_datetime(exec_ref["trade_date"]).dt.normalize()
+    exec_ref = exec_ref.drop_duplicates(["trade_date", "instrument"], keep="last")
+    cand = cand.merge(exec_ref, on=["trade_date", "instrument"], how="left", validate="many_to_one")
     if "trade_status" in cand.columns:
         cand = cand[cand["trade_status"].fillna(0).eq(1)]
     if "is_st" in cand.columns:
         cand = cand[cand["is_st"].fillna(1).eq(0)]
     cand = cand.drop_duplicates(["setup", "trade_date", "instrument"]).reset_index(drop=True)
 
-    # Point-in-time daily reference for every CSI800 name, used to construct
-    # peer/market intraday context without hindsight.
-    ref_cols = ["date", "instrument", "preclose", "industry_code"]
-    ref = frame[ref_cols].copy().rename(columns={"date": "trade_date"})
+    # Point-in-time T reference for peer/market intraday context.
+    ref = frame[["date", "instrument", "preclose", "industry_code"]].copy().rename(columns={"date": "trade_date"})
     ref["trade_date"] = pd.to_datetime(ref["trade_date"]).dt.normalize()
     ref = ref.drop_duplicates(["trade_date", "instrument"], keep="last")
 
@@ -143,8 +143,6 @@ def _load_candidate_minutes(candidates: pd.DataFrame, daily_ref: pd.DataFrame) -
     con.register("cand_keys", keys)
     con.register("daily_ref", daily_ref)
 
-    # Candidate bars are small; peer/market aggregates are computed from every
-    # available CSI800 minute bar in the frozen TraderHarness slices.
     query = f"""
     WITH allbars AS (
       SELECT
@@ -208,8 +206,6 @@ def _add_vwap(day: pd.DataFrame) -> pd.DataFrame:
 
 
 def _peer_support(row: pd.Series) -> bool:
-    # Semantic rather than optimized: a usable peer set, at least half positive,
-    # and peer median not weaker than the broad market at the same completed bar.
     return bool(
         pd.notna(row.get("peer_n")) and int(row["peer_n"]) >= 3
         and float(row.get("peer_positive_ratio", 0.0)) >= 0.5
@@ -222,7 +218,6 @@ def _trigger_h16(day: pd.DataFrame, previous_close: float, variant: str) -> int 
     x = _add_vwap(day)
     if len(x) < 4 or not np.isfinite(previous_close) or previous_close <= 0:
         return None
-    # Book meaning: low open, then reclaim within roughly the first hour.
     if float(x.iloc[0]["open"]) >= previous_close:
         return None
     for pos in range(0, min(len(x) - 1, 12)):
@@ -248,12 +243,10 @@ def _trigger_h17(day: pd.DataFrame, previous_close: float, variant: str) -> int 
         return None
     day_open = float(x.iloc[0]["open"])
     divergence_seen = False
-    for pos in range(1, min(len(x) - 1, 54)):  # completed bars through about 14:00
+    for pos in range(1, min(len(x) - 1, 54)):
         row = x.iloc[pos]
         if pd.isna(row["vwap"]):
             continue
-        # Threshold-free event translation: price is below both its own
-        # volume-weighted consensus and the session open.
         if not divergence_seen and float(row["close"]) < float(row["vwap"]) and float(row["close"]) < day_open:
             divergence_seen = True
             continue
@@ -299,14 +292,11 @@ def _build_triggers(candidates: pd.DataFrame, minutes: pd.DataFrame) -> pd.DataF
         setup = c["setup"]
         variants = H16_VARIANTS if setup == "H16_LOW_OPEN_RECLAIM" else H17_VARIANTS
         for variant in variants:
-            if setup == "H16_LOW_OPEN_RECLAIM":
-                pos = _trigger_h16(day, float(c["previous_close"]), variant)
-            else:
-                pos = _trigger_h17(day, float(c["previous_close"]), variant)
+            pos = _trigger_h16(day, float(c["previous_close"]), variant) if setup == "H16_LOW_OPEN_RECLAIM" else _trigger_h17(day, float(c["previous_close"]), variant)
             if pos is None:
                 continue
             for delay in DELAYS:
-                entry = _entry_from_trigger(day, pos, delay, float(c["upper_limit"]))
+                entry = _entry_from_trigger(day, pos, delay, float(c["entry_upper_limit"]))
                 if entry is None:
                     continue
                 dt, px = entry
@@ -319,7 +309,7 @@ def _build_triggers(candidates: pd.DataFrame, minutes: pd.DataFrame) -> pd.DataF
                     "setup_date": c["setup_date"],
                     "trade_date": c["trade_date"],
                     "exit_date": c["exit_date"],
-                    "industry_code": c["industry_code"],
+                    "industry_code": c.get("trade_industry_code", c.get("setup_industry_code")),
                     "trigger_datetime": pd.Timestamp(day.iloc[pos]["datetime"]),
                     "entry_datetime": dt,
                     "entry_price": px,
@@ -357,13 +347,12 @@ def _daily_series(selected: pd.DataFrame, cost: str, exit_label: str) -> tuple[p
 
 
 def _metrics_full(daily: pd.Series, ledger: pd.DataFrame, all_dates: list[pd.Timestamp]) -> dict[str, Any]:
-    idx = pd.DatetimeIndex([d for d in all_dates if d >= v43.SAMPLE_START])
+    idx = pd.DatetimeIndex(all_dates)
     series = daily.reindex(idx, fill_value=0.0)
     return v43._metrics(series, ledger)
 
 
 def _slice_metrics(daily: pd.Series, ledger: pd.DataFrame, all_dates: list[pd.Timestamp]) -> dict[str, Any]:
-    all_m = _metrics_full(daily, ledger, all_dates)
     dev_daily = daily[daily.index <= DEV_END]
     dev_ledger = ledger[pd.to_datetime(ledger["trade_date"]) <= DEV_END] if not ledger.empty else ledger
     oos_daily = daily[daily.index >= v43.OOS_START]
@@ -371,7 +360,7 @@ def _slice_metrics(daily: pd.Series, ledger: pd.DataFrame, all_dates: list[pd.Ti
     dev_dates = [d for d in all_dates if d <= DEV_END]
     oos_dates = [d for d in all_dates if d >= v43.OOS_START]
     return {
-        "all": _metrics_full(dev_daily.combine_first(oos_daily).sort_index(), ledger, all_dates),
+        "all": _metrics_full(daily, ledger, all_dates),
         "development_2021_2023": _metrics_full(dev_daily, dev_ledger, dev_dates),
         "oos_2024_2026": _metrics_full(oos_daily, oos_ledger, oos_dates),
     }
@@ -381,6 +370,16 @@ def run() -> dict[str, Any]:
     candidates, daily_ref, all_dates = _daily_context()
     minutes = _load_candidate_minutes(candidates, daily_ref)
     triggers = _attach_exits(_build_triggers(candidates, minutes))
+
+    # Do not dilute CAGR/exposure with dates after the persisted minute sample.
+    if not triggers.empty:
+        first_exec = pd.Timestamp(triggers["trade_date"].min())
+        last_exec = pd.Timestamp(triggers["trade_date"].max())
+        all_dates = [d for d in all_dates if first_exec <= d <= last_exec]
+    elif not minutes.empty:
+        first_exec = pd.Timestamp(minutes["trade_date"].min())
+        last_exec = pd.Timestamp(minutes["trade_date"].max())
+        all_dates = [d for d in all_dates if first_exec <= d <= last_exec]
 
     results: list[dict[str, Any]] = []
     ledgers: list[pd.DataFrame] = []
@@ -465,7 +464,6 @@ def run() -> dict[str, Any]:
     if ledgers:
         pd.concat(ledgers, ignore_index=True).to_csv(TRADE_OUTPUT, index=False)
 
-    # Print only pre-declared primary views, not a cherry-picked leaderboard.
     primaries = [
         r for r in results
         if r["cost"] == "BASE" and r["exit"] == "10:00"
