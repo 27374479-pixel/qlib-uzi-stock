@@ -1,0 +1,58 @@
+name: V4.17 Event Lake QA
+
+on:
+  workflow_run:
+    workflows: ["V4.17 CNINFO Backfill Finalizer"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-17-event-lake-qa
+  cancel-in-progress: false
+
+jobs:
+  qa:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install pandas pyarrow
+
+      - name: Pull canonical CNINFO event lake only
+        run: |
+          git lfs install
+          git lfs pull --include="data_lake/raw/cninfo/notices/**" --exclude=""
+
+      - name: Run identity and text QA
+        run: python v4_17_event_lake_qa.py
+
+      - name: Persist QA outputs safely
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --ff-only origin main
+          git add -f \
+            output/v4_17_event_lake_qa.json \
+            output/v4_17_event_lake_multi_stock_documents.csv \
+            output/v4_17_event_lake_repeated_titles.csv
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "research: persist V4.17 event lake QA [skip ci]"
+          git push origin main
