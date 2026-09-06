@@ -1,0 +1,528 @@
+{
+  "spec": {
+    "frozen_from": "V4.8 long-only gate validation",
+    "holdout_start": "2026-08-01",
+    "entry": "T 14:45 Eastmoney unadjusted 5m close",
+    "exit": "T+1 10:00 Eastmoney unadjusted 5m close",
+    "top_n": 5,
+    "limit_buffer": 0.005,
+    "simple_gates": [
+      "NOT_WEAK",
+      "BREADTH_POS",
+      "BREADTH5_POS",
+      "MONEY_POS",
+      "BREADTH_AND_MONEY",
+      "BREADTH5_AND_MONEY",
+      "STRONG_ALL"
+    ],
+    "ml_models": [
+      "LOGISTIC",
+      "RIDGE"
+    ],
+    "ml_feature_cutoff": "14:40",
+    "no_parameter_changes": true
+  },
+  "coverage": {
+    "recent_candidate_rows": 3508,
+    "recent_candidate_dates": 35,
+    "minute_matched_rows": 59,
+    "base_executable_rows": 56,
+    "selected_rows": 0,
+    "selected_dates": 0,
+    "first_selected_date": null,
+    "last_selected_date": null
+  },
+  "baseline": {
+    "BASE": {
+      "n_days": 23,
+      "active_days": 0,
+      "exposure_fraction": 0.0,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "sharpe": null,
+      "calmar": null,
+      "mean_active_day": null,
+      "active_win_rate": null,
+      "worst_day": 0.0,
+      "best_day": 0.0,
+      "yearly_returns": {
+        "2026": 0.0
+      },
+      "trade_rows": 0,
+      "median_names_per_active_day": null,
+      "holdout_total_return": 0.0,
+      "holdout_start": "2026-08-03",
+      "holdout_end": "2026-09-02"
+    },
+    "CONSERVATIVE": {
+      "n_days": 23,
+      "active_days": 0,
+      "exposure_fraction": 0.0,
+      "total_return": 0.0,
+      "cagr": 0.0,
+      "max_drawdown": 0.0,
+      "sharpe": null,
+      "calmar": null,
+      "mean_active_day": null,
+      "active_win_rate": null,
+      "worst_day": 0.0,
+      "best_day": 0.0,
+      "yearly_returns": {
+        "2026": 0.0
+      },
+      "trade_rows": 0,
+      "median_names_per_active_day": null,
+      "holdout_total_return": 0.0,
+      "holdout_start": "2026-08-03",
+      "holdout_end": "2026-09-02"
+    }
+  },
+  "simple_gates": {
+    "NOT_WEAK": {
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      }
+    },
+    "BREADTH_POS": {
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      }
+    },
+    "BREADTH5_POS": {
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      }
+    },
+    "MONEY_POS": {
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      }
+    },
+    "BREADTH_AND_MONEY": {
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      }
+    },
+    "BREADTH5_AND_MONEY": {
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      }
+    },
+    "STRONG_ALL": {
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      }
+    }
+  },
+  "walk_forward_gates": {
+    "LOGISTIC": {
+      "gate_on_holdout_days": 0,
+      "score_mean_holdout": null,
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      },
+      "recent_refits": []
+    },
+    "RIDGE": {
+      "gate_on_holdout_days": 0,
+      "score_mean_holdout": null,
+      "costs": {
+        "BASE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        },
+        "CONSERVATIVE": {
+          "n_days": 23,
+          "active_days": 0,
+          "exposure_fraction": 0.0,
+          "total_return": 0.0,
+          "cagr": 0.0,
+          "max_drawdown": 0.0,
+          "sharpe": null,
+          "calmar": null,
+          "mean_active_day": null,
+          "active_win_rate": null,
+          "worst_day": 0.0,
+          "best_day": 0.0,
+          "yearly_returns": {
+            "2026": 0.0
+          },
+          "trade_rows": 0,
+          "median_names_per_active_day": null,
+          "holdout_total_return": 0.0,
+          "holdout_start": "2026-08-03",
+          "holdout_end": "2026-09-02"
+        }
+      },
+      "recent_refits": []
+    }
+  },
+  "ml_feature_coverage_holdout": {
+    "holdout_active_days": 0,
+    "complete_holdout_feature_days": 0,
+    "market_cross_section_median_n": 16.0
+  }
+}

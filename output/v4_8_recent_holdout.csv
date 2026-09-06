@@ -1,0 +1,11 @@
+strategy,holdout_days,active_days,base_total_return,base_mean_active_day,base_win_rate,base_max_drawdown,conservative_total_return,conservative_mean_active_day
+BASELINE_ALL,23,0,0.0,,,0.0,0.0,
+NOT_WEAK,23,0,0.0,,,0.0,0.0,
+BREADTH_POS,23,0,0.0,,,0.0,0.0,
+BREADTH5_POS,23,0,0.0,,,0.0,0.0,
+MONEY_POS,23,0,0.0,,,0.0,0.0,
+BREADTH_AND_MONEY,23,0,0.0,,,0.0,0.0,
+BREADTH5_AND_MONEY,23,0,0.0,,,0.0,0.0,
+STRONG_ALL,23,0,0.0,,,0.0,0.0,
+LOGISTIC,23,0,0.0,,,0.0,0.0,
+RIDGE,23,0,0.0,,,0.0,0.0,
