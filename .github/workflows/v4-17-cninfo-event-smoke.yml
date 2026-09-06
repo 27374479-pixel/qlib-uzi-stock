@@ -1,0 +1,105 @@
+name: V4.17 CNINFO Event Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "v4_17_cninfo_event_backfill.py"
+      - ".gitattributes"
+      - ".github/workflows/v4-17-cninfo-event-smoke.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-17-cninfo-event-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code without large LFS payloads
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "akshare>=1.17.82" pandas pyarrow
+
+      - name: Pull only prior event-lake LFS objects
+        run: |
+          git lfs install
+          git lfs pull --include="data_lake/raw/cninfo/notices/**,data_lake/raw/eastmoney/notices/**" --exclude="" || true
+
+      - name: CNINFO same-day cross-check for 000006
+        run: |
+          python v4_17_cninfo_event_backfill.py \
+            --start-date 20240613 \
+            --end-date 20240613 \
+            --symbols 000006 \
+            --strict \
+            --sleep-seconds 0.10
+
+      - name: CNINFO long-range throughput smoke for 000001
+        run: |
+          time python v4_17_cninfo_event_backfill.py \
+            --start-date 20210101 \
+            --end-date 20260716 \
+            --symbols 000001 \
+            --strict \
+            --sleep-seconds 0.10
+
+      - name: Validate CNINFO outputs and Eastmoney overlap
+        run: |
+          python - <<'PY'
+          import glob
+          import pandas as pd
+
+          cn = pd.concat([pd.read_parquet(p) for p in sorted(glob.glob('data_lake/raw/cninfo/notices/*.parquet'))], ignore_index=True)
+          assert len(cn) > 0
+          assert not cn['event_id'].duplicated().any()
+          assert (pd.to_datetime(cn['eligible_from_date']) > pd.to_datetime(cn['published_date'])).all()
+          assert set(cn['event_time_precision'].unique()) == {'date'}
+
+          same = cn[(cn['security_code'] == '000006') & (cn['published_date'] == '2024-06-13')]
+          print('CNINFO 000006 2024-06-13 rows=', len(same))
+          print(same[['security_code','title','published_date','eligible_from_date']].to_string(index=False))
+
+          em_paths = glob.glob('data_lake/raw/eastmoney/notices/**/*.parquet', recursive=True)
+          if em_paths:
+              em = pd.concat([pd.read_parquet(p) for p in em_paths], ignore_index=True)
+              em_same = em[(em['security_code'] == '000006') & (em['published_date'] == '2024-06-13')]
+              print('Eastmoney 000006 2024-06-13 rows=', len(em_same))
+              print(em_same[['security_code','title','published_date','eligible_from_date']].to_string(index=False))
+              cn_titles = set(same['title'].str.replace(r'\s+','',regex=True))
+              em_titles = set(em_same['title'].str.replace(r'\s+','',regex=True))
+              print('normalized title overlap=', len(cn_titles & em_titles), 'of eastmoney=', len(em_titles))
+
+          long = cn[cn['security_code'] == '000001']
+          print('CNINFO 000001 2021-2026 rows=', len(long))
+          print('range=', long['published_date'].min(), long['published_date'].max())
+          assert len(long) > 20
+          PY
+
+      - name: Persist CNINFO smoke data and manifests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data_lake/raw/cninfo/notices data_lake/manifests/cninfo_notices_*.json
+          if git diff --cached --quiet; then
+            echo "No CNINFO data changes"
+            exit 0
+          fi
+          git commit -m "data: persist V4.17 CNINFO smoke [skip ci]"
+          git push origin HEAD:main
