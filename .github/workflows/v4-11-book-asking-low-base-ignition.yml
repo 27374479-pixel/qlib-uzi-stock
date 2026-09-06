@@ -1,0 +1,58 @@
+name: V4.11 Asking low-base ignition screen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v4-11-book-asking-low-base-ignition.yml"
+      - "v4_11_book_asking_low_base_ignition.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-11-book-asking-low-base-ignition
+  cancel-in-progress: true
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow duckdb baostock requests
+
+      - name: Materialize frozen CSI800 membership
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+
+      - name: Run V4.11 Asking low-base ignition screen
+        run: python v4_11_book_asking_low_base_ignition.py
+
+      - name: Persist V4.11 results
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test ! -f output/v4_11_book_asking_low_base_ignition.json || git add -f output/v4_11_book_asking_low_base_ignition.json
+          test ! -f output/v4_11_book_asking_low_base_ignition.csv || git add -f output/v4_11_book_asking_low_base_ignition.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "research: persist V4.11 low-base ignition results [skip ci]"
+            git push
+          fi
