@@ -1,0 +1,32 @@
+{
+  "schema_version": "v1",
+  "provider": "eastmoney",
+  "source_endpoint": "akshare.stock_notice_report",
+  "symbol": "全部",
+  "requested_start": "2024-06-13",
+  "requested_end": "2024-06-13",
+  "requested_days": 1,
+  "successful_days": 1,
+  "empty_days": 0,
+  "failed_days": [],
+  "run_rows": 1906,
+  "equity_rows_inferred": 1901,
+  "unique_security_codes": 806,
+  "unique_equity_instruments": 801,
+  "partition_updates": [
+    {
+      "partition": "2024-06",
+      "path": "data_lake/raw/eastmoney/notices/2024/06.parquet",
+      "fresh_rows": 1906,
+      "old_rows": 0,
+      "final_rows": 1906
+    }
+  ],
+  "collected_at_utc": "2026-09-06T10:33:20+00:00",
+  "point_in_time_policy": {
+    "source_time_precision": "date",
+    "eligible_from": "published_date + 1 calendar day",
+    "reason": "Never infer an intraday publication time from a date-only historical endpoint.",
+    "historical_first_seen": "not claimed; collected_at_utc is ingestion time only"
+  }
+}
