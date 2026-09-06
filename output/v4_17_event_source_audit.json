@@ -1,0 +1,14 @@
+{
+  "audit_only": true,
+  "canonicalizer_used_for_trading_features": false,
+  "cninfo_unique_notice_rows": 456,
+  "eastmoney_unique_notice_rows": 1905,
+  "exact_canonical_matches": 2,
+  "cninfo_stock_days": 158,
+  "eastmoney_stock_days": 806,
+  "overlap_stock_days": 1,
+  "overlap_stock_days_with_any_exact_match": 1,
+  "mean_cninfo_match_rate_on_overlap_days": 1.0,
+  "mean_eastmoney_match_rate_on_overlap_days": 1.0,
+  "perfect_two_way_match_days": 1
+}
