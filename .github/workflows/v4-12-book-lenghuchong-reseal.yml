@@ -1,0 +1,67 @@
+name: V4.12 book Lenghuchong reseal validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v4-12-book-lenghuchong-reseal.yml"
+      - "v4_12_book_lenghuchong_reseal.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-12-book-lenghuchong-reseal
+  cancel-in-progress: true
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow duckdb baostock requests
+
+      - name: Materialize frozen CSI800 membership
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+
+      - name: Verify persisted 2021-2026 minute slices
+        shell: bash
+        run: |
+          for y in 2021 2022 2023 2024 2025 2026; do
+            f="data_lake/raw/traderharness/paired_ext_5min_${y}.parquet"
+            test -s "$f" || { echo "missing $f"; exit 1; }
+          done
+
+      - name: Run V4.12 Lenghuchong reseal validation
+        run: python v4_12_book_lenghuchong_reseal.py
+
+      - name: Persist V4.12 results
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test ! -f output/v4_12_book_lenghuchong_reseal.json || git add -f output/v4_12_book_lenghuchong_reseal.json
+          test ! -f output/v4_12_book_lenghuchong_reseal.csv || git add -f output/v4_12_book_lenghuchong_reseal.csv
+          test ! -f output/v4_12_book_lenghuchong_reseal_trades.csv || git add -f output/v4_12_book_lenghuchong_reseal_trades.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "research: persist V4.12 Lenghuchong reseal results [skip ci]"
+            git push
+          fi
