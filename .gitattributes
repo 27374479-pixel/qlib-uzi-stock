@@ -6,5 +6,6 @@ data_lake/universe/*_snapshots.parquet filter=lfs diff=lfs merge=lfs -text
 output/*_observations*.parquet filter=lfs diff=lfs merge=lfs -text
 data_lake/raw/eastmoney/equity_5min/*.parquet filter=lfs diff=lfs merge=lfs -text
 data_lake/raw/eastmoney/notices/**/*.parquet filter=lfs diff=lfs merge=lfs -text
+data_lake/raw/cninfo/notices/*.parquet filter=lfs diff=lfs merge=lfs -text
 data_lake/raw/sina/equity_5min/*.parquet filter=lfs diff=lfs merge=lfs -text
 data_lake/raw/traderharness/*.parquet filter=lfs diff=lfs merge=lfs -text
