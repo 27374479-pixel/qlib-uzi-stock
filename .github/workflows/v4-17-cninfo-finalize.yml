@@ -1,0 +1,157 @@
+name: V4.17 CNINFO Backfill Finalizer
+
+on:
+  workflow_run:
+    workflows: ["V4.17 CNINFO Full Event Backfill"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Full backfill workflow run ID (optional for manual recovery)
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: v4-17-cninfo-backfill-finalizer
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SOURCE_RUN_ID: ${{ github.event.inputs.source_run_id || github.event.workflow_run.id }}
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install validation dependencies
+        run: python -m pip install pandas pyarrow
+
+      - name: Download shard artifacts from source run
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          pattern: cninfo-shard-*
+          path: tmp/v4_17_cninfo_merged
+          merge-multiple: true
+
+      - name: Validate and build canonical summary
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          from pathlib import Path
+          import pandas as pd
+          from v4_17_cninfo_event_backfill import load_universe_symbols, parse_date
+
+          start = parse_date('20210101')
+          end = parse_date('20260716')
+          expected = set(load_universe_symbols(Path('data_lake/universe/csi800_membership_monthly.tsv'), start, end))
+          notice_paths = sorted(glob.glob('tmp/v4_17_cninfo_merged/notices/*.parquet'))
+          manifest_paths = sorted(glob.glob('tmp/v4_17_cninfo_merged/manifests/cninfo_notices_20210101_20260716_s*.json'))
+          actual = {Path(p).stem for p in notice_paths}
+
+          assert len(manifest_paths) == 8, f'expected 8 shard manifests, got {len(manifest_paths)}'
+          assert actual == expected, f'missing={sorted(expected-actual)[:30]} extra={sorted(actual-expected)[:30]}'
+
+          manifests = [json.load(open(p, encoding='utf-8')) for p in manifest_paths]
+          assert all(not m['failed_symbols'] for m in manifests), [m['failed_symbols'] for m in manifests if m['failed_symbols']]
+          assert sum(int(m['requested_symbols']) for m in manifests) == len(expected)
+          assert {int(m['shard_index']) for m in manifests} == set(range(8))
+
+          frames = []
+          zero_rows = []
+          for path in notice_paths:
+              df = pd.read_parquet(path)
+              symbol = Path(path).stem
+              if df.empty:
+                  zero_rows.append(symbol)
+                  continue
+              assert set(df['schema_version'].dropna().unique()) == {'v2'}, path
+              assert not df['event_id'].duplicated().any(), path
+              published = pd.to_datetime(df['published_date'], errors='raise')
+              eligible = pd.to_datetime(df['eligible_from_date'], errors='raise')
+              assert (eligible > published).all(), path
+              assert published.min().date() >= start and published.max().date() <= end, path
+              assert df['security_code'].astype(str).str.zfill(6).eq(symbol).all(), path
+              frames.append(df)
+
+          all_rows = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+          assert not all_rows.empty, 'no notice rows across complete universe'
+          assert not all_rows['event_id'].duplicated().any(), 'global duplicate event_id'
+
+          pub = pd.to_datetime(all_rows['published_date'])
+          rows_by_year = pub.dt.year.value_counts().sort_index().astype(int).to_dict()
+          documents_with_multiple_stocks = 0
+          nonempty_sid = all_rows[all_rows['source_event_id'].astype(str).ne('')]
+          if not nonempty_sid.empty:
+              doc_stock_counts = nonempty_sid.groupby('source_event_id')['security_code'].nunique()
+              documents_with_multiple_stocks = int((doc_stock_counts > 1).sum())
+
+          summary = {
+              'schema_version': 'v2',
+              'provider': 'cninfo',
+              'source_run_id': str(__import__('os').environ.get('SOURCE_RUN_ID', '')),
+              'requested_start': start.isoformat(),
+              'requested_end': end.isoformat(),
+              'expected_symbols': len(expected),
+              'parquet_files': len(notice_paths),
+              'zero_row_symbol_count': len(zero_rows),
+              'zero_row_symbols': zero_rows,
+              'total_rows': int(len(all_rows)),
+              'unique_event_ids': int(all_rows['event_id'].nunique()),
+              'unique_source_event_ids_nonempty': int(nonempty_sid['source_event_id'].nunique()),
+              'source_documents_mapped_to_multiple_stocks': documents_with_multiple_stocks,
+              'min_published_date': pub.min().date().isoformat(),
+              'max_published_date': pub.max().date().isoformat(),
+              'rows_by_year': {str(k): int(v) for k, v in rows_by_year.items()},
+              'shard_rows': {str(m['shard_index']): int(m['fresh_rows']) for m in manifests},
+              'point_in_time_policy': {
+                  'event_time_precision': 'date',
+                  'eligible_from': 'published_date + 1 calendar day',
+                  'intraday_time_inference': False,
+                  'future_concept_membership_backfill': False,
+              },
+          }
+          summary_path = Path('tmp/v4_17_cninfo_merged/manifests/cninfo_notices_20210101_20260716_summary.json')
+          summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Install canonical event lake into latest main tree
+        run: |
+          rm -rf data_lake/raw/cninfo/notices
+          mkdir -p data_lake/raw/cninfo/notices data_lake/manifests
+          cp -f tmp/v4_17_cninfo_merged/notices/*.parquet data_lake/raw/cninfo/notices/
+          cp -f tmp/v4_17_cninfo_merged/manifests/cninfo_notices_20210101_20260716_s*.json data_lake/manifests/
+          cp -f tmp/v4_17_cninfo_merged/manifests/cninfo_notices_20210101_20260716_summary.json data_lake/manifests/
+
+      - name: Commit on latest main safely
+        run: |
+          git lfs install
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --ff-only origin main
+          git add -f data_lake/raw/cninfo/notices data_lake/manifests/cninfo_notices_20210101_20260716_*.json
+          if git diff --cached --quiet; then
+            echo "No canonical data changes"
+            exit 0
+          fi
+          git commit -m "data: finalize V4.17 CNINFO 2021-2026 event lake [skip ci]"
+          git push origin main
