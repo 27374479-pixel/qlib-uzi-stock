@@ -14,7 +14,7 @@ import pandas as pd
 
 PROVIDER = "cninfo"
 ENDPOINT = "akshare.stock_zh_a_disclosure_report_cninfo"
-SCHEMA_VERSION = "v1"
+SCHEMA_VERSION = "v2"
 OUTPUT_COLUMNS = [
     "event_id",
     "source_event_id",
@@ -68,14 +68,17 @@ def source_event_id_from_url(url: str) -> str:
 
 
 def stable_event_id(row: pd.Series) -> str:
+    security_code = str(row.get("security_code", ""))
     source_key = str(row.get("source_event_id", "") or "").strip()
     if source_key:
-        raw = f"{PROVIDER}|{source_key}"
+        # event_id is a row-level event-security mapping. source_event_id remains the
+        # document-level key so one source document may causally map to multiple stocks.
+        raw = f"{PROVIDER}|{source_key}|{security_code}"
     else:
         raw = "|".join(
             [
                 PROVIDER,
-                str(row.get("security_code", "")),
+                security_code,
                 str(row.get("published_date", "")),
                 str(row.get("title", "")),
                 str(row.get("source_url", "")),
@@ -290,6 +293,10 @@ def main() -> int:
             "eligible_from": "published_date + 1 calendar day",
             "reason": "CNINFO historical output is treated as date-only even if provider internals contain richer timestamps; no intraday availability is inferred.",
             "historical_first_seen": "not claimed; collected_at_utc is ingestion time only",
+        },
+        "event_identity_policy": {
+            "source_event_id": "document-level source identifier when available",
+            "event_id": "provider + source document + security mapping; falls back to provider/code/date/title/url",
         },
         "symbols": successful,
     }
