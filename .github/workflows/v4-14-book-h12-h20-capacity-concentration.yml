@@ -1,0 +1,66 @@
+name: V4.14 book H12 H20 capacity concentration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v4-14-book-h12-h20-capacity-concentration.yml"
+      - "v4_14_book_h12_h20_capacity_concentration.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v4-14-book-h12-h20-capacity-concentration
+  cancel-in-progress: true
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<3" pandas pyarrow duckdb baostock requests
+
+      - name: Materialize frozen CSI800 membership
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+
+      - name: Verify persisted 2021-2026 minute slices
+        shell: bash
+        run: |
+          for y in 2021 2022 2023 2024 2025 2026; do
+            f="data_lake/raw/traderharness/paired_ext_5min_${y}.parquet"
+            test -s "$f" || { echo "missing $f"; exit 1; }
+          done
+
+      - name: Run V4.14 H12 H20 audit
+        run: python v4_14_book_h12_h20_capacity_concentration.py
+
+      - name: Persist V4.14 results
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test ! -f output/v4_14_book_h12_h20_capacity_concentration.json || git add -f output/v4_14_book_h12_h20_capacity_concentration.json
+          test ! -f output/v4_14_book_h12_h20_capacity_concentration.csv || git add -f output/v4_14_book_h12_h20_capacity_concentration.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "research: persist V4.14 H12 H20 audit results [skip ci]"
+            git push
+          fi
