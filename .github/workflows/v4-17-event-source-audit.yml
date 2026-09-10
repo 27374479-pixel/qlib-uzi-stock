@@ -2,6 +2,10 @@ name: V4.17 Event Source Audit
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "v4_17_event_source_audit.py"
+      - ".github/workflows/v4-17-event-source-audit.yml"
   push:
     branches: [main]
     paths:
@@ -12,8 +16,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: v4-17-event-source-audit
-  cancel-in-progress: false
+  group: v4-17-event-source-audit-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   audit:
@@ -42,13 +46,20 @@ jobs:
       - name: Run cross-source audit
         run: python v4_17_event_source_audit.py
 
-      - name: Validate known smoke overlap
+      - name: Validate known smoke overlap and loader contract
         run: |
           python - <<'PY'
           import json
           import pandas as pd
           s = json.load(open('output/v4_17_event_source_audit.json', encoding='utf-8'))
           d = pd.read_csv('output/v4_17_event_source_audit_stock_days.csv', dtype={'security_code': str})
+
+          assert s['source_loader_validation_pass'] is True, s.get('loader_diagnostics')
+          em = s['loader_diagnostics']['eastmoney']
+          assert em['canonical_contract_violations'] == [], em
+          assert em['canonical_files'] >= 1, em
+          assert em['canonical_rows'] > 0, em
+
           row = d[(d['security_code'].str.zfill(6) == '000006') & (d['published_date'] == '2024-06-13')]
           assert len(row) == 1, row
           r = row.iloc[0]
@@ -59,10 +70,21 @@ jobs:
           assert float(r['eastmoney_match_rate']) == 1.0
           assert s['canonicalizer_used_for_trading_features'] is False
           print(row.to_string(index=False))
-          print(s)
+          print(json.dumps(s['loader_diagnostics'], ensure_ascii=False, indent=2))
           PY
 
+      - name: Upload source audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-17-event-source-audit
+          path: |
+            output/v4_17_event_source_audit.json
+            output/v4_17_event_source_audit_stock_days.csv
+          if-no-files-found: warn
+
       - name: Persist audit output
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -71,4 +93,5 @@ jobs:
             exit 0
           fi
           git commit -m "research: persist V4.17 event source audit [skip ci]"
+          git pull --rebase origin main
           git push origin HEAD:main
