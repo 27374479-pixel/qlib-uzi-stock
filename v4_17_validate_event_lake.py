@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Validate V4.17-A Eastmoney announcement event lake.
 
-This validator is intentionally strict about causal semantics. Historical
-Eastmoney notice rows currently carry date precision only, so they may not be
-used for same-day intraday research.
+Historical Eastmoney notice rows currently carry date precision only, so they
+may not be used for same-day intraday research.  The validator also proves that
+each normalized row came from an archive query for the same calendar date.
 """
 
 from __future__ import annotations
@@ -15,13 +15,14 @@ from pathlib import Path
 
 import pandas as pd
 
-SCHEMA_VERSION = "v4.17-a.1"
+SCHEMA_VERSION = "v4.17-a.2"
 REQUIRED_EVENT_COLUMNS = {
     "schema_version",
     "event_id",
     "source_provider",
     "source_endpoint",
     "event_type",
+    "archive_request_date",
     "published_date",
     "published_at",
     "timestamp_precision",
@@ -67,7 +68,14 @@ def main() -> None:
     event_root = Path(args.event_root)
     manifest_root = Path(args.manifest_root)
 
-    event_files = sorted(event_root.glob("year=*/notices_*.parquet"))
+    # Restrict files to requested years so future partitions do not invalidate
+    # a historical validation rerun for this exact research window.
+    requested_years = set(range(start.year, end.year + 1))
+    event_files = [
+        p
+        for p in sorted(event_root.glob("year=*/notices_*.parquet"))
+        if int(p.parent.name.split("=", 1)[1]) in requested_years
+    ]
     if not event_files:
         raise SystemExit(f"no event parquet files under {event_root}")
 
@@ -80,32 +88,82 @@ def main() -> None:
         frames.append(df)
     events = pd.concat(frames, ignore_index=True)
 
-    ledger_files = sorted(manifest_root.glob("v4_17_eastmoney_notice_requests_*.csv"))
+    ledger_files = [
+        p
+        for p in sorted(manifest_root.glob("v4_17_eastmoney_notice_requests_*.csv"))
+        if int(p.stem.rsplit("_", 1)[1]) in requested_years
+    ]
     if not ledger_files:
         raise SystemExit("no V4.17 request ledgers found")
-    ledgers = pd.concat([pd.read_csv(p, dtype={"request_date": str}) for p in ledger_files], ignore_index=True)
-    ledgers = ledgers.sort_values(["request_date", "retrieved_at"]).drop_duplicates("request_date", keep="last")
+    ledgers = pd.concat(
+        [pd.read_csv(p, dtype={"request_date": str}) for p in ledger_files],
+        ignore_index=True,
+    )
+    ledgers = ledgers.sort_values(["request_date", "retrieved_at"]).drop_duplicates(
+        "request_date", keep="last"
+    )
+
+    # Limit the exact validation window.  This permits a 2026 partition to be
+    # extended later without contaminating the frozen 2021-01-01..2026-07-16
+    # validation used by the minute-data research period.
+    ledger_date = pd.to_datetime(ledgers["request_date"], errors="coerce").dt.date
+    ledgers = ledgers[(ledger_date >= start) & (ledger_date <= end)].copy()
+
+    event_published = pd.to_datetime(events["published_date"], errors="coerce").dt.date
+    events = events[(event_published >= start) & (event_published <= end)].copy()
 
     failures: list[str] = []
     expected_dates = {d.isoformat() for d in daterange(start, end)}
     observed_dates = set(ledgers["request_date"].astype(str))
     missing_request_dates = sorted(expected_dates - observed_dates)
-    extra_request_dates = sorted(observed_dates - expected_dates)
     unresolved = ledgers[ledgers["status"] == "error"].copy()
 
     fail_if(bool(missing_request_dates), f"missing request dates: {missing_request_dates[:20]}", failures)
-    fail_if(bool(extra_request_dates), f"unexpected request dates: {extra_request_dates[:20]}", failures)
     fail_if(not unresolved.empty, f"unresolved provider errors: {len(unresolved)}", failures)
-    fail_if(not set(ledgers["status"]).issubset({"success", "empty"}), "unexpected request status", failures)
+    fail_if(
+        not set(ledgers["status"]).issubset({"success", "empty"}),
+        "unexpected request status",
+        failures,
+    )
 
     fail_if(events["event_id"].isna().any(), "null event_id", failures)
-    fail_if(events["event_id"].duplicated().any(), f"duplicate event_id: {int(events['event_id'].duplicated().sum())}", failures)
+    fail_if(
+        events["event_id"].duplicated().any(),
+        f"duplicate event_id: {int(events['event_id'].duplicated().sum())}",
+        failures,
+    )
     fail_if(events["published_date"].isna().any(), "null published_date", failures)
+    fail_if(events["archive_request_date"].isna().any(), "null archive_request_date", failures)
     fail_if(events["instrument"].isna().any(), "null instrument", failures)
     fail_if(events["title"].fillna("").str.strip().eq("").any(), "blank title", failures)
     fail_if(events["raw_payload_hash"].isna().any(), "null raw_payload_hash", failures)
-    fail_if(not events["instrument"].astype(str).str.match(r"^(SH|SZ|BJ)\d{6}$").all(), "invalid instrument format", failures)
-    fail_if(not set(events["timestamp_precision"].dropna()) <= {"date", "datetime"}, "invalid timestamp_precision", failures)
+    fail_if(
+        not events["instrument"].astype(str).str.match(r"^(SH|SZ|BJ)\d{6}$").all(),
+        "invalid instrument format",
+        failures,
+    )
+    fail_if(
+        events["instrument"].astype(str).str.match(r"^SZ200\d{3}$").any(),
+        "SZ B-share leaked into A-share event lake",
+        failures,
+    )
+    fail_if(
+        not set(events["timestamp_precision"].dropna()) <= {"date", "datetime"},
+        "invalid timestamp_precision",
+        failures,
+    )
+
+    archive_dates = pd.to_datetime(events["archive_request_date"], errors="coerce").dt.date
+    published_dates = pd.to_datetime(events["published_date"], errors="coerce").dt.date
+    fail_if(archive_dates.isna().any(), "unparseable archive_request_date", failures)
+    fail_if(published_dates.isna().any(), "unparseable published_date", failures)
+    if not archive_dates.isna().any() and not published_dates.isna().any():
+        mismatch = archive_dates != published_dates
+        fail_if(
+            mismatch.any(),
+            f"archive_request_date/published_date mismatches: {int(mismatch.sum())}",
+            failures,
+        )
 
     date_precision = events[events["timestamp_precision"] == "date"]
     fail_if(
@@ -124,20 +182,27 @@ def main() -> None:
         failures,
     )
 
-    event_dates = pd.to_datetime(events["published_date"], errors="coerce").dt.date
-    fail_if(event_dates.isna().any(), "unparseable event published_date", failures)
-    if not event_dates.isna().any():
-        fail_if((event_dates < start).any() or (event_dates > end).any(), "event outside requested interval", failures)
-
     fail_if(not events["schema_version"].eq(SCHEMA_VERSION).all(), "schema version mismatch", failures)
     fail_if(not events["source_provider"].eq("eastmoney").all(), "mixed source_provider in Eastmoney lake", failures)
-    fail_if(not events["source_endpoint"].eq("akshare.stock_notice_report").all(), "unexpected source_endpoint", failures)
+    fail_if(
+        not events["source_endpoint"].eq("akshare.stock_notice_report").all(),
+        "unexpected source_endpoint",
+        failures,
+    )
 
-    status_counts = {str(k): int(v) for k, v in ledgers["status"].value_counts(dropna=False).items()}
-    type_counts = {str(k): int(v) for k, v in events["announcement_type"].fillna("<NA>").value_counts().items()}
+    status_counts = {
+        str(k): int(v) for k, v in ledgers["status"].value_counts(dropna=False).items()
+    }
+    type_counts = {
+        str(k): int(v)
+        for k, v in events["announcement_type"].fillna("<NA>").value_counts().items()
+    }
     yearly_counts = {
         str(k): int(v)
-        for k, v in pd.to_datetime(events["published_date"]).dt.year.value_counts().sort_index().items()
+        for k, v in pd.to_datetime(events["published_date"])
+        .dt.year.value_counts()
+        .sort_index()
+        .items()
     }
 
     report = {
@@ -169,15 +234,19 @@ def main() -> None:
         "quality": {
             "duplicate_event_ids": int(events["event_id"].duplicated().sum()),
             "blank_titles": int(events["title"].fillna("").str.strip().eq("").sum()),
-            "source_url_coverage": float(events["source_url"].fillna("").str.strip().ne("").mean()) if len(events) else 0.0,
+            "source_url_coverage": float(
+                events["source_url"].fillna("").str.strip().ne("").mean()
+            )
+            if len(events)
+            else 0.0,
+            "archive_date_match_rate": float((archive_dates == published_dates).mean())
+            if len(events)
+            else 1.0,
             "all_date_precision_causally_delayed": bool(
                 date_precision["causal_use_policy"].eq("NEXT_TRADING_DAY_ONLY").all()
             ),
         },
-        "validation": {
-            "pass": not failures,
-            "failures": failures,
-        },
+        "validation": {"pass": not failures, "failures": failures},
     }
 
     out = Path(args.output)
