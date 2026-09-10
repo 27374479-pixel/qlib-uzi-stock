@@ -1,28 +1,36 @@
 #!/usr/bin/env python3
-"""V4.17-C full-backfill completion gate.
+"""V4.17-C full-backfill completion and canonical-writer gate.
 
-This gate is intentionally separate from row-level source validation.  It proves
-that the complete requested calendar window is present, every yearly partition
-is independently complete, and the conservative point-in-time contract is safe
-to hand to downstream event research.
+This is the final machine gate before H04/H05 may consume the Eastmoney
+announcement archive.  It proves both calendar completeness and that every row
+was materialized with the one canonical V4.17-A identity/schema contract.
 
-The raw Eastmoney archive is DATE precision.  It MUST NOT fabricate an
-``available_at`` timestamp.  Downstream research must derive an
-``available_trade_date`` from a trusted A-share trading calendar and use the
-strictly next trading session after ``published_date``.
+Historical Eastmoney rows are DATE precision.  The raw lake MUST NOT fabricate
+an intraday availability timestamp; downstream research derives a strictly-next
+A-share trading-session ``available_trade_date`` from the frozen market
+calendar.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
 
-GATE_VERSION = "v4.17-c.1"
+GATE_VERSION = "v4.17-c.2"
+CANONICAL_SCHEMA_VERSION = "v4.17-a.2"
+CANONICAL_SOURCE_PROVIDER = "eastmoney"
+CANONICAL_SOURCE_ENDPOINT = "akshare.stock_notice_report"
+CANONICAL_EVENT_TYPE = "corporate_announcement"
+CANONICAL_CAUSAL_POLICY = "NEXT_TRADING_DAY_ONLY"
 TERMINAL_STATUSES = {"success", "empty"}
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
 FORBIDDEN_RAW_THEME_COLUMNS = {
     "theme_id",
     "theme_name",
@@ -31,6 +39,28 @@ FORBIDDEN_RAW_THEME_COLUMNS = {
     "concept_name",
     "concept_membership",
     "current_concept",
+}
+
+REQUIRED_EVENT_COLUMNS = {
+    "schema_version",
+    "event_id",
+    "source_provider",
+    "source_endpoint",
+    "event_type",
+    "archive_request_date",
+    "published_date",
+    "published_at",
+    "timestamp_precision",
+    "stock_code_raw",
+    "instrument",
+    "stock_name",
+    "title",
+    "announcement_type",
+    "source_url",
+    "retrieved_at",
+    "first_seen_at",
+    "causal_use_policy",
+    "raw_payload_hash",
 }
 
 
@@ -45,16 +75,8 @@ def parse_args() -> argparse.Namespace:
         default="output/v4_17_event_lake_validation.json",
         help="row-level validator report that must already PASS",
     )
-    p.add_argument(
-        "--output",
-        default="output/v4_17_full_backfill_gate.json",
-    )
-    p.add_argument(
-        "--min-source-url-coverage",
-        type=float,
-        default=0.99,
-        help="minimum provenance URL coverage for each non-empty yearly partition",
-    )
+    p.add_argument("--output", default="output/v4_17_full_backfill_gate.json")
+    p.add_argument("--min-source-url-coverage", type=float, default=0.99)
     return p.parse_args()
 
 
@@ -78,10 +100,9 @@ def load_upstream_validation(path: Path) -> dict:
     if not path.exists():
         raise SystemExit(f"missing upstream validation report: {path}")
     try:
-        report = json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
         raise SystemExit(f"cannot parse upstream validation report {path}: {exc}") from exc
-    return report
 
 
 def latest_ledger_rows(path: Path) -> pd.DataFrame:
@@ -95,6 +116,20 @@ def latest_ledger_rows(path: Path) -> pd.DataFrame:
         .drop_duplicates("request_date", keep="last")
         .copy()
     )
+
+
+def canonical_event_id(row: pd.Series) -> str:
+    """Recompute the identity defined by the canonical V4.17-A collector."""
+    identity = "|".join(
+        [
+            CANONICAL_SOURCE_PROVIDER,
+            str(row["published_date"]),
+            str(row["stock_code_raw"]),
+            str(row["title"]),
+            str(row["source_url"]),
+        ]
+    )
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
 
 def validate_year(
@@ -120,7 +155,6 @@ def validate_year(
         window_ledger = ledger[(parsed >= ystart) & (parsed <= yend)].copy()
         observed_dates = set(window_ledger["request_date"].astype(str))
         missing_dates = sorted(expected_dates - observed_dates)
-        extra_dates = sorted(observed_dates - expected_dates)
         unresolved = window_ledger[window_ledger["status"] == "error"]
         unexpected = window_ledger[~window_ledger["status"].isin(TERMINAL_STATUSES)]
         terminal_dates = set(
@@ -129,9 +163,7 @@ def validate_year(
             ].astype(str)
         )
         incomplete_dates = sorted(expected_dates - terminal_dates)
-
         add_failure(failures, bool(missing_dates), f"missing request dates: {missing_dates[:20]}")
-        add_failure(failures, bool(extra_dates), f"out-of-window ledger dates: {extra_dates[:20]}")
         add_failure(failures, not unresolved.empty, f"unresolved provider errors: {len(unresolved)}")
         add_failure(failures, not unexpected.empty, f"unexpected request statuses: {len(unexpected)}")
         add_failure(failures, bool(incomplete_dates), f"non-terminal dates: {incomplete_dates[:20]}")
@@ -146,30 +178,30 @@ def validate_year(
         unresolved = pd.DataFrame()
         status_counts = {}
 
-    event_rows = 0
-    unique_events = 0
-    unique_instruments = 0
-    url_coverage = 0.0
-    forbidden_present: list[str] = []
-    min_published_date = None
-    max_published_date = None
+    metrics = {
+        "event_rows": 0,
+        "unique_events": 0,
+        "unique_instruments": 0,
+        "source_url_coverage": 0.0,
+        "min_published_date": None,
+        "max_published_date": None,
+        "invalid_event_id_format": 0,
+        "event_id_identity_mismatches": 0,
+        "semantic_duplicate_rows": 0,
+        "noncanonical_schema_rows": 0,
+        "noncanonical_source_rows": 0,
+        "noncanonical_endpoint_rows": 0,
+        "noncanonical_event_type_rows": 0,
+        "forbidden_raw_theme_columns_present": [],
+    }
 
     if parquet_path.exists():
         events = pd.read_parquet(parquet_path)
-        required_event = {
-            "event_id",
-            "published_date",
-            "archive_request_date",
-            "instrument",
-            "source_url",
-            "timestamp_precision",
-            "published_at",
-            "first_seen_at",
-            "causal_use_policy",
-        }
-        missing_cols = required_event - set(events.columns)
+        missing_cols = REQUIRED_EVENT_COLUMNS - set(events.columns)
         add_failure(failures, bool(missing_cols), f"missing event columns: {sorted(missing_cols)}")
+
         forbidden_present = sorted(FORBIDDEN_RAW_THEME_COLUMNS & set(events.columns))
+        metrics["forbidden_raw_theme_columns_present"] = forbidden_present
         add_failure(
             failures,
             bool(forbidden_present),
@@ -179,31 +211,101 @@ def validate_year(
         if not missing_cols:
             pub = pd.to_datetime(events["published_date"], errors="coerce").dt.date
             in_window = events[(pub >= ystart) & (pub <= yend)].copy()
-            event_rows = int(len(in_window))
-            unique_events = int(in_window["event_id"].nunique())
-            unique_instruments = int(in_window["instrument"].nunique())
-            min_published_date = (
+            metrics["event_rows"] = int(len(in_window))
+            metrics["unique_events"] = int(in_window["event_id"].nunique())
+            metrics["unique_instruments"] = int(in_window["instrument"].nunique())
+            metrics["min_published_date"] = (
                 str(in_window["published_date"].min()) if not in_window.empty else None
             )
-            max_published_date = (
+            metrics["max_published_date"] = (
                 str(in_window["published_date"].max()) if not in_window.empty else None
             )
+
             if not in_window.empty:
-                url_coverage = float(
+                metrics["source_url_coverage"] = float(
                     in_window["source_url"].fillna("").astype(str).str.strip().ne("").mean()
                 )
                 add_failure(
                     failures,
-                    url_coverage < min_source_url_coverage,
-                    f"source URL coverage {url_coverage:.6f} < {min_source_url_coverage:.6f}",
+                    metrics["source_url_coverage"] < min_source_url_coverage,
+                    f"source URL coverage {metrics['source_url_coverage']:.6f} < {min_source_url_coverage:.6f}",
                 )
 
+                duplicate_ids = int(in_window["event_id"].duplicated().sum())
+                add_failure(failures, duplicate_ids > 0, f"duplicate event_id within year: {duplicate_ids}")
+
+                event_ids = in_window["event_id"].fillna("").astype(str)
+                metrics["invalid_event_id_format"] = int((~event_ids.str.match(SHA256_RE)).sum())
                 add_failure(
                     failures,
-                    in_window["event_id"].duplicated().any(),
-                    f"duplicate event_id within year: {int(in_window['event_id'].duplicated().sum())}",
+                    metrics["invalid_event_id_format"] > 0,
+                    f"noncanonical event_id format rows: {metrics['invalid_event_id_format']}",
                 )
+
+                expected_ids = in_window.apply(canonical_event_id, axis=1)
+                metrics["event_id_identity_mismatches"] = int((event_ids != expected_ids).sum())
+                add_failure(
+                    failures,
+                    metrics["event_id_identity_mismatches"] > 0,
+                    "event_id does not match canonical provider|date|code|title|url identity: "
+                    f"{metrics['event_id_identity_mismatches']} rows",
+                )
+
+                semantic_columns = [
+                    "source_provider",
+                    "published_date",
+                    "stock_code_raw",
+                    "title",
+                    "source_url",
+                ]
+                metrics["semantic_duplicate_rows"] = int(
+                    in_window.duplicated(semantic_columns, keep=False).sum()
+                )
+                add_failure(
+                    failures,
+                    metrics["semantic_duplicate_rows"] > 0,
+                    f"semantic duplicate announcement rows: {metrics['semantic_duplicate_rows']}",
+                )
+
+                metrics["noncanonical_schema_rows"] = int(
+                    in_window["schema_version"].astype(str).ne(CANONICAL_SCHEMA_VERSION).sum()
+                )
+                metrics["noncanonical_source_rows"] = int(
+                    in_window["source_provider"].astype(str).ne(CANONICAL_SOURCE_PROVIDER).sum()
+                )
+                metrics["noncanonical_endpoint_rows"] = int(
+                    in_window["source_endpoint"].astype(str).ne(CANONICAL_SOURCE_ENDPOINT).sum()
+                )
+                metrics["noncanonical_event_type_rows"] = int(
+                    in_window["event_type"].astype(str).ne(CANONICAL_EVENT_TYPE).sum()
+                )
+                add_failure(
+                    failures,
+                    metrics["noncanonical_schema_rows"] > 0,
+                    f"noncanonical schema rows: {metrics['noncanonical_schema_rows']}",
+                )
+                add_failure(
+                    failures,
+                    metrics["noncanonical_source_rows"] > 0,
+                    f"noncanonical source rows: {metrics['noncanonical_source_rows']}",
+                )
+                add_failure(
+                    failures,
+                    metrics["noncanonical_endpoint_rows"] > 0,
+                    f"noncanonical endpoint rows: {metrics['noncanonical_endpoint_rows']}",
+                )
+                add_failure(
+                    failures,
+                    metrics["noncanonical_event_type_rows"] > 0,
+                    f"noncanonical event_type rows: {metrics['noncanonical_event_type_rows']}",
+                )
+
                 date_rows = in_window[in_window["timestamp_precision"] == "date"]
+                add_failure(
+                    failures,
+                    len(date_rows) != len(in_window),
+                    "canonical Eastmoney archive must be entirely date precision",
+                )
                 add_failure(
                     failures,
                     not date_rows["published_at"].isna().all(),
@@ -216,7 +318,7 @@ def validate_year(
                 )
                 add_failure(
                     failures,
-                    not date_rows["causal_use_policy"].eq("NEXT_TRADING_DAY_ONLY").all(),
+                    not date_rows["causal_use_policy"].eq(CANONICAL_CAUSAL_POLICY).all(),
                     "date-precision rows are not strictly NEXT_TRADING_DAY_ONLY",
                 )
 
@@ -235,13 +337,7 @@ def validate_year(
         ),
         "event_partition": str(parquet_path),
         "manifest": str(ledger_path),
-        "event_rows": event_rows,
-        "unique_events": unique_events,
-        "unique_instruments": unique_instruments,
-        "source_url_coverage": url_coverage,
-        "min_published_date": min_published_date,
-        "max_published_date": max_published_date,
-        "forbidden_raw_theme_columns_present": forbidden_present,
+        **metrics,
         "pass": not failures,
         "failures": failures,
     }
@@ -288,11 +384,7 @@ def main() -> None:
         for year in years
     ]
     failed_years = [int(r["year"]) for r in yearly if not r["pass"]]
-    add_failure(failures, bool(failed_years), f"yearly completion failed: {failed_years}")
-
-    expected_calendar_days = sum(int(r["expected_calendar_days"]) for r in yearly)
-    terminal_request_days = sum(int(r["terminal_request_days"]) for r in yearly)
-    event_rows = sum(int(r["event_rows"]) for r in yearly)
+    add_failure(failures, bool(failed_years), f"yearly completion/canonicality failed: {failed_years}")
 
     report = {
         "gate_version": GATE_VERSION,
@@ -304,20 +396,29 @@ def main() -> None:
             "schema_version": upstream.get("schema_version"),
             "pass": upstream_pass,
         },
+        "canonical_archive_contract": {
+            "authoritative_writer": "v4_17_point_in_time_announcement_backfill.py",
+            "schema_version": CANONICAL_SCHEMA_VERSION,
+            "source_provider": CANONICAL_SOURCE_PROVIDER,
+            "source_endpoint": CANONICAL_SOURCE_ENDPOINT,
+            "event_type": CANONICAL_EVENT_TYPE,
+            "event_id": "full lowercase SHA-256(provider|published_date|stock_code_raw|title|source_url)",
+            "multiple_writer_mutation_allowed": False,
+        },
         "completion": {
             "expected_years": years,
             "passed_years": [int(r["year"]) for r in yearly if r["pass"]],
             "failed_years": failed_years,
-            "expected_calendar_days": expected_calendar_days,
-            "terminal_request_days": terminal_request_days,
-            "event_rows": event_rows,
+            "expected_calendar_days": sum(int(r["expected_calendar_days"]) for r in yearly),
+            "terminal_request_days": sum(int(r["terminal_request_days"]) for r in yearly),
+            "event_rows": sum(int(r["event_rows"]) for r in yearly),
             "years": yearly,
         },
         "pit_contract": {
             "raw_timestamp_precision": "date",
             "raw_available_at_is_fabricated": False,
             "same_day_intraday_use_allowed": False,
-            "raw_causal_use_policy": "NEXT_TRADING_DAY_ONLY",
+            "raw_causal_use_policy": CANONICAL_CAUSAL_POLICY,
             "downstream_materialization_rule": (
                 "available_trade_date must equal the strictly next A-share trading session "
                 "after published_date, derived from the frozen historical market calendar"
