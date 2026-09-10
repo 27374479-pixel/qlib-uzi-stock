@@ -1,28 +1,25 @@
-name: V4.17 point-in-time notice smoke
+name: V4.17 direct Eastmoney source audit
 
+# NON-PRODUCTION SOURCE AUDIT.
+# This collector talks directly to Eastmoney and intentionally has a different
+# schema/identity contract. It must never write into the canonical yearly lake.
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/v4-17-point-in-time-notice-smoke.yml"
-      - "v4_17_point_in_time_notice_lake.py"
-      - "V4_17_POINT_IN_TIME_EVENT_LAKE.md"
   workflow_dispatch:
     inputs:
       start:
         description: "Inclusive start date YYYY-MM-DD"
         required: false
-        default: "2026-07-13"
+        default: "2026-07-16"
       end:
         description: "Inclusive end date YYYY-MM-DD"
         required: false
-        default: "2026-07-17"
+        default: "2026-07-16"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: v4-17-point-in-time-notice-smoke
+  group: v4-17-direct-eastmoney-source-audit
   cancel-in-progress: true
 
 jobs:
@@ -30,8 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      START_DATE: ${{ inputs.start || '2026-07-13' }}
-      END_DATE: ${{ inputs.end || '2026-07-17' }}
+      START_DATE: ${{ inputs.start || '2026-07-16' }}
+      END_DATE: ${{ inputs.end || '2026-07-16' }}
+      ROOT: /tmp/v417-direct-eastmoney
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,54 +44,51 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "akshare==1.18.84" "pandas<3" pyarrow
+          pip install "akshare==1.18.84" "pandas<3" pyarrow requests
 
-      - name: Collect archived notices
+      - name: Collect direct-source sample into isolated audit root
         run: |
           python v4_17_point_in_time_notice_lake.py \
             --start "$START_DATE" \
             --end "$END_DATE" \
+            --root "$ROOT/data_lake/raw/eastmoney_direct/notices" \
+            --manifest-root "$ROOT/data_lake/manifests" \
             --retries 4 \
             --retry-sleep 1.0 \
             --request-sleep 0.35
 
-      - name: Validate smoke result
+      - name: Validate direct-source audit result
         shell: bash
         run: |
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
           import pandas as pd
 
-          manifests = sorted(Path("data_lake/manifests").glob("v4_17_eastmoney_notices_*.json"), key=lambda p: p.stat().st_mtime)
-          assert manifests, "missing V4.17 manifest"
+          root = Path(os.environ["ROOT"])
+          manifests = sorted((root / "data_lake/manifests").glob("v4_17_eastmoney_notices_*.json"))
+          assert manifests, "missing direct-source audit manifest"
           m = json.loads(manifests[-1].read_text(encoding="utf-8"))
-          print(json.dumps({k: v for k, v in m.items() if k != "results"}, ensure_ascii=False, indent=2))
           assert m["days_failed"] == 0, m
-          assert m["rows_total"] > 0, "smoke window returned zero notices"
+          assert m["rows_total"] > 0, "audit window returned zero notices"
           assert m["cross_partition_duplicate_event_ids"] == 0, m
           assert m["point_in_time_policy"]["same_day_usable"] is False
           assert m["point_in_time_policy"]["retrieved_at_is_not_historical_first_seen"] is True
 
-          files = sorted(Path("data_lake/raw/eastmoney/notices").glob("**/*.parquet"))
-          assert files, "no parquet partitions"
-          frames = [pd.read_parquet(p) for p in files if p.name >= "2026-07-13.parquet" and p.name <= "2026-07-17.parquet"]
-          frame = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+          files = sorted((root / "data_lake/raw/eastmoney_direct/notices").glob("**/*.parquet"))
+          assert files, "no direct-source parquet partitions"
+          frame = pd.concat([pd.read_parquet(p) for p in files], ignore_index=True)
           assert len(frame) > 0
           assert not frame["same_day_usable"].fillna(True).any()
           assert frame["event_id"].is_unique
-          print(frame[["event_date", "security_code", "notice_type", "notice_title"]].head(20).to_string(index=False))
+          print(json.dumps({k: v for k, v in m.items() if k != "results"}, ensure_ascii=False, indent=2))
           PY
 
-      - name: Persist smoke partitions and manifest
-        if: success()
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git lfs install --local
-          git add -f data_lake/raw/eastmoney/notices data_lake/manifests/v4_17_eastmoney_notices_*.json
-          if ! git diff --cached --quiet; then
-            git commit -m "data: persist V4.17 notice smoke partitions [skip ci]"
-            git push
-          fi
+      - name: Upload non-production source-audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-17-direct-eastmoney-source-audit
+          path: /tmp/v417-direct-eastmoney
+          if-no-files-found: warn
