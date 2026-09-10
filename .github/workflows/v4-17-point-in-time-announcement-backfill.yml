@@ -1,6 +1,13 @@
 name: V4.17 point-in-time announcement backfill
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/v4-17-point-in-time-announcement-backfill.yml"
+      - "v4_17_point_in_time_announcement_backfill.py"
+      - "v4_17_validate_event_lake.py"
+      - "v4_17_full_backfill_gate.py"
+      - "V4_17_POINT_IN_TIME_EVENT_LAKE.md"
   push:
     branches: [main]
     paths:
@@ -15,7 +22,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: v4-17-point-in-time-announcement-backfill
+  group: v4-17-point-in-time-announcement-backfill-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -71,6 +78,7 @@ jobs:
           if-no-files-found: warn
 
   backfill:
+    if: github.event_name != 'pull_request'
     needs: smoke
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -124,6 +132,7 @@ jobs:
           if-no-files-found: warn
 
   validate-and-persist:
+    if: github.event_name != 'pull_request'
     needs: backfill
     runs-on: ubuntu-latest
     timeout-minutes: 60
