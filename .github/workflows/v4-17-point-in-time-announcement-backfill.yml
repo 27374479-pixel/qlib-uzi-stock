@@ -1,12 +1,20 @@
 name: V4.17 point-in-time announcement backfill
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/v4-17-point-in-time-announcement-backfill.yml"
+      - "v4_17_point_in_time_announcement_backfill.py"
+      - "v4_17_validate_event_lake.py"
+      - "v4_17_full_backfill_gate.py"
+      - "V4_17_POINT_IN_TIME_EVENT_LAKE.md"
   push:
     branches: [main]
     paths:
       - ".github/workflows/v4-17-point-in-time-announcement-backfill.yml"
       - "v4_17_point_in_time_announcement_backfill.py"
       - "v4_17_validate_event_lake.py"
+      - "v4_17_full_backfill_gate.py"
       - "V4_17_POINT_IN_TIME_EVENT_LAKE.md"
   workflow_dispatch:
 
@@ -14,7 +22,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: v4-17-point-in-time-announcement-backfill
+  group: v4-17-point-in-time-announcement-backfill-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -42,17 +50,24 @@ jobs:
         run: |
           rm -rf /tmp/v417-smoke
           python v4_17_point_in_time_announcement_backfill.py \
-            --start 2024-01-02 \
-            --end 2024-01-12 \
+            --start 2026-07-16 \
+            --end 2026-07-16 \
             --output-root /tmp/v417-smoke/data_lake/raw/eastmoney/notices \
             --manifest-root /tmp/v417-smoke/data_lake/manifests \
             --sleep 0.20
           python v4_17_validate_event_lake.py \
-            --start 2024-01-02 \
-            --end 2024-01-12 \
+            --start 2026-07-16 \
+            --end 2026-07-16 \
             --event-root /tmp/v417-smoke/data_lake/raw/eastmoney/notices \
             --manifest-root /tmp/v417-smoke/data_lake/manifests \
             --output /tmp/v417-smoke/output/v4_17_event_lake_validation.json
+          python v4_17_full_backfill_gate.py \
+            --start 2026-07-16 \
+            --end 2026-07-16 \
+            --event-root /tmp/v417-smoke/data_lake/raw/eastmoney/notices \
+            --manifest-root /tmp/v417-smoke/data_lake/manifests \
+            --validation /tmp/v417-smoke/output/v4_17_event_lake_validation.json \
+            --output /tmp/v417-smoke/output/v4_17_full_backfill_gate.json
 
       - name: Upload smoke evidence
         if: always()
@@ -63,6 +78,7 @@ jobs:
           if-no-files-found: warn
 
   backfill:
+    if: github.event_name != 'pull_request'
     needs: smoke
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -116,6 +132,7 @@ jobs:
           if-no-files-found: warn
 
   validate-and-persist:
+    if: github.event_name != 'pull_request'
     needs: backfill
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -156,6 +173,14 @@ jobs:
             --end 2026-07-16 \
             --output output/v4_17_event_lake_validation.json
 
+      - name: Enforce full-backfill completion gate
+        run: |
+          python v4_17_full_backfill_gate.py \
+            --start 2021-01-01 \
+            --end 2026-07-16 \
+            --validation output/v4_17_event_lake_validation.json \
+            --output output/v4_17_full_backfill_gate.json
+
       - name: Upload validation evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -163,6 +188,7 @@ jobs:
           name: v4-17-validation
           path: |
             output/v4_17_event_lake_validation.json
+            output/v4_17_full_backfill_gate.json
             data_lake/manifests/v4_17_eastmoney_notice_requests_*.csv
           if-no-files-found: warn
 
@@ -175,6 +201,7 @@ jobs:
           git add data_lake/raw/eastmoney/notices
           git add data_lake/manifests/v4_17_eastmoney_notice_requests_*.csv
           git add -f output/v4_17_event_lake_validation.json
+          git add -f output/v4_17_full_backfill_gate.json
           if ! git diff --cached --quiet; then
             git commit -m "data: persist V4.17 point-in-time announcements [skip ci]"
             git pull --rebase origin main
