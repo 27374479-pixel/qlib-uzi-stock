@@ -1,0 +1,186 @@
+name: V4.18 causal event view
+
+on:
+  pull_request:
+    paths:
+      - "v4_18_build_causal_event_view.py"
+      - "V4_18_CAUSAL_EVENT_VIEW.md"
+      - ".github/workflows/v4-18-causal-event-view.yml"
+  push:
+    branches: [main]
+    paths:
+      - "v4_18_build_causal_event_view.py"
+      - "V4_18_CAUSAL_EVENT_VIEW.md"
+      - ".github/workflows/v4-18-causal-event-view.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyarrow
+
+      - name: Build deterministic fixture
+        shell: bash
+        run: |
+          rm -rf /tmp/v418
+          mkdir -p /tmp/v418/data_lake/raw/baostock/equity_daily
+          mkdir -p /tmp/v418/data_lake/raw/eastmoney/notices/year=2026
+          mkdir -p /tmp/v418/output
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('/tmp/v418')
+          sessions = ['2026-07-16', '2026-07-17', '2026-07-20', '2026-07-21']
+          for code in ['SH600000', 'SZ000001']:
+              pd.DataFrame({'date': sessions, 'close': [1.0, 1.1, 1.2, 1.3]}).to_parquet(
+                  root / 'data_lake/raw/baostock/equity_daily' / f'{code}.parquet',
+                  index=False,
+              )
+
+          events = pd.DataFrame([
+              {
+                  'schema_version': 'v4.17-a.2',
+                  'event_id': 'a' * 64,
+                  'source_provider': 'eastmoney',
+                  'source_endpoint': 'akshare.stock_notice_report',
+                  'event_type': 'corporate_announcement',
+                  'published_date': '2026-07-16',
+                  'timestamp_precision': 'date',
+                  'instrument': 'SH600000',
+                  'causal_use_policy': 'NEXT_TRADING_DAY_ONLY',
+                  'title': 'Thursday event',
+              },
+              {
+                  'schema_version': 'v4.17-a.2',
+                  'event_id': 'b' * 64,
+                  'source_provider': 'eastmoney',
+                  'source_endpoint': 'akshare.stock_notice_report',
+                  'event_type': 'corporate_announcement',
+                  'published_date': '2026-07-17',
+                  'timestamp_precision': 'date',
+                  'instrument': 'SZ000001',
+                  'causal_use_policy': 'NEXT_TRADING_DAY_ONLY',
+                  'title': 'Friday event',
+              },
+              {
+                  'schema_version': 'v4.17-a.2',
+                  'event_id': 'c' * 64,
+                  'source_provider': 'eastmoney',
+                  'source_endpoint': 'akshare.stock_notice_report',
+                  'event_type': 'corporate_announcement',
+                  'published_date': '2026-07-18',
+                  'timestamp_precision': 'date',
+                  'instrument': 'SH600000',
+                  'causal_use_policy': 'NEXT_TRADING_DAY_ONLY',
+                  'title': 'Saturday event',
+              },
+          ])
+          events.to_parquet(
+              root / 'data_lake/raw/eastmoney/notices/year=2026/notices_2026.parquet',
+              index=False,
+          )
+
+          gate = {
+              'gate_version': 'v4.17-c.2',
+              'requested_start': '2026-07-16',
+              'requested_end': '2026-07-18',
+              'completion': {'failed_years': []},
+              'research_eligibility': {'h04_h05_allowed': True},
+              'validation': {'pass': True, 'failures': []},
+          }
+          (root / 'output/v4_17_full_backfill_gate.json').write_text(
+              json.dumps(gate), encoding='utf-8'
+          )
+          PY
+
+      - name: Materialize causal view
+        run: |
+          python v4_18_build_causal_event_view.py \
+            --start 2026-07-16 \
+            --end 2026-07-18 \
+            --research-end 2026-07-20 \
+            --event-root /tmp/v418/data_lake/raw/eastmoney/notices \
+            --daily-root /tmp/v418/data_lake/raw/baostock/equity_daily \
+            --v417-gate /tmp/v418/output/v4_17_full_backfill_gate.json \
+            --min-active-instruments 2 \
+            --output /tmp/v418/data_lake/derived/v4_18_causal_events/events.parquet \
+            --manifest /tmp/v418/output/v4_18_causal_event_view_manifest.json
+
+      - name: Assert strictly-next-session semantics
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('/tmp/v418')
+          df = pd.read_parquet(root / 'data_lake/derived/v4_18_causal_events/events.parquet')
+          got = dict(zip(df['event_id'], df['available_trade_date']))
+          assert got['a' * 64] == '2026-07-17', got
+          assert got['b' * 64] == '2026-07-20', got
+          assert got['c' * 64] == '2026-07-20', got
+          assert set(df['causal_status']) == {'AVAILABLE_NEXT_SESSION'}
+          for pub, avail in zip(df['published_date'], df['available_trade_date']):
+              assert pd.Timestamp(avail) > pd.Timestamp(pub), (pub, avail)
+
+          manifest = json.loads(
+              (root / 'output/v4_18_causal_event_view_manifest.json').read_text()
+          )
+          assert manifest['validation']['pass'] is True
+          assert manifest['calendar']['session_count'] == 4
+          assert len(manifest['calendar']['calendar_sha256']) == 64
+          PY
+
+      - name: Assert stale gate cannot unlock a wider window
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('/tmp/v418/output/v4_17_full_backfill_gate.json')
+          gate = json.loads(path.read_text())
+          gate['requested_end'] = '2026-07-17'
+          path.write_text(json.dumps(gate))
+          PY
+          if python v4_18_build_causal_event_view.py \
+            --start 2026-07-16 \
+            --end 2026-07-18 \
+            --event-root /tmp/v418/data_lake/raw/eastmoney/notices \
+            --daily-root /tmp/v418/data_lake/raw/baostock/equity_daily \
+            --v417-gate /tmp/v418/output/v4_17_full_backfill_gate.json \
+            --min-active-instruments 2 \
+            --output /tmp/v418/should-not-exist.parquet \
+            --manifest /tmp/v418/should-not-exist.json; then
+            echo "ERROR: stale gate unexpectedly unlocked V4.18"
+            exit 1
+          fi
+
+      - name: Upload smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-18-causal-event-view-smoke
+          path: |
+            /tmp/v418/output/v4_18_causal_event_view_manifest.json
+            /tmp/v418/data_lake/derived/v4_18_causal_events/events.parquet
+          if-no-files-found: warn
