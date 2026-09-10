@@ -124,17 +124,20 @@ jobs:
             --v417-gate /tmp/v418/output/v4_17_full_backfill_gate.json \
             --min-active-instruments 2 \
             --output /tmp/v418/data_lake/derived/v4_18_causal_events/events.parquet \
+            --calendar-output /tmp/v418/data_lake/derived/v4_18_causal_events/market_sessions.parquet \
             --manifest /tmp/v418/output/v4_18_causal_event_view_manifest.json
 
-      - name: Assert strictly-next-session semantics
+      - name: Assert strictly-next-session semantics and frozen calendar artifact
         run: |
           python - <<'PY'
+          import hashlib
           import json
           from pathlib import Path
           import pandas as pd
 
           root = Path('/tmp/v418')
-          df = pd.read_parquet(root / 'data_lake/derived/v4_18_causal_events/events.parquet')
+          derived = root / 'data_lake/derived/v4_18_causal_events'
+          df = pd.read_parquet(derived / 'events.parquet')
           got = dict(zip(df['event_id'], df['available_trade_date']))
           assert got['a' * 64] == '2026-07-17', got
           assert got['b' * 64] == '2026-07-20', got
@@ -143,12 +146,34 @@ jobs:
           for pub, avail in zip(df['published_date'], df['available_trade_date']):
               assert pd.Timestamp(avail) > pd.Timestamp(pub), (pub, avail)
 
+          calendar = pd.read_parquet(derived / 'market_sessions.parquet')
+          assert calendar['trade_date'].tolist() == [
+              '2026-07-16', '2026-07-17', '2026-07-20', '2026-07-21'
+          ]
+          assert calendar['active_instruments'].tolist() == [2, 2, 2, 2]
+          assert calendar['calendar_version'].nunique() == 1
+          assert calendar['calendar_version'].iloc[0] == 'v4.18-a.2'
+
+          date_lines = '\n'.join(calendar['trade_date'].astype(str))
+          expected_hash = hashlib.sha256(date_lines.encode('utf-8')).hexdigest()
+          assert set(calendar['calendar_sha256']) == {expected_hash}
+
+          artifact_lines = '\n'.join(
+              f"{day}|{int(count)}"
+              for day, count in zip(calendar['trade_date'], calendar['active_instruments'])
+          )
+          expected_artifact_hash = hashlib.sha256(artifact_lines.encode('utf-8')).hexdigest()
+          assert set(calendar['calendar_artifact_sha256']) == {expected_artifact_hash}
+
           manifest = json.loads(
               (root / 'output/v4_18_causal_event_view_manifest.json').read_text()
           )
           assert manifest['validation']['pass'] is True
           assert manifest['calendar']['session_count'] == 4
-          assert len(manifest['calendar']['calendar_sha256']) == 64
+          assert manifest['calendar']['calendar_sha256'] == expected_hash
+          assert manifest['calendar']['calendar_artifact_sha256'] == expected_artifact_hash
+          assert manifest['calendar']['output'].endswith('market_sessions.parquet')
+          assert set(df['calendar_sha256']) == {expected_hash}
           PY
 
       - name: Assert stale gate cannot unlock a wider window
@@ -170,6 +195,7 @@ jobs:
             --v417-gate /tmp/v418/output/v4_17_full_backfill_gate.json \
             --min-active-instruments 2 \
             --output /tmp/v418/should-not-exist.parquet \
+            --calendar-output /tmp/v418/should-not-exist-calendar.parquet \
             --manifest /tmp/v418/should-not-exist.json; then
             echo "ERROR: stale gate unexpectedly unlocked V4.18"
             exit 1
@@ -183,4 +209,5 @@ jobs:
           path: |
             /tmp/v418/output/v4_18_causal_event_view_manifest.json
             /tmp/v418/data_lake/derived/v4_18_causal_events/events.parquet
+            /tmp/v418/data_lake/derived/v4_18_causal_events/market_sessions.parquet
           if-no-files-found: warn
