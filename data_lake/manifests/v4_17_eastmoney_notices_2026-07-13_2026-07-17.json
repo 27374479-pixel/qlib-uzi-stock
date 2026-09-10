@@ -5,8 +5,8 @@
   "provider_url": "https://np-anotice-stock.eastmoney.com/api/security/ann",
   "requested_start": "2026-07-13",
   "requested_end": "2026-07-17",
-  "started_at_utc": "2026-09-10T13:49:37.867964+00:00",
-  "finished_at_utc": "2026-09-10T13:53:00.189196+00:00",
+  "started_at_utc": "2026-09-10T23:13:24.715553+00:00",
+  "finished_at_utc": "2026-09-10T23:14:51.822637+00:00",
   "point_in_time_policy": {
     "source_time_precision": "day",
     "same_day_usable": false,
