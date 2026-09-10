@@ -1,11 +1,12 @@
 {
-  "schema_version": "v4.17.1",
+  "schema_version": "v4.17.2",
   "source": "eastmoney",
-  "source_dataset": "stock_notice_report",
+  "source_dataset": "security_ann_archive",
+  "provider_url": "https://np-anotice-stock.eastmoney.com/api/security/ann",
   "requested_start": "2026-07-13",
   "requested_end": "2026-07-17",
-  "started_at_utc": "2026-09-10T13:44:59.609531+00:00",
-  "finished_at_utc": "2026-09-10T13:48:45.194834+00:00",
+  "started_at_utc": "2026-09-10T13:49:37.867964+00:00",
+  "finished_at_utc": "2026-09-10T13:53:00.189196+00:00",
   "point_in_time_policy": {
     "source_time_precision": "day",
     "same_day_usable": false,
@@ -17,6 +18,7 @@
   "days_fetched": 5,
   "days_existing": 0,
   "days_failed": 0,
+  "provider_pages": 74,
   "rows_total": 7092,
   "rows_checked": 7092,
   "date_match_rate": 1.0,
@@ -28,6 +30,7 @@
       "rows": 469,
       "status": "fetched",
       "attempts": 1,
+      "pages": 5,
       "error": null
     },
     {
@@ -36,6 +39,7 @@
       "rows": 1690,
       "status": "fetched",
       "attempts": 1,
+      "pages": 17,
       "error": null
     },
     {
@@ -44,6 +48,7 @@
       "rows": 2301,
       "status": "fetched",
       "attempts": 1,
+      "pages": 24,
       "error": null
     },
     {
@@ -52,6 +57,7 @@
       "rows": 1323,
       "status": "fetched",
       "attempts": 1,
+      "pages": 14,
       "error": null
     },
     {
@@ -60,6 +66,7 @@
       "rows": 1309,
       "status": "fetched",
       "attempts": 1,
+      "pages": 14,
       "error": null
     }
   ]
