@@ -2,18 +2,18 @@
 """V4.18-A causal event view for date-precision historical announcements.
 
 The canonical V4.17 Eastmoney archive intentionally stores historical
-announcements at DATE precision.  It is therefore unsafe to use an event on its
-published calendar date for an intraday decision.  This builder materializes the
-one downstream field that research actually needs:
+announcements at DATE precision. It is therefore unsafe to use an event on its
+published calendar date for an intraday decision. This builder materializes:
 
     available_trade_date = strictly next frozen A-share trading session
 
 The trading calendar is derived only from already-frozen BaoStock daily equity
-files.  No live calendar API, current concept membership, event clustering, or
-alpha construction is allowed here.
+files and is persisted as a first-class artifact so every downstream stage uses
+exactly the same ordered session list. No live calendar API, current concept
+membership, event clustering, or alpha construction is allowed here.
 
 A V4.17 full-backfill gate whose requested window EXACTLY matches --start/--end
-must PASS before this builder will run.  This prevents a one-day smoke PASS from
+must PASS before this builder will run. This prevents a one-day smoke PASS from
 unlocking a multi-year research window.
 """
 
@@ -24,13 +24,13 @@ import bisect
 import hashlib
 import json
 from collections import Counter
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pandas as pd
 import pyarrow.parquet as pq
 
-VIEW_VERSION = "v4.18-a.1"
+VIEW_VERSION = "v4.18-a.2"
 REQUIRED_GATE_VERSION_PREFIX = "v4.17-c."
 CANONICAL_SCHEMA_VERSION = "v4.17-a.2"
 CANONICAL_SOURCE_PROVIDER = "eastmoney"
@@ -59,6 +59,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--output",
         default="data_lake/derived/v4_18_causal_events/events.parquet",
+    )
+    p.add_argument(
+        "--calendar-output",
+        default="data_lake/derived/v4_18_causal_events/market_sessions.parquet",
+        help="persisted frozen market-session artifact consumed by downstream stages",
     )
     p.add_argument(
         "--manifest",
@@ -180,7 +185,7 @@ def _date_column(path: Path) -> str | None:
 def build_frozen_calendar(
     daily_root: Path,
     min_active_instruments: int,
-) -> tuple[list[date], dict]:
+) -> tuple[pd.DataFrame, dict]:
     if min_active_instruments < 1:
         raise SystemExit("--min-active-instruments must be >= 1")
     if not daily_root.exists():
@@ -229,8 +234,21 @@ def build_frozen_calendar(
             f"{max(active.values(), default=0)}"
         )
 
-    date_lines = "\n".join(d.isoformat() for d in sessions)
+    date_lines = "\n".join(day.isoformat() for day in sessions)
     calendar_hash = hashlib.sha256(date_lines.encode("utf-8")).hexdigest()
+    artifact_lines = "\n".join(f"{day.isoformat()}|{int(active[day])}" for day in sessions)
+    artifact_hash = hashlib.sha256(artifact_lines.encode("utf-8")).hexdigest()
+
+    calendar = pd.DataFrame(
+        {
+            "trade_date": [day.isoformat() for day in sessions],
+            "active_instruments": [int(active[day]) for day in sessions],
+            "calendar_sha256": calendar_hash,
+            "calendar_artifact_sha256": artifact_hash,
+            "calendar_version": VIEW_VERSION,
+        }
+    )
+
     diagnostics = {
         "source_root": str(daily_root),
         "parquet_files_seen": len(files),
@@ -243,8 +261,9 @@ def build_frozen_calendar(
         "first_session": sessions[0].isoformat(),
         "last_session": sessions[-1].isoformat(),
         "calendar_sha256": calendar_hash,
+        "calendar_artifact_sha256": artifact_hash,
     }
-    return sessions, diagnostics
+    return calendar, diagnostics
 
 
 def next_session(sessions: list[date], published: date) -> date | None:
@@ -315,9 +334,10 @@ def main() -> None:
     gate_path = Path(args.v417_gate)
     gate = load_gate(gate_path, start, end)
     events = load_events(Path(args.event_root), start, end)
-    sessions, calendar_diag = build_frozen_calendar(
+    calendar, calendar_diag = build_frozen_calendar(
         Path(args.daily_root), args.min_active_instruments
     )
+    sessions = [date.fromisoformat(value) for value in calendar["trade_date"].astype(str)]
     causal, event_metrics = materialize_availability(
         events,
         sessions,
@@ -328,6 +348,11 @@ def main() -> None:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     causal.to_parquet(output_path, index=False)
+
+    calendar_path = Path(args.calendar_output)
+    calendar_path.parent.mkdir(parents=True, exist_ok=True)
+    calendar.to_parquet(calendar_path, index=False)
+    calendar_diag["output"] = str(calendar_path)
 
     manifest = {
         "view_version": VIEW_VERSION,
