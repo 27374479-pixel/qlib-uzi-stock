@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import random
 import time
@@ -11,15 +12,18 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
-import akshare as ak
 import pandas as pd
+import requests
 
 
 SOURCE = "eastmoney"
-SOURCE_DATASET = "stock_notice_report"
-SCHEMA_VERSION = "v4.17.1"
+SOURCE_DATASET = "security_ann_archive"
+SCHEMA_VERSION = "v4.17.2"
+PROVIDER_URL = "https://np-anotice-stock.eastmoney.com/api/security/ann"
+DETAIL_URL = "https://data.eastmoney.com/notices/detail"
 DEFAULT_ROOT = Path("data_lake/raw/eastmoney/notices")
 DEFAULT_MANIFEST_ROOT = Path("data_lake/manifests")
+PAGE_SIZE = 100
 
 CANONICAL_COLUMNS = [
     "event_id",
@@ -48,6 +52,7 @@ class DayResult:
     rows: int
     status: str
     attempts: int
+    pages: int = 0
     error: str | None = None
 
 
@@ -85,6 +90,80 @@ def stable_event_id(code: str, title: str, event_date: str, url: str) -> str:
     return hashlib.sha256(raw).hexdigest()[:32]
 
 
+def request_json(session: requests.Session, params: dict, timeout: float) -> dict:
+    response = session.get(PROVIDER_URL, params=params, timeout=(5.0, timeout))
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+        raise ValueError(f"unexpected Eastmoney response shape: {type(payload).__name__}")
+    return payload
+
+
+def choose_a_share_code(item: dict) -> dict | None:
+    codes = item.get("codes") or []
+    if len(codes) == 1:
+        return codes[0]
+    for code in codes:
+        if str(code.get("ann_type", "")).startswith("A"):
+            return code
+    return None
+
+
+def fetch_raw_eastmoney(day: date, timeout: float) -> tuple[pd.DataFrame, int]:
+    iso_day = day.isoformat()
+    base_params = {
+        "sr": "-1",
+        "page_size": str(PAGE_SIZE),
+        "page_index": "1",
+        "ann_type": "A",
+        "client_source": "web",
+        "f_node": "0",
+        "s_node": "0",
+        "begin_time": iso_day,
+        "end_time": iso_day,
+    }
+
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": "Mozilla/5.0 (compatible; qlib-uzi-stock/1.0; research-data-backfill)",
+            "Accept": "application/json,text/plain,*/*",
+            "Referer": "https://data.eastmoney.com/notices/hsa/5.html",
+        }
+    )
+
+    first = request_json(session, base_params, timeout)
+    total_hits = int(first["data"].get("total_hits") or 0)
+    total_pages = int(math.ceil(total_hits / PAGE_SIZE)) if total_hits else 0
+    if total_pages == 0:
+        return pd.DataFrame(columns=["代码", "名称", "公告标题", "公告类型", "公告日期", "网址"]), 0
+
+    rows: list[dict] = []
+    for page in range(1, total_pages + 1):
+        payload = first if page == 1 else request_json(session, {**base_params, "page_index": str(page)}, timeout)
+        items = payload["data"].get("list") or []
+        for item in items:
+            code = choose_a_share_code(item)
+            if not code:
+                continue
+            columns = item.get("columns") or []
+            notice_type = str(columns[0].get("column_name", "")) if columns else ""
+            security_code = str(code.get("stock_code", ""))
+            art_code = str(item.get("art_code", ""))
+            rows.append(
+                {
+                    "代码": security_code,
+                    "名称": str(code.get("short_name", "")),
+                    "公告标题": str(item.get("title", "")),
+                    "公告类型": notice_type,
+                    "公告日期": item.get("notice_date"),
+                    "网址": f"{DETAIL_URL}/{security_code}/{art_code}.html" if security_code and art_code else "",
+                }
+            )
+
+    return pd.DataFrame(rows), total_pages
+
+
 def normalize_notice_frame(raw: pd.DataFrame, query_day: date, retrieved_at: str) -> pd.DataFrame:
     if raw is None or raw.empty:
         return empty_frame()
@@ -92,7 +171,7 @@ def normalize_notice_frame(raw: pd.DataFrame, query_day: date, retrieved_at: str
     expected = {"代码", "名称", "公告标题", "公告类型", "公告日期", "网址"}
     missing = expected.difference(raw.columns)
     if missing:
-        raise ValueError(f"unexpected AKShare schema; missing columns: {sorted(missing)}; got={list(raw.columns)}")
+        raise ValueError(f"unexpected provider schema; missing columns: {sorted(missing)}; got={list(raw.columns)}")
 
     out = pd.DataFrame()
     out["security_code"] = raw["代码"].astype(str).str.extract(r"(\d+)", expand=False).fillna("").str.zfill(6)
@@ -108,10 +187,10 @@ def normalize_notice_frame(raw: pd.DataFrame, query_day: date, retrieved_at: str
     out["source"] = SOURCE
     out["source_dataset"] = SOURCE_DATASET
 
-    # The archive exposes a calendar date, not a reliable intraday publication timestamp.
-    # Therefore knowledge is intentionally day-precision only and the event MUST NOT be
-    # used for a same-day trading decision. Downstream backtests may use it only when
-    # trade_date > knowledge_date.
+    # The archive exposes a calendar date, not a historically trustworthy intraday
+    # publication timestamp. We therefore use a deliberately conservative policy:
+    # same-day trading is forbidden and downstream research may use the event only
+    # when trade_date > knowledge_date.
     out["knowledge_date"] = out["event_date"]
     out["timestamp_precision"] = "day"
     out["same_day_usable"] = False
@@ -135,14 +214,14 @@ def normalize_notice_frame(raw: pd.DataFrame, query_day: date, retrieved_at: str
     return out
 
 
-def fetch_day(day: date, retries: int, base_sleep: float) -> tuple[pd.DataFrame, int]:
+def fetch_day(day: date, retries: int, base_sleep: float, timeout: float) -> tuple[pd.DataFrame, int, int]:
     last_error: Exception | None = None
     for attempt in range(1, retries + 1):
         try:
-            raw = ak.stock_notice_report(symbol="全部", date=day.strftime("%Y%m%d"))
+            raw, pages = fetch_raw_eastmoney(day, timeout=timeout)
             retrieved_at = datetime.now(timezone.utc).isoformat()
-            return normalize_notice_frame(raw, day, retrieved_at), attempt
-        except Exception as exc:  # network/provider failures are retried and surfaced in the manifest
+            return normalize_notice_frame(raw, day, retrieved_at), attempt, pages
+        except Exception as exc:
             last_error = exc
             if attempt < retries:
                 delay = base_sleep * (2 ** (attempt - 1)) + random.uniform(0.0, min(0.5, base_sleep))
@@ -156,6 +235,8 @@ def validate_existing(path: Path) -> int:
     missing = set(CANONICAL_COLUMNS).difference(frame.columns)
     if missing:
         raise ValueError(f"existing partition has stale schema {path}: missing {sorted(missing)}")
+    if len(frame) and frame["schema_version"].astype(str).ne(SCHEMA_VERSION).any():
+        raise ValueError(f"existing partition has stale schema version {path}")
     if len(frame) and frame["event_id"].duplicated().any():
         raise ValueError(f"duplicate event_id in {path}")
     if len(frame) and bool(frame["same_day_usable"].fillna(True).any()):
@@ -184,15 +265,19 @@ def collect(args: argparse.Namespace) -> dict:
                 results.append(DayResult(day.isoformat(), str(path), rows, "existing", 0))
                 continue
             except Exception:
-                # A stale/corrupt partition is refetched instead of silently trusted.
                 pass
 
         try:
-            frame, attempts = fetch_day(day, retries=args.retries, base_sleep=args.retry_sleep)
+            frame, attempts, pages = fetch_day(
+                day,
+                retries=args.retries,
+                base_sleep=args.retry_sleep,
+                timeout=args.timeout,
+            )
             atomic_parquet_write(frame, path)
-            results.append(DayResult(day.isoformat(), str(path), len(frame), "fetched", attempts))
+            results.append(DayResult(day.isoformat(), str(path), len(frame), "fetched", attempts, pages))
         except Exception as exc:
-            results.append(DayResult(day.isoformat(), str(path), 0, "failed", args.retries, repr(exc)))
+            results.append(DayResult(day.isoformat(), str(path), 0, "failed", args.retries, 0, repr(exc)))
 
         if args.request_sleep > 0:
             time.sleep(args.request_sleep)
@@ -219,6 +304,7 @@ def collect(args: argparse.Namespace) -> dict:
         "schema_version": SCHEMA_VERSION,
         "source": SOURCE,
         "source_dataset": SOURCE_DATASET,
+        "provider_url": PROVIDER_URL,
         "requested_start": start.isoformat(),
         "requested_end": end.isoformat(),
         "started_at_utc": started_at,
@@ -234,6 +320,7 @@ def collect(args: argparse.Namespace) -> dict:
         "days_fetched": sum(r.status == "fetched" for r in results),
         "days_existing": sum(r.status == "existing" for r in results),
         "days_failed": len(failed),
+        "provider_pages": sum(r.pages for r in results),
         "rows_total": total_rows,
         "rows_checked": checked_rows,
         "date_match_rate": (date_match_rows / checked_rows) if checked_rows else None,
@@ -266,6 +353,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--retries", type=int, default=4)
     p.add_argument("--retry-sleep", type=float, default=1.0)
     p.add_argument("--request-sleep", type=float, default=0.35)
+    p.add_argument("--timeout", type=float, default=20.0, help="read timeout seconds per provider request")
     p.add_argument("--force", action="store_true")
     return p
 
