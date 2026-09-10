@@ -1,0 +1,66 @@
+{
+  "schema_version": "v4.17.1",
+  "source": "eastmoney",
+  "source_dataset": "stock_notice_report",
+  "requested_start": "2026-07-13",
+  "requested_end": "2026-07-17",
+  "started_at_utc": "2026-09-10T13:44:59.609531+00:00",
+  "finished_at_utc": "2026-09-10T13:48:45.194834+00:00",
+  "point_in_time_policy": {
+    "source_time_precision": "day",
+    "same_day_usable": false,
+    "backtest_rule": "trade_date must be strictly greater than knowledge_date",
+    "retrieved_at_is_not_historical_first_seen": true,
+    "current_concept_membership_backfill_forbidden": true
+  },
+  "days_total": 5,
+  "days_fetched": 5,
+  "days_existing": 0,
+  "days_failed": 0,
+  "rows_total": 7092,
+  "rows_checked": 7092,
+  "date_match_rate": 1.0,
+  "cross_partition_duplicate_event_ids": 0,
+  "results": [
+    {
+      "query_date": "2026-07-13",
+      "path": "data_lake/raw/eastmoney/notices/2026/2026-07-13.parquet",
+      "rows": 469,
+      "status": "fetched",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "query_date": "2026-07-14",
+      "path": "data_lake/raw/eastmoney/notices/2026/2026-07-14.parquet",
+      "rows": 1690,
+      "status": "fetched",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "query_date": "2026-07-15",
+      "path": "data_lake/raw/eastmoney/notices/2026/2026-07-15.parquet",
+      "rows": 2301,
+      "status": "fetched",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "query_date": "2026-07-16",
+      "path": "data_lake/raw/eastmoney/notices/2026/2026-07-16.parquet",
+      "rows": 1323,
+      "status": "fetched",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "query_date": "2026-07-17",
+      "path": "data_lake/raw/eastmoney/notices/2026/2026-07-17.parquet",
+      "rows": 1309,
+      "status": "fetched",
+      "attempts": 1,
+      "error": null
+    }
+  ]
+}
