@@ -1,0 +1,97 @@
+{
+  "prereg_version": "v4.18-h04-h05-prereg.1",
+  "scientific_status": "PREREGISTERED_NOT_TESTED",
+  "research_window": {
+    "event_start": "2021-01-01",
+    "event_end": "2026-07-16",
+    "development": ["2021-01-01", "2023-12-31"],
+    "later_period": ["2024-01-01", "2026-07-16"]
+  },
+  "x02_frozen_contract": {
+    "signal_bar": "T-1 completed daily bar",
+    "raw_momentum_rank20_min": 0.8,
+    "clean_momentum_rank20_min": 0.8,
+    "hit_count20_max": 1,
+    "entry": "T 14:45 end-labelled 5m close",
+    "portfolio": "Top3 equal weight",
+    "primary_exit": "T+1 10:00",
+    "cost_models": ["BASE", "CONSERVATIVE"],
+    "ranking_may_change": false
+  },
+  "event_contract": {
+    "canonical_source_provider": "eastmoney",
+    "canonical_source_endpoint": "akshare.stock_notice_report",
+    "second_source_audit": "CNINFO",
+    "raw_timestamp_precision": "date",
+    "raw_causal_use_policy": "NEXT_TRADING_DAY_ONLY",
+    "derived_availability_field": "available_trade_date",
+    "availability_rule": "strictly next frozen A-share trading session after published_date",
+    "event_visible_when": "available_trade_date <= T",
+    "same_day_publication_visible_on_T": false,
+    "retrieved_at_is_historical_first_seen": false
+  },
+  "first_test_market_cutoff": {
+    "latest_price_information": "T-1 close",
+    "allow_T_intraday_price_features": false,
+    "allow_T_close": false,
+    "allow_T_plus_1": false
+  },
+  "cluster_contract": {
+    "must_freeze_before_x02_returns_join": true,
+    "membership_is_append_only": true,
+    "age_origin": "cluster_first_available_trade_date",
+    "age_unit": "frozen_market_trading_sessions",
+    "forbid_current_concept_membership_backfill": true,
+    "forbid_static_industry_as_theme_label": true,
+    "forbid_future_winner_or_leader_labels": true,
+    "require_builder_version_and_hash": true
+  },
+  "h04_age_bins": {
+    "FIRST_SEEN": {"min": 0, "max": 0},
+    "EARLY": {"min": 1, "max": 5},
+    "RECENT": {"min": 6, "max": 20},
+    "OLD": {"min": 21, "max": null},
+    "NO_EVENT_CONTEXT": "no causally eligible cluster membership at T"
+  },
+  "h05": {
+    "group_formed_min_known_stocks": 2,
+    "breadth_field": "positive_ratio_t1",
+    "breadth_condition": "> 0.5",
+    "candidate_strength_field": "same-group T-1 return rank",
+    "candidate_core_condition": "top quartile",
+    "legacy_role_score_allowed": false
+  },
+  "primary_confluence": {
+    "cluster_age": ["FIRST_SEEN", "EARLY"],
+    "group_formed": true,
+    "positive_ratio_t1_gt": 0.5,
+    "candidate_top_quartile_t1": true,
+    "T_day_price_confirmation": false
+  },
+  "required_falsification_checks": {
+    "development_BASE_CAGR_gt": 0.0,
+    "development_CONSERVATIVE_CAGR_gte": 0.0,
+    "later_BASE_CAGR_gt": 0.0,
+    "later_CONSERVATIVE_CAGR_gte": 0.0,
+    "min_active_trading_days_each_period": 20,
+    "best_5pct_days_dependency_allowed": false,
+    "required_reports": [
+      "exposure",
+      "MDD",
+      "win_rate",
+      "turnover",
+      "yearly_returns",
+      "retained_X02_opportunity_fraction",
+      "same_fixed_X02_without_event_context"
+    ]
+  },
+  "hard_gates": [
+    "V4.17-C exact-window full backfill gate PASS",
+    "V4.17-D second-source audit acceptable",
+    "V4.18 exact-window causal event view manifest PASS",
+    "semantic clustering frozen before X02 return join",
+    "append-only point-in-time cluster replay PASS",
+    "all first-test price-derived context fields cut off at T-1 close"
+  ],
+  "parameter_search_in_primary_test_allowed": false
+}
