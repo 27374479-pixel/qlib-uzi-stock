@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """V4.17-A point-in-time announcement backfill.
 
-This script builds a source-faithful historical announcement lake from the
-Eastmoney announcement archive exposed by AKShare ``stock_notice_report``.
+Build a source-faithful historical announcement lake from the Eastmoney
+announcement archive exposed by AKShare ``stock_notice_report``.
 
-Scientific rule:
-- the archive exposes an announcement *date*, not a historical intraday
-  publication timestamp;
-- therefore historical rows are DATE precision and MUST NOT be used for
+Scientific rules:
+- the archive exposes an announcement *date*, not a trustworthy historical
+  intraday publication timestamp;
+- historical rows are therefore DATE precision and MUST NOT be used for
   same-day intraday decisions;
-- ``retrieved_at`` is the ingestion time of this backfill and is never treated
-  as historical ``first_seen_at``.
+- ``retrieved_at`` is ingestion time and is never historical ``first_seen_at``;
+- every returned row must have ``published_date == archive_request_date``.
 
 No alpha construction happens in this file.
 """
@@ -29,7 +29,7 @@ from typing import Iterable
 import akshare as ak
 import pandas as pd
 
-SCHEMA_VERSION = "v4.17-a.1"
+SCHEMA_VERSION = "v4.17-a.2"
 SOURCE_PROVIDER = "eastmoney"
 SOURCE_ENDPOINT = "akshare.stock_notice_report"
 SOURCE_SYMBOL = "全部"
@@ -77,12 +77,11 @@ def normalize_instrument(raw_code: object) -> str | None:
     if len(s) != 6 or not s.isdigit():
         return None
 
-    # A-share equity families only.  The Eastmoney announcement endpoint can
-    # also emit convertible bonds and other securities; those remain outside
-    # this equity event lake rather than being silently mis-mapped.
+    # A-share equity families only.  Do not map SZ 200xxx B-shares into the
+    # A-share event lake.  Other non-equity securities are counted but dropped.
     if s.startswith(("600", "601", "603", "605", "688", "689")):
         return f"SH{s}"
-    if s.startswith(("000", "001", "002", "003", "200", "300", "301")):
+    if s.startswith(("000", "001", "002", "003", "300", "301")):
         return f"SZ{s}"
     if s.startswith(("4", "8", "920")):
         return f"BJ{s}"
@@ -97,13 +96,20 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def normalize_frame(raw: pd.DataFrame, retrieved_at: str) -> tuple[pd.DataFrame, int]:
+def normalize_frame(
+    raw: pd.DataFrame,
+    retrieved_at: str,
+    archive_request_date: str,
+) -> tuple[pd.DataFrame, int]:
     if raw is None or raw.empty:
         return pd.DataFrame(), 0
 
     missing = EXPECTED_COLUMNS - set(raw.columns)
     if missing:
-        raise ValueError(f"stock_notice_report schema drift; missing columns: {sorted(missing)}; got={list(raw.columns)}")
+        raise ValueError(
+            f"stock_notice_report schema drift; missing columns: {sorted(missing)}; "
+            f"got={list(raw.columns)}"
+        )
 
     rows: list[dict] = []
     non_equity = 0
@@ -121,6 +127,13 @@ def normalize_frame(raw: pd.DataFrame, retrieved_at: str) -> tuple[pd.DataFrame,
         if pd.isna(published):
             raise ValueError(f"unparseable 公告日期 for row: {rec}")
         published_date = published.date().isoformat()
+        if published_date != archive_request_date:
+            raise ValueError(
+                "archive date mismatch: "
+                f"request={archive_request_date} returned published_date={published_date} "
+                f"code={raw_code} title={rec.get('公告标题', '')}"
+            )
+
         title = str(rec.get("公告标题", "")).strip()
         source_url = str(rec.get("网址", "")).strip()
         stock_name = str(rec.get("名称", "")).strip()
@@ -135,9 +148,7 @@ def normalize_frame(raw: pd.DataFrame, retrieved_at: str) -> tuple[pd.DataFrame,
             "网址": source_url,
         }
         raw_payload_hash = sha256_text(stable_json(raw_canonical))
-        identity = "|".join(
-            [SOURCE_PROVIDER, published_date, raw_code, title, source_url]
-        )
+        identity = "|".join([SOURCE_PROVIDER, published_date, raw_code, title, source_url])
 
         rows.append(
             {
@@ -146,6 +157,7 @@ def normalize_frame(raw: pd.DataFrame, retrieved_at: str) -> tuple[pd.DataFrame,
                 "source_provider": SOURCE_PROVIDER,
                 "source_endpoint": SOURCE_ENDPOINT,
                 "event_type": "corporate_announcement",
+                "archive_request_date": archive_request_date,
                 "published_date": published_date,
                 "published_at": pd.NaT,
                 "timestamp_precision": "date",
@@ -164,6 +176,7 @@ def normalize_frame(raw: pd.DataFrame, retrieved_at: str) -> tuple[pd.DataFrame,
 
     out = pd.DataFrame(rows)
     if not out.empty:
+        out["archive_request_date"] = pd.to_datetime(out["archive_request_date"]).dt.date.astype(str)
         out["published_date"] = pd.to_datetime(out["published_date"]).dt.date.astype(str)
         out["published_at"] = pd.to_datetime(out["published_at"], utc=True)
         out["first_seen_at"] = pd.to_datetime(out["first_seen_at"], utc=True)
@@ -174,7 +187,9 @@ def normalize_frame(raw: pd.DataFrame, retrieved_at: str) -> tuple[pd.DataFrame,
     return out, non_equity
 
 
-def fetch_one_day(day: date, max_retries: int, base_sleep: float) -> tuple[pd.DataFrame, int, str | None]:
+def fetch_one_day(
+    day: date, max_retries: int, base_sleep: float
+) -> tuple[pd.DataFrame, int, str | None]:
     ymd = day.strftime("%Y%m%d")
     last_error: str | None = None
     for attempt in range(1, max_retries + 1):
@@ -192,8 +207,7 @@ def fetch_one_day(day: date, max_retries: int, base_sleep: float) -> tuple[pd.Da
 def read_existing_ledger(path: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
-    df = pd.read_csv(path, dtype={"request_date": str})
-    return df
+    return pd.read_csv(path, dtype={"request_date": str})
 
 
 def atomic_write_parquet(frame: pd.DataFrame, path: Path) -> None:
@@ -234,9 +248,15 @@ def main() -> None:
             ].astype(str)
         )
 
-    existing_events = pd.read_parquet(parquet_path) if args.resume and parquet_path.exists() else pd.DataFrame()
+    existing_events = (
+        pd.read_parquet(parquet_path)
+        if args.resume and parquet_path.exists()
+        else pd.DataFrame()
+    )
     event_frames: list[pd.DataFrame] = [existing_events] if not existing_events.empty else []
-    ledger_rows: list[dict] = existing_ledger.to_dict("records") if not existing_ledger.empty else []
+    ledger_rows: list[dict] = (
+        existing_ledger.to_dict("records") if not existing_ledger.empty else []
+    )
 
     unresolved = 0
     for day in daterange(start, end):
@@ -254,7 +274,7 @@ def main() -> None:
             normalized = pd.DataFrame()
             non_equity = 0
         else:
-            normalized, non_equity = normalize_frame(raw, retrieved_at)
+            normalized, non_equity = normalize_frame(raw, retrieved_at, ds)
             status = "empty" if raw is None or raw.empty else "success"
             if not normalized.empty:
                 event_frames.append(normalized)
@@ -277,8 +297,8 @@ def main() -> None:
             }
         )
 
-        # Persist progress after every request.  A long backfill can resume
-        # without silently treating an interrupted date as complete.
+        # Persist progress after every request.  An interrupted run can resume
+        # without silently treating an unfinished date as complete.
         ledger_df = pd.DataFrame(ledger_rows)
         ledger_df = ledger_df.sort_values(["request_date", "retrieved_at"]).drop_duplicates(
             "request_date", keep="last"
@@ -296,7 +316,11 @@ def main() -> None:
         time.sleep(max(0.0, args.sleep))
 
     final_ledger = read_existing_ledger(ledger_path)
-    errors = final_ledger[final_ledger["status"] == "error"] if not final_ledger.empty else pd.DataFrame()
+    errors = (
+        final_ledger[final_ledger["status"] == "error"]
+        if not final_ledger.empty
+        else pd.DataFrame()
+    )
     events = pd.read_parquet(parquet_path) if parquet_path.exists() else pd.DataFrame()
     print(
         json.dumps(
@@ -317,7 +341,9 @@ def main() -> None:
     )
 
     if (unresolved or len(errors)) and not args.allow_errors:
-        raise SystemExit(f"unresolved provider errors remain: {max(unresolved, len(errors))}")
+        raise SystemExit(
+            f"unresolved provider errors remain: {max(unresolved, len(errors))}"
+        )
 
 
 if __name__ == "__main__":
