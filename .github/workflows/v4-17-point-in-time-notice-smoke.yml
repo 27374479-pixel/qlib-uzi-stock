@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
           fetch-depth: 1
 
       - uses: actions/setup-python@v5
