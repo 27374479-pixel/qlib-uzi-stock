@@ -90,9 +90,8 @@ jobs:
                   'available_trade_date': sessions[min(i // 2 + 1, 5)],
                   'causal_status': 'AVAILABLE_NEXT_SESSION',
                   'calendar_sha256': calendar_hash,
-                  # Deliberately include forbidden-looking columns in the file.
-                  # The audit script must not read them because it supplies an
-                  # explicit parquet column allow-list.
+                  # Forbidden-looking columns are intentionally present in the
+                  # parquet. The audit reader must ignore them via its allow-list.
                   'future_return': 999.0,
                   'x02_pnl': 999.0,
               })
@@ -109,7 +108,7 @@ jobs:
           assert contract > unrelated, (contract, unrelated)
           assert generic == 1.0, generic
           # Identical generic filing templates are intentionally not solved by
-          # a magic threshold; the text QA must expose/theme-filter them.
+          # a magic threshold; text QA must expose/theme-filter them.
           PY
 
       - name: Generate blind text audit
@@ -143,19 +142,17 @@ jobs:
           assert pairs['pair_label'].isna().all() or (pairs['pair_label'].fillna('') == '').all()
           PY
 
-      - name: Build deterministic reviewed calibration fixture
+      - name: Build deterministic source and reviewed calibration fixtures
         run: |
           python - <<'PY'
-          import csv, json
+          import csv, hashlib, json
           from pathlib import Path
           root = Path('/tmp/v418b/output')
           rows = []
-          # 60 positives: 50 at 0.62 and 10 at 0.57.
           for i in range(50):
               rows.append((f'p62-{i}', 0.62, 'SAME_CONTEXT'))
           for i in range(10):
               rows.append((f'p57-{i}', 0.57, 'SAME_CONTEXT'))
-          # 180 negatives, including five hard negatives at 0.57.
           for i in range(5):
               rows.append((f'n57-{i}', 0.57, 'DIFFERENT_CONTEXT'))
           for i in range(20):
@@ -164,15 +161,26 @@ jobs:
               rows.append((f'n42-{i}', 0.42, 'DIFFERENT_CONTEXT'))
           for i in range(100):
               rows.append((f'n20-{i}', 0.20, 'DIFFERENT_CONTEXT'))
-          with open(root / 'reviewed.csv', 'w', newline='', encoding='utf-8') as f:
+
+          source = root / 'source_pairs.csv'
+          reviewed = root / 'reviewed.csv'
+          with open(source, 'w', newline='', encoding='utf-8') as f:
               w = csv.writer(f)
-              w.writerow(['pair_id','similarity','pair_label'])
-              w.writerows(rows)
+              w.writerow(['pair_id','similarity','pair_label','review_note'])
+              for pair_id, score, _ in rows:
+                  w.writerow([pair_id, score, '', ''])
+          with open(reviewed, 'w', newline='', encoding='utf-8') as f:
+              w = csv.writer(f)
+              w.writerow(['pair_id','similarity','pair_label','review_note'])
+              for pair_id, score, label in rows:
+                  w.writerow([pair_id, score, label, 'synthetic text-only label'])
+
+          source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
           manifest = {
               'market_blind': True,
               'text_feature_version': 'v4.18-b.text.1',
               'similarity_metric': 'binary_cosine_char_2_3gram_ascii_token',
-              'pair_audit': {'sha256': '0' * 64},
+              'pair_audit': {'sha256': source_hash},
               'calendar': {'calendar_sha256': '1' * 64},
               'validation': {'return_or_pnl_fields_read': False},
           }
@@ -182,16 +190,19 @@ jobs:
       - name: Freeze threshold from text labels only
         run: |
           python v4_18_freeze_event_cluster_config.py \
+            --source-pairs /tmp/v418b/output/source_pairs.csv \
             --pairs /tmp/v418b/output/reviewed.csv \
             --audit-manifest /tmp/v418b/output/freeze_manifest.json \
             --output /tmp/v418b/output/freeze.json
 
-      - name: Assert preregistered selection and lifecycle
+      - name: Assert preregistered selection, provenance and lifecycle
         run: |
           python - <<'PY'
           import json
           f = json.load(open('/tmp/v418b/output/freeze.json'))
           assert f['validation']['pass'] is True
+          assert f['validation']['source_pair_manifest_hash_verified'] is True
+          assert f['validation']['immutable_pair_identity_verified'] is True
           assert f['market_blind'] is True
           assert f['x02_returns_read'] is False
           assert abs(f['similarity_threshold'] - 0.55) < 1e-12, f['similarity_threshold']
@@ -203,6 +214,26 @@ jobs:
           assert f['lifecycle']['research_start_burn_in_sessions'] == 60
           assert f['lifecycle']['quiet_reset_sessions'] == 20
           PY
+
+      - name: Assert immutable similarity tampering is rejected
+        shell: bash
+        run: |
+          cp /tmp/v418b/output/reviewed.csv /tmp/v418b/output/tampered.csv
+          python - <<'PY'
+          import pandas as pd
+          path = '/tmp/v418b/output/tampered.csv'
+          df = pd.read_csv(path)
+          df.loc[0, 'similarity'] = 0.99
+          df.to_csv(path, index=False)
+          PY
+          if python v4_18_freeze_event_cluster_config.py \
+            --source-pairs /tmp/v418b/output/source_pairs.csv \
+            --pairs /tmp/v418b/output/tampered.csv \
+            --audit-manifest /tmp/v418b/output/freeze_manifest.json \
+            --output /tmp/v418b/output/should-not-freeze.json; then
+            echo "ERROR: tampered similarity unexpectedly accepted"
+            exit 1
+          fi
 
       - name: Upload smoke evidence
         if: always()
