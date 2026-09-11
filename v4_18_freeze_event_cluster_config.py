@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-FREEZE_VERSION = "v4.18-b.cluster-freeze.1"
+FREEZE_VERSION = "v4.18-b.cluster-freeze.2"
 THRESHOLD_GRID = [0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70]
 MIN_DECISIVE = 200
 MIN_POSITIVE = 40
@@ -20,6 +20,7 @@ MIN_PRECISION = 0.90
 BURN_IN_SESSIONS = 60
 QUIET_RESET_SESSIONS = 20
 VALID_LABELS = {"SAME_CONTEXT", "DIFFERENT_CONTEXT", "AMBIGUOUS"}
+ASSIGNMENT_ALGORITHM = "prospective_single_linkage_same_day_batch_v1"
 
 
 def parse_args() -> argparse.Namespace:
@@ -212,12 +213,23 @@ def main() -> None:
             "same_day_batching_required": True,
             "retroactive_existing_cluster_merge_allowed": False,
         },
+        "assignment_algorithm": {
+            "name": ASSIGNMENT_ALGORITHM,
+            "same_day_graph": "single-linkage connected components at frozen pairwise threshold",
+            "historical_attachment": "maximum pairwise similarity to clusters active at day start",
+            "historical_tie_breaker": "lexical cluster_id",
+            "same_day_decisions_use_day_start_history_only": True,
+            "multiple_historical_clusters_may_be_merged": False,
+            "new_episode_after_quiet_gap_gt_sessions": QUIET_RESET_SESSIONS,
+            "cluster_id_seed": "builder_version|first_trade_date|sorted founding event_ids",
+        },
         "validation": {
             "pass": True,
             "source_pair_manifest_hash_verified": True,
             "immutable_pair_identity_verified": True,
             "minimum_label_counts_met": True,
             "minimum_precision_met": True,
+            "assignment_algorithm_frozen_before_return_join": True,
         },
     }
 
