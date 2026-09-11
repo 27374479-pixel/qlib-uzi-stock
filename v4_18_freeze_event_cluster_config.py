@@ -24,7 +24,8 @@ VALID_LABELS = {"SAME_CONTEXT", "DIFFERENT_CONTEXT", "AMBIGUOUS"}
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--pairs", required=True, help="reviewed pair-audit CSV")
+    p.add_argument("--source-pairs", required=True, help="immutable unreviewed pair-audit CSV")
+    p.add_argument("--pairs", required=True, help="reviewed copy with labels/notes filled")
     p.add_argument("--audit-manifest", required=True)
     p.add_argument(
         "--output",
@@ -39,6 +40,26 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def immutable_pair_identity(frame: pd.DataFrame) -> str:
+    required = {"pair_id", "similarity"}
+    missing = required - set(frame.columns)
+    if missing:
+        raise SystemExit(f"pair CSV missing immutable identity fields: {sorted(missing)}")
+    temp = frame[["pair_id", "similarity"]].copy()
+    temp["pair_id"] = temp["pair_id"].astype(str).str.strip()
+    scores = pd.to_numeric(temp["similarity"], errors="coerce")
+    if scores.isna().any():
+        raise SystemExit("pair CSV contains invalid similarity values")
+    if temp["pair_id"].duplicated().any():
+        raise SystemExit("pair CSV contains duplicate pair_id values")
+    temp["similarity"] = scores.map(lambda value: f"{float(value):.8f}")
+    lines = [
+        f"{row.pair_id}|{row.similarity}"
+        for row in temp.sort_values("pair_id").itertuples(index=False)
+    ]
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
 
 
 def metrics_for_threshold(scores: pd.Series, truth: pd.Series, threshold: float) -> dict:
@@ -66,12 +87,13 @@ def metrics_for_threshold(scores: pd.Series, truth: pd.Series, threshold: float)
 
 def main() -> None:
     args = parse_args()
-    pairs_path = Path(args.pairs)
+    source_path = Path(args.source_pairs)
+    reviewed_path = Path(args.pairs)
     manifest_path = Path(args.audit_manifest)
     output_path = Path(args.output)
 
-    if not pairs_path.exists() or not manifest_path.exists():
-        raise SystemExit("reviewed pair CSV and audit manifest must both exist")
+    if not source_path.exists() or not reviewed_path.exists() or not manifest_path.exists():
+        raise SystemExit("source pairs, reviewed pairs, and audit manifest must all exist")
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not bool(manifest.get("market_blind", False)):
@@ -79,25 +101,37 @@ def main() -> None:
     if bool(manifest.get("validation", {}).get("return_or_pnl_fields_read", True)):
         raise SystemExit("audit manifest indicates return/P&L fields may have been read")
 
-    expected_pair_hash = str(manifest.get("pair_audit", {}).get("sha256", ""))
-    current_pair_hash = sha256_file(pairs_path)
-    # Review necessarily changes the CSV bytes by filling label/note columns.
-    # The pre-review hash is provenance, not an equality gate after annotation.
-    if not expected_pair_hash:
+    expected_source_hash = str(manifest.get("pair_audit", {}).get("sha256", ""))
+    if not expected_source_hash:
         raise SystemExit("audit manifest is missing the original pair-audit sha256")
+    actual_source_hash = sha256_file(source_path)
+    if actual_source_hash != expected_source_hash:
+        raise SystemExit(
+            "unreviewed source-pair file does not match audit manifest: "
+            f"expected={expected_source_hash} actual={actual_source_hash}"
+        )
 
-    frame = pd.read_csv(pairs_path, dtype=str).fillna("")
+    source = pd.read_csv(source_path, dtype=str).fillna("")
+    reviewed_frame = pd.read_csv(reviewed_path, dtype=str).fillna("")
+    source_identity = immutable_pair_identity(source)
+    reviewed_identity = immutable_pair_identity(reviewed_frame)
+    if reviewed_identity != source_identity:
+        raise SystemExit(
+            "reviewed CSV changed immutable pair IDs or similarities; only labels/notes may change: "
+            f"source_identity={source_identity} reviewed_identity={reviewed_identity}"
+        )
+
     required = {"pair_id", "similarity", "pair_label"}
-    missing = required - set(frame.columns)
+    missing = required - set(reviewed_frame.columns)
     if missing:
         raise SystemExit(f"reviewed pair CSV missing columns: {sorted(missing)}")
 
-    labels = frame["pair_label"].str.strip().str.upper()
+    labels = reviewed_frame["pair_label"].str.strip().str.upper()
     unexpected = sorted(set(labels) - VALID_LABELS - {""})
     if unexpected:
         raise SystemExit(f"unexpected pair labels: {unexpected}")
 
-    reviewed = frame[labels.isin(VALID_LABELS)].copy()
+    reviewed = reviewed_frame[labels.isin(VALID_LABELS)].copy()
     reviewed["pair_label"] = labels[labels.isin(VALID_LABELS)].values
     decisive = reviewed[reviewed["pair_label"].isin(["SAME_CONTEXT", "DIFFERENT_CONTEXT"])].copy()
     scores = pd.to_numeric(decisive["similarity"], errors="coerce")
@@ -136,8 +170,6 @@ def main() -> None:
             f"without return data. metrics={table}"
         )
 
-    # Primary rule: maximize recall subject to precision floor.  Deterministic
-    # tie-breakers prefer higher precision and then the stricter threshold.
     selected = sorted(
         eligible,
         key=lambda m: (m["recall"], m["precision"], m["threshold"]),
@@ -163,8 +195,11 @@ def main() -> None:
         "all_threshold_metrics": evaluations,
         "text_audit": {
             "original_manifest": str(manifest_path),
-            "original_unreviewed_pair_sha256": expected_pair_hash,
-            "reviewed_pair_sha256": current_pair_hash,
+            "unreviewed_pair_path": str(source_path),
+            "unreviewed_pair_sha256": actual_source_hash,
+            "immutable_pair_identity_sha256": source_identity,
+            "reviewed_pair_path": str(reviewed_path),
+            "reviewed_pair_sha256": sha256_file(reviewed_path),
             "decisive_pair_count": int(len(decisive)),
             "positive_label_count": positives,
             "negative_label_count": negatives,
@@ -179,6 +214,8 @@ def main() -> None:
         },
         "validation": {
             "pass": True,
+            "source_pair_manifest_hash_verified": True,
+            "immutable_pair_identity_verified": True,
             "minimum_label_counts_met": True,
             "minimum_precision_met": True,
         },
