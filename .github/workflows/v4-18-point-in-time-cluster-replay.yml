@@ -1,0 +1,274 @@
+name: V4.18 point-in-time cluster replay
+
+on:
+  pull_request:
+    paths:
+      - "v4_18_build_point_in_time_clusters.py"
+      - "v4_18_freeze_event_cluster_config.py"
+      - "v4_18_event_text_features.py"
+      - "V4_18_POINT_IN_TIME_CLUSTER_REPLAY.md"
+      - ".github/workflows/v4-18-point-in-time-cluster-replay.yml"
+  push:
+    branches: [main]
+    paths:
+      - "v4_18_build_point_in_time_clusters.py"
+      - "v4_18_freeze_event_cluster_config.py"
+      - "v4_18_event_text_features.py"
+      - "V4_18_POINT_IN_TIME_CLUSTER_REPLAY.md"
+      - ".github/workflows/v4-18-point-in-time-cluster-replay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyarrow
+
+      - name: Build market-blind replay fixture
+        run: |
+          rm -rf /tmp/v418c
+          mkdir -p /tmp/v418c/input /tmp/v418c/full /tmp/v418c/prefix /tmp/v418c/shuffled
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('/tmp/v418c')
+          sessions = pd.bdate_range('2026-01-02', periods=75).date.astype(str).tolist()
+          date_hash = hashlib.sha256('\n'.join(sessions).encode()).hexdigest()
+          artifact_lines = '\n'.join(f'{d}|500' for d in sessions)
+          artifact_hash = hashlib.sha256(artifact_lines.encode()).hexdigest()
+          calendar = pd.DataFrame({
+              'trade_date': sessions,
+              'active_instruments': [500] * len(sessions),
+              'calendar_sha256': [date_hash] * len(sessions),
+              'calendar_artifact_sha256': [artifact_hash] * len(sessions),
+              'calendar_version': ['v4.18-a.2'] * len(sessions),
+          })
+          calendar.to_parquet(root / 'input/calendar.parquet', index=False)
+
+          def eid(name):
+              return hashlib.sha256(name.encode()).hexdigest()
+
+          title = '签订重大合同英伟达算力合作'
+          specs = [
+              ('founder-a', 'SH600001', 0, title),
+              ('founder-b', 'SZ000002', 0, title),
+              ('continuation', 'SH600003', 5, title),
+              ('unrelated', 'SZ000004', 10, '控股股东减持股份计划'),
+              # 21 frozen sessions after the last matching event -> new episode.
+              ('quiet-reset', 'SH600005', 26, title),
+              ('burn-in-boundary', 'SZ000006', 60, '收到重大项目中标通知书'),
+          ]
+          rows = []
+          for name, instrument, idx, event_title in specs:
+              rows.append({
+                  'event_id': eid(name),
+                  'instrument': instrument,
+                  'stock_name': '',
+                  'title': event_title,
+                  'announcement_type': '测试',
+                  'published_date': sessions[max(0, idx - 1)],
+                  'available_trade_date': sessions[idx],
+                  'causal_status': 'AVAILABLE_NEXT_SESSION',
+                  'calendar_sha256': date_hash,
+                  # Forbidden-looking fields deliberately exist in storage; the
+                  # builder must not read them through its explicit allow-list.
+                  'future_return': 999.0,
+                  'x02_pnl': 999.0,
+              })
+          events = pd.DataFrame(rows)
+          events.to_parquet(root / 'input/events.parquet', index=False)
+          events.sample(frac=1.0, random_state=42).to_parquet(
+              root / 'input/events_shuffled.parquet', index=False
+          )
+
+          freeze = {
+              'cluster_config_version': 'v4.18-b.cluster-freeze.2',
+              'market_blind': True,
+              'x02_returns_read': False,
+              'text_feature_version': 'v4.18-b.text.1',
+              'similarity_metric': 'binary_cosine_char_2_3gram_ascii_token',
+              'similarity_threshold': 0.55,
+              'calendar_sha256': date_hash,
+              'lifecycle': {
+                  'research_start_burn_in_sessions': 60,
+                  'quiet_reset_sessions': 20,
+                  'same_day_batching_required': True,
+                  'retroactive_existing_cluster_merge_allowed': False,
+              },
+              'assignment_algorithm': {
+                  'name': 'prospective_single_linkage_same_day_batch_v1'
+              },
+              'validation': {'pass': True},
+          }
+          (root / 'input/freeze.json').write_text(json.dumps(freeze), encoding='utf-8')
+          (root / 'input/sessions.json').write_text(json.dumps(sessions), encoding='utf-8')
+          PY
+
+      - name: Replay full history
+        run: |
+          python v4_18_build_point_in_time_clusters.py \
+            --events /tmp/v418c/input/events.parquet \
+            --calendar /tmp/v418c/input/calendar.parquet \
+            --freeze /tmp/v418c/input/freeze.json \
+            --research-start 2026-01-02 \
+            --assignments /tmp/v418c/full/assignments.parquet \
+            --membership /tmp/v418c/full/membership.parquet \
+            --manifest /tmp/v418c/full/manifest.json
+
+      - name: Assert lifecycle, same-day group, burn-in and market-blind manifest
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          import pandas as pd
+
+          root = '/tmp/v418c'
+          a = pd.read_parquet(f'{root}/full/assignments.parquet')
+          m = json.load(open(f'{root}/full/manifest.json'))
+          def eid(name): return hashlib.sha256(name.encode()).hexdigest()
+          by_id = a.set_index('event_id')
+
+          ca = by_id.loc[eid('founder-a'), 'cluster_id']
+          cb = by_id.loc[eid('founder-b'), 'cluster_id']
+          cc = by_id.loc[eid('continuation'), 'cluster_id']
+          cr = by_id.loc[eid('quiet-reset'), 'cluster_id']
+          assert ca == cb == cc, (ca, cb, cc)
+          assert cr != ca, (cr, ca)
+          assert bool(by_id.loc[eid('founder-a'), 'group_formed_after_batch']) is True
+          assert int(by_id.loc[eid('continuation'), 'age_trading_days']) == 5
+          assert by_id.loc[eid('continuation'), 'h04_age_bin_at_event'] == 'EARLY'
+          assert bool(by_id.loc[eid('founder-a'), 'burn_in_complete']) is False
+          assert bool(by_id.loc[eid('burn-in-boundary'), 'burn_in_complete']) is True
+
+          assert m['market_blind'] is True
+          assert m['x02_returns_read'] is False
+          assert m['validation']['market_or_return_fields_read'] is False
+          assert 'future_return' not in m['allowed_event_fields']
+          assert 'x02_pnl' not in m['allowed_event_fields']
+          assert m['assignment_contract']['retroactive_existing_cluster_merge_allowed'] is False
+          PY
+
+      - name: Assert source row order cannot change clusters
+        run: |
+          python v4_18_build_point_in_time_clusters.py \
+            --events /tmp/v418c/input/events_shuffled.parquet \
+            --calendar /tmp/v418c/input/calendar.parquet \
+            --freeze /tmp/v418c/input/freeze.json \
+            --research-start 2026-01-02 \
+            --assignments /tmp/v418c/shuffled/assignments.parquet \
+            --membership /tmp/v418c/shuffled/membership.parquet \
+            --manifest /tmp/v418c/shuffled/manifest.json
+          python - <<'PY'
+          import pandas as pd
+          left = pd.read_parquet('/tmp/v418c/full/assignments.parquet')
+          right = pd.read_parquet('/tmp/v418c/shuffled/assignments.parquet')
+          pd.testing.assert_frame_equal(left, right, check_like=False)
+          left = pd.read_parquet('/tmp/v418c/full/membership.parquet')
+          right = pd.read_parquet('/tmp/v418c/shuffled/membership.parquet')
+          pd.testing.assert_frame_equal(left, right, check_like=False)
+          PY
+
+      - name: Assert prefix replay is unchanged by future events
+        run: |
+          python - <<'PY'
+          import json
+          sessions = json.load(open('/tmp/v418c/input/sessions.json'))
+          open('/tmp/v418c/input/prefix_date.txt', 'w').write(sessions[10])
+          PY
+          prefix="$(cat /tmp/v418c/input/prefix_date.txt)"
+          python v4_18_build_point_in_time_clusters.py \
+            --events /tmp/v418c/input/events.parquet \
+            --calendar /tmp/v418c/input/calendar.parquet \
+            --freeze /tmp/v418c/input/freeze.json \
+            --research-start 2026-01-02 \
+            --through "$prefix" \
+            --assignments /tmp/v418c/prefix/assignments.parquet \
+            --membership /tmp/v418c/prefix/membership.parquet \
+            --manifest /tmp/v418c/prefix/manifest.json
+          python - <<'PY'
+          import pandas as pd
+          prefix = open('/tmp/v418c/input/prefix_date.txt').read().strip()
+          full_a = pd.read_parquet('/tmp/v418c/full/assignments.parquet')
+          prefix_a = pd.read_parquet('/tmp/v418c/prefix/assignments.parquet')
+          expected_a = full_a[full_a['available_trade_date'] <= prefix].reset_index(drop=True)
+          pd.testing.assert_frame_equal(expected_a, prefix_a.reset_index(drop=True))
+
+          full_m = pd.read_parquet('/tmp/v418c/full/membership.parquet')
+          prefix_m = pd.read_parquet('/tmp/v418c/prefix/membership.parquet')
+          expected_m = full_m[full_m['member_first_available_trade_date'] <= prefix].reset_index(drop=True)
+          pd.testing.assert_frame_equal(expected_m, prefix_m.reset_index(drop=True))
+          PY
+
+      - name: Assert tampered calendar is rejected
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          src = '/tmp/v418c/input/calendar.parquet'
+          dst = '/tmp/v418c/input/calendar_tampered.parquet'
+          df = pd.read_parquet(src)
+          df.loc[0, 'active_instruments'] = 499
+          df.to_parquet(dst, index=False)
+          PY
+          if python v4_18_build_point_in_time_clusters.py \
+            --events /tmp/v418c/input/events.parquet \
+            --calendar /tmp/v418c/input/calendar_tampered.parquet \
+            --freeze /tmp/v418c/input/freeze.json \
+            --research-start 2026-01-02 \
+            --assignments /tmp/v418c/bad-a.parquet \
+            --membership /tmp/v418c/bad-m.parquet \
+            --manifest /tmp/v418c/bad.json; then
+            echo "ERROR: tampered calendar unexpectedly accepted"
+            exit 1
+          fi
+
+      - name: Assert unfrozen assignment algorithm is rejected
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          src = '/tmp/v418c/input/freeze.json'
+          dst = '/tmp/v418c/input/freeze_missing_algorithm.json'
+          data = json.load(open(src))
+          data.pop('assignment_algorithm', None)
+          open(dst, 'w').write(json.dumps(data))
+          PY
+          if python v4_18_build_point_in_time_clusters.py \
+            --events /tmp/v418c/input/events.parquet \
+            --calendar /tmp/v418c/input/calendar.parquet \
+            --freeze /tmp/v418c/input/freeze_missing_algorithm.json \
+            --research-start 2026-01-02 \
+            --assignments /tmp/v418c/bad2-a.parquet \
+            --membership /tmp/v418c/bad2-m.parquet \
+            --manifest /tmp/v418c/bad2.json; then
+            echo "ERROR: unfrozen assignment algorithm unexpectedly accepted"
+            exit 1
+          fi
+
+      - name: Upload replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-18-point-in-time-cluster-replay-smoke
+          path: |
+            /tmp/v418c/full/
+            /tmp/v418c/prefix/
+            /tmp/v418c/shuffled/
+          if-no-files-found: warn
