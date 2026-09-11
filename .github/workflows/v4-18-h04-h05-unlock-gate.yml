@@ -1,0 +1,299 @@
+name: V4.18 H04 H05 unlock gate
+
+on:
+  pull_request:
+    paths:
+      - "v4_18_h04_h05_unlock_gate.py"
+      - "V4_18_H04_H05_UNLOCK_GATE.md"
+      - ".github/workflows/v4-18-h04-h05-unlock-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "v4_18_h04_h05_unlock_gate.py"
+      - "V4_18_H04_H05_UNLOCK_GATE.md"
+      - ".github/workflows/v4-18-h04-h05-unlock-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build coherent synthetic evidence chain
+        shell: bash
+        run: |
+          rm -rf /tmp/v418-unlock
+          mkdir -p /tmp/v418-unlock/evidence /tmp/v418-unlock/artifacts /tmp/v418-unlock/out
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          root = Path('/tmp/v418-unlock')
+          ev = root / 'evidence'
+          art = root / 'artifacts'
+          start, end = '2021-01-01', '2026-07-16'
+          years = [2021, 2022, 2023, 2024, 2025, 2026]
+          calendar_hash = hashlib.sha256(b'frozen-calendar').hexdigest()
+          artifact_hash = hashlib.sha256(b'frozen-calendar-with-counts').hexdigest()
+
+          prereg = {
+              'prereg_version': 'v4.18-h04-h05-prereg.1',
+              'scientific_status': 'PREREGISTERED_NOT_TESTED',
+              'research_window': {'event_start': start, 'event_end': end},
+              'parameter_search_in_primary_test_allowed': False,
+          }
+          (ev / 'prereg.json').write_text(json.dumps(prereg), encoding='utf-8')
+
+          v417 = {
+              'gate_version': 'v4.17-c.2',
+              'requested_start': start,
+              'requested_end': end,
+              'completion': {
+                  'passed_years': years,
+                  'failed_years': [],
+                  'expected_calendar_days': 2023,
+                  'terminal_request_days': 2023,
+              },
+              'research_eligibility': {'h04_h05_allowed': True},
+              'validation': {'pass': True},
+          }
+          (ev / 'v417.json').write_text(json.dumps(v417), encoding='utf-8')
+
+          audit = {
+              'audit_only': True,
+              'canonicalizer_used_for_trading_features': False,
+              'source_loader_validation_pass': True,
+              'cninfo_unique_notice_rows': 100,
+              'exact_canonical_matches': 50,
+              'loader_diagnostics': {
+                  'eastmoney': {
+                      'canonical_contract_violations': [],
+                      'canonical_years': years,
+                      'canonical_files': 6,
+                      'canonical_rows': 1000,
+                  }
+              },
+          }
+          (ev / 'audit.json').write_text(json.dumps(audit), encoding='utf-8')
+
+          causal = {
+              'view_version': 'v4.18-a.2',
+              'requested_start': start,
+              'requested_end': end,
+              'upstream_v417_gate': {
+                  'requested_start': start,
+                  'requested_end': end,
+                  'pass': True,
+                  'h04_h05_allowed': True,
+              },
+              'calendar': {
+                  'calendar_sha256': calendar_hash,
+                  'calendar_artifact_sha256': artifact_hash,
+                  'session_count': 1300,
+              },
+              'availability_contract': {
+                  'same_day_use_allowed': False,
+                  'intraday_timestamp_fabricated': False,
+                  'live_calendar_api_used': False,
+              },
+              'validation': {'pass': True},
+          }
+          (ev / 'causal.json').write_text(json.dumps(causal), encoding='utf-8')
+
+          freeze = {
+              'cluster_config_version': 'v4.18-b.cluster-freeze.2',
+              'market_blind': True,
+              'x02_returns_read': False,
+              'text_feature_version': 'v4.18-b.text.1',
+              'similarity_metric': 'binary_cosine_char_2_3gram_ascii_token',
+              'similarity_threshold': 0.55,
+              'calendar_sha256': calendar_hash,
+              'lifecycle': {
+                  'research_start_burn_in_sessions': 60,
+                  'quiet_reset_sessions': 20,
+                  'same_day_batching_required': True,
+                  'retroactive_existing_cluster_merge_allowed': False,
+              },
+              'assignment_algorithm': {
+                  'name': 'prospective_single_linkage_same_day_batch_v1'
+              },
+              'validation': {
+                  'pass': True,
+                  'assignment_algorithm_frozen_before_return_join': True,
+              },
+          }
+          (ev / 'freeze.json').write_text(json.dumps(freeze), encoding='utf-8')
+
+          files = {}
+          for name, payload in {
+              'calendar.bin': b'calendar artifact',
+              'assignments.bin': b'point in time assignments',
+              'membership.bin': b'append only membership',
+          }.items():
+              path = art / name
+              path.write_bytes(payload)
+              files[name] = (str(path), hashlib.sha256(payload).hexdigest())
+
+          replay = {
+              'builder_version': 'v4.18-c.cluster-replay.1',
+              'market_blind': True,
+              'x02_returns_read': False,
+              'research_start': start,
+              'calendar': {
+                  'path': files['calendar.bin'][0],
+                  'sha256': files['calendar.bin'][1],
+                  'calendar_sha256': calendar_hash,
+              },
+              'freeze': {
+                  'cluster_config_version': 'v4.18-b.cluster-freeze.2',
+                  'similarity_threshold': 0.55,
+              },
+              'assignment_contract': {
+                  'name': 'prospective_single_linkage_same_day_batch_v1',
+                  'retroactive_existing_cluster_merge_allowed': False,
+              },
+              'metrics': {'event_rows': 1000, 'cluster_episodes': 100},
+              'outputs': {
+                  'assignments': files['assignments.bin'][0],
+                  'assignments_sha256': files['assignments.bin'][1],
+                  'membership': files['membership.bin'][0],
+                  'membership_sha256': files['membership.bin'][1],
+              },
+              'validation': {
+                  'pass': True,
+                  'future_events_can_rewrite_past': False,
+                  'same_day_source_order_used': False,
+                  'market_or_return_fields_read': False,
+              },
+          }
+          (ev / 'replay.json').write_text(json.dumps(replay), encoding='utf-8')
+          PY
+
+      - name: Coherent production-shaped evidence unlocks
+        run: |
+          python v4_18_h04_h05_unlock_gate.py \
+            --prereg /tmp/v418-unlock/evidence/prereg.json \
+            --v417-gate /tmp/v418-unlock/evidence/v417.json \
+            --source-audit /tmp/v418-unlock/evidence/audit.json \
+            --causal-manifest /tmp/v418-unlock/evidence/causal.json \
+            --cluster-freeze /tmp/v418-unlock/evidence/freeze.json \
+            --replay-manifest /tmp/v418-unlock/evidence/replay.json \
+            --output /tmp/v418-unlock/out/pass.json
+          python - <<'PY'
+          import json
+          r = json.load(open('/tmp/v418-unlock/out/pass.json'))
+          assert r['validation']['pass'] is True, r
+          assert r['experiment_unlock']['h04_h05_allowed'] is True, r
+          assert r['scientific_status'] == 'READY_FOR_FIRST_FORMAL_H04_H05_TEST', r
+          PY
+
+      - name: A stale one-day V4.17 gate cannot unlock
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p = '/tmp/v418-unlock/evidence/v417.json'
+          data = json.load(open(p))
+          data['requested_start'] = '2026-07-16'
+          data['requested_end'] = '2026-07-16'
+          open('/tmp/v418-unlock/evidence/v417-stale.json', 'w').write(json.dumps(data))
+          PY
+          if python v4_18_h04_h05_unlock_gate.py \
+            --prereg /tmp/v418-unlock/evidence/prereg.json \
+            --v417-gate /tmp/v418-unlock/evidence/v417-stale.json \
+            --source-audit /tmp/v418-unlock/evidence/audit.json \
+            --causal-manifest /tmp/v418-unlock/evidence/causal.json \
+            --cluster-freeze /tmp/v418-unlock/evidence/freeze.json \
+            --replay-manifest /tmp/v418-unlock/evidence/replay.json \
+            --output /tmp/v418-unlock/out/stale.json; then
+            echo 'ERROR: stale V4.17 gate unexpectedly unlocked H04/H05'
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          r = json.load(open('/tmp/v418-unlock/out/stale.json'))
+          assert r['experiment_unlock']['h04_h05_allowed'] is False, r
+          assert r['scientific_status'] == 'BLOCKED', r
+          PY
+
+      - name: A mismatched calendar cannot unlock
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, hashlib
+          p = '/tmp/v418-unlock/evidence/freeze.json'
+          data = json.load(open(p))
+          data['calendar_sha256'] = hashlib.sha256(b'other-calendar').hexdigest()
+          open('/tmp/v418-unlock/evidence/freeze-other-calendar.json', 'w').write(json.dumps(data))
+          PY
+          if python v4_18_h04_h05_unlock_gate.py \
+            --prereg /tmp/v418-unlock/evidence/prereg.json \
+            --v417-gate /tmp/v418-unlock/evidence/v417.json \
+            --source-audit /tmp/v418-unlock/evidence/audit.json \
+            --causal-manifest /tmp/v418-unlock/evidence/causal.json \
+            --cluster-freeze /tmp/v418-unlock/evidence/freeze-other-calendar.json \
+            --replay-manifest /tmp/v418-unlock/evidence/replay.json \
+            --output /tmp/v418-unlock/out/calendar-mismatch.json; then
+            echo 'ERROR: mismatched calendar unexpectedly unlocked H04/H05'
+            exit 1
+          fi
+
+      - name: A modified replay artifact cannot unlock
+        shell: bash
+        run: |
+          cp /tmp/v418-unlock/artifacts/assignments.bin /tmp/v418-unlock/artifacts/assignments.good
+          printf 'tampered' >> /tmp/v418-unlock/artifacts/assignments.bin
+          if python v4_18_h04_h05_unlock_gate.py \
+            --prereg /tmp/v418-unlock/evidence/prereg.json \
+            --v417-gate /tmp/v418-unlock/evidence/v417.json \
+            --source-audit /tmp/v418-unlock/evidence/audit.json \
+            --causal-manifest /tmp/v418-unlock/evidence/causal.json \
+            --cluster-freeze /tmp/v418-unlock/evidence/freeze.json \
+            --replay-manifest /tmp/v418-unlock/evidence/replay.json \
+            --output /tmp/v418-unlock/out/tampered.json; then
+            echo 'ERROR: tampered replay artifact unexpectedly unlocked H04/H05'
+            exit 1
+          fi
+          mv /tmp/v418-unlock/artifacts/assignments.good /tmp/v418-unlock/artifacts/assignments.bin
+
+      - name: Legacy source-audit evidence cannot unlock
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p = '/tmp/v418-unlock/evidence/audit.json'
+          data = json.load(open(p))
+          data.pop('source_loader_validation_pass')
+          data.pop('loader_diagnostics')
+          open('/tmp/v418-unlock/evidence/audit-legacy.json', 'w').write(json.dumps(data))
+          PY
+          if python v4_18_h04_h05_unlock_gate.py \
+            --prereg /tmp/v418-unlock/evidence/prereg.json \
+            --v417-gate /tmp/v418-unlock/evidence/v417.json \
+            --source-audit /tmp/v418-unlock/evidence/audit-legacy.json \
+            --causal-manifest /tmp/v418-unlock/evidence/causal.json \
+            --cluster-freeze /tmp/v418-unlock/evidence/freeze.json \
+            --replay-manifest /tmp/v418-unlock/evidence/replay.json \
+            --output /tmp/v418-unlock/out/legacy-audit.json; then
+            echo 'ERROR: legacy source audit unexpectedly unlocked H04/H05'
+            exit 1
+          fi
+
+      - name: Upload gate smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-18-h04-h05-unlock-gate-smoke
+          path: /tmp/v418-unlock/out
+          if-no-files-found: warn
