@@ -1,0 +1,203 @@
+name: V4.18 preregistered H04/H05 experiment
+
+on:
+  pull_request:
+    paths:
+      - "v4_18_run_h04_h05_preregistered.py"
+      - "v4_18_h04_h05_prereg_v1.json"
+      - "V4_18_H04_H05_PREREGISTERED_EXPERIMENT.md"
+      - ".github/workflows/v4-18-h04-h05-preregistered-experiment.yml"
+  push:
+    branches: [main]
+    paths:
+      - "v4_18_run_h04_h05_preregistered.py"
+      - "v4_18_h04_h05_prereg_v1.json"
+      - "V4_18_H04_H05_PREREGISTERED_EXPERIMENT.md"
+      - ".github/workflows/v4-18-h04-h05-preregistered-experiment.yml"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type RUN_FIRST_FORMAL_TEST only after the production unlock gate is green"
+        required: false
+        default: "LOCKED"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v4-18-h04-h05-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+
+jobs:
+  guard-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          lfs: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow
+
+      - name: Syntax check
+        run: python -m py_compile v4_18_run_h04_h05_preregistered.py
+
+      - name: Prove a red unlock blocks before every research-data path
+        shell: bash
+        run: |
+          rm -rf /tmp/v418h
+          mkdir -p /tmp/v418h
+          cat > /tmp/v418h/locked.json <<'JSON'
+          {
+            "gate_version": "v4.18-h04-h05-unlock.1",
+            "scientific_status": "BLOCKED",
+            "research_window": {"event_start":"2021-01-01","event_end":"2026-07-16"},
+            "experiment_unlock": {
+              "h04_h05_allowed": false,
+              "parameter_search_in_primary_test_allowed": false
+            },
+            "validation": {"pass": false, "failures": ["synthetic upstream block"]}
+          }
+          JSON
+          set +e
+          python v4_18_run_h04_h05_preregistered.py \
+            --unlock /tmp/v418h/locked.json \
+            --prereg v4_18_h04_h05_prereg_v1.json \
+            --replay-manifest /definitely-missing/replay.json \
+            --assignments /definitely-missing/assignments.parquet \
+            --membership /definitely-missing/membership.parquet \
+            --calendar /definitely-missing/calendar.parquet \
+            --daily-root /definitely-missing/market-data \
+            --output /tmp/v418h/should-not-exist.json \
+            --ledger /tmp/v418h/should-not-exist.csv \
+            > /tmp/v418h/guard.log 2>&1
+          code=$?
+          set -e
+          test "$code" -ne 0
+          grep -q "H04/H05 locked before cluster/X02/market I/O" /tmp/v418h/guard.log
+          ! grep -q "missing replay artifact" /tmp/v418h/guard.log
+          ! grep -q "missing frozen BaoStock" /tmp/v418h/guard.log
+          test ! -e /tmp/v418h/should-not-exist.json
+          test ! -e /tmp/v418h/should-not-exist.csv
+          cat /tmp/v418h/guard.log
+
+      - name: Test deterministic PIT context and H05 semantics without returns optimization
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from v4_18_run_h04_h05_preregistered import attach_event_context, add_h05_context, needed_group_returns
+
+          sessions = pd.bdate_range('2026-01-02', periods=80).date.astype(str).tolist()
+          session_index = {d: i for i, d in enumerate(sessions)}
+          candidate = pd.DataFrame([{
+              'trade_date': sessions[65],
+              'signal_date': sessions[64],
+              'instrument': 'SH600001',
+              'clean_mom20_rank': 0.95,
+          }])
+          # The candidate belongs to two visible clusters. Cluster new has the
+          # most recent event and must win even though no market value is supplied.
+          membership = pd.DataFrame([
+              {'cluster_id':'cluster-old','instrument':'SH600001','member_first_available_trade_date':sessions[5],
+               'member_first_session_index':5,'cluster_first_available_trade_date':sessions[5],
+               'cluster_first_session_index':5,'builder_version':'v4.18-c.cluster-replay.1'},
+              {'cluster_id':'cluster-old','instrument':'SZ000002','member_first_available_trade_date':sessions[6],
+               'member_first_session_index':6,'cluster_first_available_trade_date':sessions[5],
+               'cluster_first_session_index':5,'builder_version':'v4.18-c.cluster-replay.1'},
+              {'cluster_id':'cluster-new','instrument':'SH600001','member_first_available_trade_date':sessions[63],
+               'member_first_session_index':63,'cluster_first_available_trade_date':sessions[63],
+               'cluster_first_session_index':63,'builder_version':'v4.18-c.cluster-replay.1'},
+              {'cluster_id':'cluster-new','instrument':'SZ000003','member_first_available_trade_date':sessions[64],
+               'member_first_session_index':64,'cluster_first_available_trade_date':sessions[63],
+               'cluster_first_session_index':63,'builder_version':'v4.18-c.cluster-replay.1'},
+              # Future membership must not leak into T.
+              {'cluster_id':'cluster-new','instrument':'SH600004','member_first_available_trade_date':sessions[70],
+               'member_first_session_index':70,'cluster_first_available_trade_date':sessions[63],
+               'cluster_first_session_index':63,'builder_version':'v4.18-c.cluster-replay.1'},
+          ])
+          assignments = pd.DataFrame([
+              {'event_id':'a','cluster_id':'cluster-old','instrument':'SH600001','available_trade_date':sessions[5],
+               'session_index':5,'cluster_first_available_trade_date':sessions[5],'cluster_first_session_index':5,
+               'builder_version':'v4.18-c.cluster-replay.1'},
+              {'event_id':'b','cluster_id':'cluster-old','instrument':'SZ000002','available_trade_date':sessions[50],
+               'session_index':50,'cluster_first_available_trade_date':sessions[5],'cluster_first_session_index':5,
+               'builder_version':'v4.18-c.cluster-replay.1'},
+              {'event_id':'c','cluster_id':'cluster-new','instrument':'SH600001','available_trade_date':sessions[63],
+               'session_index':63,'cluster_first_available_trade_date':sessions[63],'cluster_first_session_index':63,
+               'builder_version':'v4.18-c.cluster-replay.1'},
+              {'event_id':'d','cluster_id':'cluster-new','instrument':'SZ000003','available_trade_date':sessions[64],
+               'session_index':64,'cluster_first_available_trade_date':sessions[63],'cluster_first_session_index':63,
+               'builder_version':'v4.18-c.cluster-replay.1'},
+          ])
+          ctx = attach_event_context(candidate, assignments, membership, session_index, sessions[0])
+          r = ctx.iloc[0]
+          assert r['context_cluster_id'] == 'cluster-new', r
+          assert int(r['context_age_trading_days']) == 2, r
+          assert r['h04_age_bin'] == 'EARLY', r
+          assert int(r['known_stock_count']) == 2, r
+          assert bool(r['group_formed']) is True
+          assert bool(r['burn_in_complete']) is True
+
+          needed = needed_group_returns(ctx)
+          assert set(needed) == {'SH600001', 'SZ000003'}, needed
+          day = sessions[64]
+          # Both known members positive; candidate is the stronger one.
+          enriched = add_h05_context(ctx, {
+              ('SH600001', day): 0.04,
+              ('SZ000003', day): 0.01,
+          })
+          e = enriched.iloc[0]
+          assert float(e['positive_ratio_t1']) == 1.0, e
+          assert bool(e['candidate_top_quartile_t1']) is True, e
+          assert bool(e['primary_confluence']) is True, e
+
+          # A missing second-member return is conservative: denominator remains
+          # all causally known stocks, so breadth is 1/2 rather than 1/1.
+          missing = add_h05_context(ctx, {('SH600001', day): 0.04}).iloc[0]
+          assert float(missing['positive_ratio_t1']) == 0.5, missing
+          assert bool(missing['primary_confluence']) is False, missing
+          PY
+
+  formal-first-test:
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'RUN_FIRST_FORMAL_TEST' && github.ref == 'refs/heads/main'
+    needs: guard-and-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install production dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow duckdb
+
+      - name: Run exactly the preregistered first test
+        run: |
+          python v4_18_run_h04_h05_preregistered.py
+
+      - name: Upload formal result without rewriting the preregistration
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-18-first-formal-h04-h05-result
+          path: |
+            output/v4_18_h04_h05_preregistered_result.json
+            output/v4_18_h04_h05_candidate_context.csv
+          if-no-files-found: warn

@@ -1,0 +1,55 @@
+{
+  "runner_contract_version": "v4.18-h04-h05-runner-contract.1",
+  "scientific_status": "FROZEN_BEFORE_FIRST_FORMAL_RESULT",
+  "required_unlock_gate_version": "v4.18-h04-h05-unlock.1",
+  "market_io_before_unlock_allowed": false,
+  "x02": {
+    "signal_bar": "T-1 completed daily bar",
+    "selected_rule": {
+      "raw_mom20_rank_min": 0.8,
+      "clean_mom20_rank_min": 0.8,
+      "hit_count20_max": 1
+    },
+    "execution_limit_buffer": 0.005,
+    "ranking": "clean_mom20_rank",
+    "top_n": 3,
+    "entry": "T 14:45 completed 5m close",
+    "exit": "T+1 10:00 completed 5m close",
+    "cost_models": ["BASE", "CONSERVATIVE"],
+    "T_day_context_price_confirmation": false
+  },
+  "event_context": {
+    "multiple_episode_rule": "choose membership cluster with latest cluster event session <= T; lexical cluster_id tie-break",
+    "age_origin": "cluster_first_session_index",
+    "burn_in_sessions": 60,
+    "membership_visible_when": "member_first_session_index <= T"
+  },
+  "h05": {
+    "market_source": "frozen BaoStock all-A-share daily lake",
+    "market_cutoff": "T-1 completed daily bar",
+    "group_formed_min_known_stocks": 2,
+    "positive_ratio_denominator": "all causally known cluster members",
+    "missing_member_return_positive_credit": 0,
+    "candidate_rank_population": "causally known members with valid T-1 return",
+    "candidate_rank_method": "ascending average percentile",
+    "candidate_top_quartile_min_percentile": 0.75,
+    "candidate_rank_min_priced_members": 2
+  },
+  "primary_confluence": {
+    "h04_age_bins": ["FIRST_SEEN", "EARLY"],
+    "group_formed": true,
+    "positive_ratio_t1_gt": 0.5,
+    "candidate_top_quartile_t1": true
+  },
+  "falsification": {
+    "periods": {
+      "development": ["2021-01-01", "2023-12-31"],
+      "later": ["2024-01-01", "2026-07-16"]
+    },
+    "min_active_days_each_period": 20,
+    "BASE_cagr_gt": 0.0,
+    "CONSERVATIVE_cagr_gte": 0.0,
+    "best_5pct_active_day_ablation_must_preserve_sign_criteria": true
+  },
+  "parameter_search_allowed": false
+}
