@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/v4-17-point-in-time-announcement-backfill.yml"
       - "v4_17_point_in_time_announcement_backfill.py"
+      - "v4_17_merge_backfill_shards.py"
       - "v4_17_validate_event_lake.py"
       - "v4_17_full_backfill_gate.py"
       - "V4_17_POINT_IN_TIME_EVENT_LAKE.md"
@@ -13,6 +14,7 @@ on:
     paths:
       - ".github/workflows/v4-17-point-in-time-announcement-backfill.yml"
       - "v4_17_point_in_time_announcement_backfill.py"
+      - "v4_17_merge_backfill_shards.py"
       - "v4_17_validate_event_lake.py"
       - "v4_17_full_backfill_gate.py"
       - "V4_17_POINT_IN_TIME_EVENT_LAKE.md"
@@ -21,9 +23,12 @@ on:
 permissions:
   contents: write
 
+# Push/PR runs only exercise the smoke contract and may supersede one another.
+# A manually dispatched full backfill is expensive and must never be killed by
+# a later code push or another manual dispatch; a second dispatch queues instead.
 concurrency:
-  group: v4-17-point-in-time-announcement-backfill-${{ github.ref }}
-  cancel-in-progress: true
+  group: v4-17-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
   smoke:
@@ -45,29 +50,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas pyarrow akshare
 
-      - name: Smoke-test source contract and causal validation
+      - name: Smoke-test source, shard merge, and causal gates
         shell: bash
         run: |
           rm -rf /tmp/v417-smoke
           python v4_17_point_in_time_announcement_backfill.py \
             --start 2026-07-16 \
             --end 2026-07-16 \
-            --output-root /tmp/v417-smoke/data_lake/raw/eastmoney/notices \
-            --manifest-root /tmp/v417-smoke/data_lake/manifests \
+            --output-root /tmp/v417-smoke/shard/data_lake/raw/eastmoney/notices \
+            --manifest-root /tmp/v417-smoke/shard/data_lake/manifests \
             --sleep 0.20
+          python v4_17_merge_backfill_shards.py \
+            --input-root /tmp/v417-smoke/shard \
+            --start 2026-07-16 \
+            --end 2026-07-16 \
+            --event-root /tmp/v417-smoke/merged/data_lake/raw/eastmoney/notices \
+            --manifest-root /tmp/v417-smoke/merged/data_lake/manifests \
+            --report /tmp/v417-smoke/merged/output/v4_17_shard_merge.json
           python v4_17_validate_event_lake.py \
             --start 2026-07-16 \
             --end 2026-07-16 \
-            --event-root /tmp/v417-smoke/data_lake/raw/eastmoney/notices \
-            --manifest-root /tmp/v417-smoke/data_lake/manifests \
-            --output /tmp/v417-smoke/output/v4_17_event_lake_validation.json
+            --event-root /tmp/v417-smoke/merged/data_lake/raw/eastmoney/notices \
+            --manifest-root /tmp/v417-smoke/merged/data_lake/manifests \
+            --output /tmp/v417-smoke/merged/output/v4_17_event_lake_validation.json
           python v4_17_full_backfill_gate.py \
             --start 2026-07-16 \
             --end 2026-07-16 \
-            --event-root /tmp/v417-smoke/data_lake/raw/eastmoney/notices \
-            --manifest-root /tmp/v417-smoke/data_lake/manifests \
-            --validation /tmp/v417-smoke/output/v4_17_event_lake_validation.json \
-            --output /tmp/v417-smoke/output/v4_17_full_backfill_gate.json
+            --event-root /tmp/v417-smoke/merged/data_lake/raw/eastmoney/notices \
+            --manifest-root /tmp/v417-smoke/merged/data_lake/manifests \
+            --validation /tmp/v417-smoke/merged/output/v4_17_event_lake_validation.json \
+            --output /tmp/v417-smoke/merged/output/v4_17_full_backfill_gate.json
 
       - name: Upload smoke evidence
         if: always()
@@ -77,17 +89,44 @@ jobs:
           path: /tmp/v417-smoke
           if-no-files-found: warn
 
+  # Full history is manual-only.  Code pushes must not launch or cancel a
+  # multi-hour historical collection.  The experiment window is frozen at
+  # 2021-01-01..2026-07-16.
   backfill:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       max-parallel: 2
       matrix:
-        year: [2021, 2022, 2023, 2024, 2025, 2026]
+        include:
+          - { shard: 2021Q1, start: '2021-01-01', end: '2021-03-31' }
+          - { shard: 2021Q2, start: '2021-04-01', end: '2021-06-30' }
+          - { shard: 2021Q3, start: '2021-07-01', end: '2021-09-30' }
+          - { shard: 2021Q4, start: '2021-10-01', end: '2021-12-31' }
+          - { shard: 2022Q1, start: '2022-01-01', end: '2022-03-31' }
+          - { shard: 2022Q2, start: '2022-04-01', end: '2022-06-30' }
+          - { shard: 2022Q3, start: '2022-07-01', end: '2022-09-30' }
+          - { shard: 2022Q4, start: '2022-10-01', end: '2022-12-31' }
+          - { shard: 2023Q1, start: '2023-01-01', end: '2023-03-31' }
+          - { shard: 2023Q2, start: '2023-04-01', end: '2023-06-30' }
+          - { shard: 2023Q3, start: '2023-07-01', end: '2023-09-30' }
+          - { shard: 2023Q4, start: '2023-10-01', end: '2023-12-31' }
+          - { shard: 2024Q1, start: '2024-01-01', end: '2024-03-31' }
+          - { shard: 2024Q2, start: '2024-04-01', end: '2024-06-30' }
+          - { shard: 2024Q3, start: '2024-07-01', end: '2024-09-30' }
+          - { shard: 2024Q4, start: '2024-10-01', end: '2024-12-31' }
+          - { shard: 2025Q1, start: '2025-01-01', end: '2025-03-31' }
+          - { shard: 2025Q2, start: '2025-04-01', end: '2025-06-30' }
+          - { shard: 2025Q3, start: '2025-07-01', end: '2025-09-30' }
+          - { shard: 2025Q4, start: '2025-10-01', end: '2025-12-31' }
+          - { shard: 2026Q1, start: '2026-01-01', end: '2026-03-31' }
+          - { shard: 2026Q2, start: '2026-04-01', end: '2026-06-30' }
+          - { shard: 2026Q3P, start: '2026-07-01', end: '2026-07-16' }
 
+    name: Backfill ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -104,35 +143,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas pyarrow akshare
 
-      - name: Backfill one calendar year
+      - name: Backfill one isolated shard
         shell: bash
         run: |
-          year="${{ matrix.year }}"
-          start="${year}-01-01"
-          if [ "$year" = "2026" ]; then
-            end="2026-07-16"
-          else
-            end="${year}-12-31"
-          fi
-          root="/tmp/v417-${year}"
+          shard="${{ matrix.shard }}"
+          root="/tmp/v417-${shard}"
           rm -rf "$root"
           python v4_17_point_in_time_announcement_backfill.py \
-            --start "$start" \
-            --end "$end" \
+            --start "${{ matrix.start }}" \
+            --end "${{ matrix.end }}" \
             --output-root "$root/data_lake/raw/eastmoney/notices" \
             --manifest-root "$root/data_lake/manifests" \
             --sleep 0.25
 
-      - name: Upload yearly partition
+      - name: Upload shard partition
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v4-17-notices-${{ matrix.year }}
-          path: /tmp/v417-${{ matrix.year }}
+          name: v4-17-notices-${{ matrix.shard }}
+          path: /tmp/v417-${{ matrix.shard }}
           if-no-files-found: warn
 
   validate-and-persist:
-    if: github.event_name != 'pull_request'
+    if: always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && needs.backfill.result != 'skipped'
     needs: backfill
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -152,21 +185,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas pyarrow
 
-      - name: Download yearly partitions
+      - name: Download isolated shard artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: v4-17-notices-*
-          path: /tmp/v417-merged
-          merge-multiple: true
+          path: /tmp/v417-shards
+          merge-multiple: false
 
-      - name: Materialize merged event lake
+      - name: Materialize deterministic canonical yearly archive
+        id: merge
         shell: bash
         run: |
-          mkdir -p data_lake/raw/eastmoney/notices data_lake/manifests
-          cp -R /tmp/v417-merged/data_lake/raw/eastmoney/notices/. data_lake/raw/eastmoney/notices/
-          cp /tmp/v417-merged/data_lake/manifests/v4_17_eastmoney_notice_requests_*.csv data_lake/manifests/
+          rm -rf \
+            data_lake/raw/eastmoney/notices/year=2021 \
+            data_lake/raw/eastmoney/notices/year=2022 \
+            data_lake/raw/eastmoney/notices/year=2023 \
+            data_lake/raw/eastmoney/notices/year=2024 \
+            data_lake/raw/eastmoney/notices/year=2025 \
+            data_lake/raw/eastmoney/notices/year=2026
+          rm -f data_lake/manifests/v4_17_eastmoney_notice_requests_{2021,2022,2023,2024,2025,2026}.csv
+          python v4_17_merge_backfill_shards.py \
+            --input-root /tmp/v417-shards \
+            --start 2021-01-01 \
+            --end 2026-07-16 \
+            --report output/v4_17_shard_merge.json
 
       - name: Validate full point-in-time archive
+        id: validate
+        continue-on-error: true
         run: |
           python v4_17_validate_event_lake.py \
             --start 2021-01-01 \
@@ -174,6 +220,7 @@ jobs:
             --output output/v4_17_event_lake_validation.json
 
       - name: Enforce full-backfill completion gate
+        id: gate
         run: |
           python v4_17_full_backfill_gate.py \
             --start 2021-01-01 \
@@ -187,23 +234,28 @@ jobs:
         with:
           name: v4-17-validation
           path: |
+            output/v4_17_shard_merge.json
             output/v4_17_event_lake_validation.json
             output/v4_17_full_backfill_gate.json
             data_lake/manifests/v4_17_eastmoney_notice_requests_*.csv
           if-no-files-found: warn
 
       - name: Persist validated V4.17 event lake
+        if: steps.merge.outcome == 'success' && steps.validate.outcome == 'success' && steps.gate.outcome == 'success'
         shell: bash
         run: |
           git lfs install
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data_lake/raw/eastmoney/notices
-          git add data_lake/manifests/v4_17_eastmoney_notice_requests_*.csv
+          git add -A data_lake/raw/eastmoney/notices
+          for year in 2021 2022 2023 2024 2025 2026; do
+            git add -A -- "data_lake/manifests/v4_17_eastmoney_notice_requests_${year}.csv"
+          done
+          git add -f output/v4_17_shard_merge.json
           git add -f output/v4_17_event_lake_validation.json
           git add -f output/v4_17_full_backfill_gate.json
           if ! git diff --cached --quiet; then
             git commit -m "data: persist V4.17 point-in-time announcements [skip ci]"
             git pull --rebase origin main
-            git push
+            git push origin HEAD:main
           fi
