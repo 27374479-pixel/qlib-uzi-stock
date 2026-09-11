@@ -1,0 +1,244 @@
+name: V4.18 event-cluster text calibration
+
+on:
+  pull_request:
+    paths:
+      - "v4_18_event_text_features.py"
+      - "v4_18_prepare_event_text_audit.py"
+      - "v4_18_freeze_event_cluster_config.py"
+      - "V4_18_EVENT_CLUSTER_TEXT_CALIBRATION.md"
+      - ".github/workflows/v4-18-event-cluster-text-calibration.yml"
+  push:
+    branches: [main]
+    paths:
+      - "v4_18_event_text_features.py"
+      - "v4_18_prepare_event_text_audit.py"
+      - "v4_18_freeze_event_cluster_config.py"
+      - "V4_18_EVENT_CLUSTER_TEXT_CALIBRATION.md"
+      - ".github/workflows/v4-18-event-cluster-text-calibration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyarrow
+
+      - name: Build market-blind synthetic causal fixture
+        run: |
+          rm -rf /tmp/v418b
+          mkdir -p /tmp/v418b/derived /tmp/v418b/output
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('/tmp/v418b')
+          sessions = ['2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17','2026-07-20']
+          calendar_hash = hashlib.sha256('\n'.join(sessions).encode()).hexdigest()
+          artifact_hash = hashlib.sha256(
+              '\n'.join(f'{d}|20' for d in sessions).encode()
+          ).hexdigest()
+          cal = pd.DataFrame({
+              'trade_date': sessions,
+              'active_instruments': [20] * len(sessions),
+              'calendar_sha256': [calendar_hash] * len(sessions),
+              'calendar_artifact_sha256': [artifact_hash] * len(sessions),
+              'calendar_version': ['v4.18-a.2'] * len(sessions),
+          })
+          cal.to_parquet(root / 'derived/market_sessions.parquet', index=False)
+
+          titles = [
+              '关于签订重大合同的公告',
+              '关于签署重大合同的公告',
+              '关于与英伟达签署战略合作协议的公告',
+              '关于英伟达相关业务合作进展的公告',
+              '关于筹划重大资产重组的停牌公告',
+              '关于重大资产重组进展的公告',
+              '关于董事会决议的公告',
+              '关于董事会决议的公告',
+              '关于股东减持股份计划的公告',
+              '关于控股股东增持股份计划的公告',
+              '关于获得项目订单的公告',
+              '关于收到项目中标通知书的公告',
+          ]
+          rows = []
+          for i, title in enumerate(titles):
+              rows.append({
+                  'event_id': hashlib.sha256(f'e{i}'.encode()).hexdigest(),
+                  'instrument': f'SH{600000+i:06d}',
+                  'stock_name': f'样本{i}',
+                  'title': title,
+                  'announcement_type': '测试',
+                  'published_date': sessions[max(0, min(i // 2, 4))],
+                  'available_trade_date': sessions[min(i // 2 + 1, 5)],
+                  'causal_status': 'AVAILABLE_NEXT_SESSION',
+                  'calendar_sha256': calendar_hash,
+                  # Forbidden-looking columns are intentionally present in the
+                  # parquet. The audit reader must ignore them via its allow-list.
+                  'future_return': 999.0,
+                  'x02_pnl': 999.0,
+              })
+          pd.DataFrame(rows).to_parquet(root / 'derived/events.parquet', index=False)
+          PY
+
+      - name: Check deterministic title representation
+        run: |
+          python - <<'PY'
+          from v4_18_event_text_features import title_similarity
+          contract = title_similarity('关于签订重大合同的公告', '关于签署重大合同的公告')
+          unrelated = title_similarity('关于签订重大合同的公告', '关于董事会决议的公告')
+          generic = title_similarity('关于董事会决议的公告', '关于董事会决议的公告')
+          assert contract > unrelated, (contract, unrelated)
+          assert generic == 1.0, generic
+          # Identical generic filing templates are intentionally not solved by
+          # a magic threshold; text QA must expose/theme-filter them.
+          PY
+
+      - name: Generate blind text audit
+        run: |
+          python v4_18_prepare_event_text_audit.py \
+            --events /tmp/v418b/derived/events.parquet \
+            --calendar /tmp/v418b/derived/market_sessions.parquet \
+            --sample-per-year 100 \
+            --title-sample-per-year 20 \
+            --pairs-per-band 5 \
+            --candidate-cap-per-event 50 \
+            --max-session-gap 20 \
+            --output-pairs /tmp/v418b/output/pairs.csv \
+            --output-titles /tmp/v418b/output/titles.csv \
+            --manifest /tmp/v418b/output/audit_manifest.json
+
+      - name: Assert audit is market-blind
+        run: |
+          python - <<'PY'
+          import json
+          import pandas as pd
+          m = json.load(open('/tmp/v418b/output/audit_manifest.json'))
+          pairs = pd.read_csv('/tmp/v418b/output/pairs.csv')
+          assert m['market_blind'] is True
+          assert m['validation']['return_or_pnl_fields_read'] is False
+          assert 'future_return' not in m['allowed_event_fields']
+          assert 'x02_pnl' not in m['allowed_event_fields']
+          assert 'future_return' not in pairs.columns
+          assert 'x02_pnl' not in pairs.columns
+          assert len(pairs) > 0
+          assert pairs['pair_label'].isna().all() or (pairs['pair_label'].fillna('') == '').all()
+          PY
+
+      - name: Build deterministic source and reviewed calibration fixtures
+        run: |
+          python - <<'PY'
+          import csv, hashlib, json
+          from pathlib import Path
+          root = Path('/tmp/v418b/output')
+          rows = []
+          for i in range(50):
+              rows.append((f'p62-{i}', 0.62, 'SAME_CONTEXT'))
+          for i in range(10):
+              rows.append((f'p57-{i}', 0.57, 'SAME_CONTEXT'))
+          for i in range(5):
+              rows.append((f'n57-{i}', 0.57, 'DIFFERENT_CONTEXT'))
+          for i in range(20):
+              rows.append((f'n52-{i}', 0.52, 'DIFFERENT_CONTEXT'))
+          for i in range(55):
+              rows.append((f'n42-{i}', 0.42, 'DIFFERENT_CONTEXT'))
+          for i in range(100):
+              rows.append((f'n20-{i}', 0.20, 'DIFFERENT_CONTEXT'))
+
+          source = root / 'source_pairs.csv'
+          reviewed = root / 'reviewed.csv'
+          with open(source, 'w', newline='', encoding='utf-8') as f:
+              w = csv.writer(f)
+              w.writerow(['pair_id','similarity','pair_label','review_note'])
+              for pair_id, score, _ in rows:
+                  w.writerow([pair_id, score, '', ''])
+          with open(reviewed, 'w', newline='', encoding='utf-8') as f:
+              w = csv.writer(f)
+              w.writerow(['pair_id','similarity','pair_label','review_note'])
+              for pair_id, score, label in rows:
+                  w.writerow([pair_id, score, label, 'synthetic text-only label'])
+
+          source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+          manifest = {
+              'market_blind': True,
+              'text_feature_version': 'v4.18-b.text.1',
+              'similarity_metric': 'binary_cosine_char_2_3gram_ascii_token',
+              'pair_audit': {'sha256': source_hash},
+              'calendar': {'calendar_sha256': '1' * 64},
+              'validation': {'return_or_pnl_fields_read': False},
+          }
+          (root / 'freeze_manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+          PY
+
+      - name: Freeze threshold from text labels only
+        run: |
+          python v4_18_freeze_event_cluster_config.py \
+            --source-pairs /tmp/v418b/output/source_pairs.csv \
+            --pairs /tmp/v418b/output/reviewed.csv \
+            --audit-manifest /tmp/v418b/output/freeze_manifest.json \
+            --output /tmp/v418b/output/freeze.json
+
+      - name: Assert preregistered selection, provenance and lifecycle
+        run: |
+          python - <<'PY'
+          import json
+          f = json.load(open('/tmp/v418b/output/freeze.json'))
+          assert f['validation']['pass'] is True
+          assert f['validation']['source_pair_manifest_hash_verified'] is True
+          assert f['validation']['immutable_pair_identity_verified'] is True
+          assert f['market_blind'] is True
+          assert f['x02_returns_read'] is False
+          assert abs(f['similarity_threshold'] - 0.55) < 1e-12, f['similarity_threshold']
+          assert f['selected_metrics']['precision'] >= 0.90
+          assert f['selected_metrics']['recall'] == 1.0
+          assert f['text_audit']['decisive_pair_count'] == 240
+          assert f['text_audit']['positive_label_count'] == 60
+          assert f['text_audit']['negative_label_count'] == 180
+          assert f['lifecycle']['research_start_burn_in_sessions'] == 60
+          assert f['lifecycle']['quiet_reset_sessions'] == 20
+          PY
+
+      - name: Assert immutable similarity tampering is rejected
+        shell: bash
+        run: |
+          cp /tmp/v418b/output/reviewed.csv /tmp/v418b/output/tampered.csv
+          python - <<'PY'
+          import pandas as pd
+          path = '/tmp/v418b/output/tampered.csv'
+          df = pd.read_csv(path)
+          df.loc[0, 'similarity'] = 0.99
+          df.to_csv(path, index=False)
+          PY
+          if python v4_18_freeze_event_cluster_config.py \
+            --source-pairs /tmp/v418b/output/source_pairs.csv \
+            --pairs /tmp/v418b/output/tampered.csv \
+            --audit-manifest /tmp/v418b/output/freeze_manifest.json \
+            --output /tmp/v418b/output/should-not-freeze.json; then
+            echo "ERROR: tampered similarity unexpectedly accepted"
+            exit 1
+          fi
+
+      - name: Upload smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-18-event-cluster-text-calibration-smoke
+          path: /tmp/v418b/output/
+          if-no-files-found: warn
