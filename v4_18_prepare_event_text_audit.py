@@ -23,9 +23,10 @@ from v4_18_event_text_features import (
     normalize_title,
     stable_sha256,
     text_tokens,
+    theme_eligible,
 )
 
-AUDIT_VERSION = "v4.18-b.audit.1"
+AUDIT_VERSION = "v4.18-b.audit.2"
 ALLOWED_EVENT_FIELDS = [
     "event_id",
     "instrument",
@@ -159,10 +160,15 @@ def load_events(path: Path, calendar_hash: str, session_index: dict[str, int]) -
         normalize_title(title, name)
         for title, name in zip(events["title"], events["stock_name"])
     ]
-    events["tokens"] = events["normalized_title"].map(text_tokens)
-    events = events[events["tokens"].map(bool)].copy()
+    # Theme eligibility: exclude routine governance filings that produce
+    # spurious high-similarity pairs across unrelated issuers.
+    events["_theme_eligible"] = events["title"].map(theme_eligible)
+    events = events[events["_theme_eligible"]].copy()
+
+    eligible = events["normalized_title"].map(lambda title: bool(text_tokens(title)))
+    events = events[eligible].copy()
     if events.empty:
-        raise SystemExit("all normalized event titles are empty")
+        raise SystemExit("all normalized event titles are empty after theme eligibility filter")
     return events
 
 
@@ -173,6 +179,7 @@ def stratified_event_sample(events: pd.DataFrame, n_per_year: int) -> pd.DataFra
     for _, group in events.groupby("audit_year", sort=True):
         parts.append(group.nsmallest(min(n_per_year, len(group)), "_rank"))
     out = pd.concat(parts, ignore_index=True)
+    out["tokens"] = out["normalized_title"].map(text_tokens)
     return out.sort_values(["available_trade_date", "event_id"]).reset_index(drop=True)
 
 

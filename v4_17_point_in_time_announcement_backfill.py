@@ -28,6 +28,7 @@ from typing import Iterable
 
 import akshare as ak
 import pandas as pd
+import requests
 
 SCHEMA_VERSION = "v4.17-a.2"
 SOURCE_PROVIDER = "eastmoney"
@@ -187,6 +188,26 @@ def normalize_frame(
     return out, non_equity
 
 
+def verify_empty_archive(day: date) -> pd.DataFrame:
+    """Confirm AKShare's empty-frame KeyError against its original endpoint."""
+    response = requests.get(
+        "https://np-anotice-stock.eastmoney.com/api/security/ann",
+        params={"sr": "-1", "page_size": "100", "page_index": "1",
+                "ann_type": "A", "client_source": "web", "f_node": "0",
+                "s_node": "0", "begin_time": day.isoformat(), "end_time": day.isoformat()},
+        timeout=30,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict) or payload.get("success") != 1 or payload.get("error") not in ("", None) or type(data.get("total_hits")) is not int or data["total_hits"] != 0 or data.get("list") != []:
+        raise ValueError("original archive did not explicitly confirm zero announcements")
+    frame = pd.DataFrame(columns=sorted(EXPECTED_COLUMNS))
+    frame.attrs["empty_response_sha256"] = sha256_text(stable_json(payload))
+    frame.attrs["empty_response_json"] = stable_json(payload)
+    return frame
+
+
 def fetch_one_day(
     day: date, max_retries: int, base_sleep: float
 ) -> tuple[pd.DataFrame, int, str | None]:
@@ -194,7 +215,12 @@ def fetch_one_day(
     last_error: str | None = None
     for attempt in range(1, max_retries + 1):
         try:
-            frame = ak.stock_notice_report(symbol=SOURCE_SYMBOL, date=ymd)
+            try:
+                frame = ak.stock_notice_report(symbol=SOURCE_SYMBOL, date=ymd)
+            except KeyError as exc:
+                if exc.args != ("代码",):
+                    raise
+                frame = verify_empty_archive(day)
             return frame, attempt, None
         except Exception as exc:  # network/provider failures are ledgered
             last_error = f"{type(exc).__name__}: {exc}"
@@ -292,6 +318,8 @@ def main() -> None:
                 "equity_rows": int(len(normalized)),
                 "non_equity_rows": int(non_equity),
                 "error": error or "",
+                "empty_response_sha256": raw.attrs.get("empty_response_sha256", "") if raw is not None else "",
+                "empty_response_json": raw.attrs.get("empty_response_json", "") if raw is not None else "",
                 "request_started_at": request_started.isoformat(),
                 "retrieved_at": retrieved_at,
             }
