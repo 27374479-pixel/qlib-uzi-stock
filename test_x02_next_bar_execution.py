@@ -1,8 +1,23 @@
+from types import SimpleNamespace
+
 import pandas as pd
 import pytest
 
 import audit_x02_next_bar_execution as audit
-import v4_3_long_only_portfolio as engine
+
+
+@pytest.fixture(autouse=True)
+def _stub_legacy_engine(monkeypatch):
+    """Keep these accounting tests independent of the full research stack."""
+    def net_return(entry, exit_px, dates, cost_name):
+        del dates, cost_name
+        return exit_px / entry - 1.0
+
+    monkeypatch.setattr(
+        audit,
+        "_engine",
+        lambda: SimpleNamespace(_net_return=net_return),
+    )
 
 
 def _selected():
@@ -30,13 +45,7 @@ def test_unfilled_next_bar_slot_stays_cash_instead_of_reweighting():
     series, ledger = audit.strict_next_bar_portfolio(
         selected, next_bar, [pd.Timestamp("2024-01-02")], "BASE"
     )
-    expected_filled = engine._net_return(
-        pd.Series([10.0, 10.0]),
-        pd.Series([11.0, 11.0]),
-        pd.Series(pd.to_datetime(["2024-01-02", "2024-01-02"])),
-        "BASE",
-    )
-    assert series.iloc[0] == pytest.approx(float(expected_filled.sum() / 3.0))
+    assert series.iloc[0] == pytest.approx((0.10 + 0.10 + 0.0) / 3.0)
     assert ledger["next_bar_executable"].tolist() == [True, True, False]
     assert ledger["cash_slot"].tolist() == [False, False, True]
 
