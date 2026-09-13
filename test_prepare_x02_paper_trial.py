@@ -70,6 +70,7 @@ def test_contract_mismatch_blocks_forward_trial():
 def test_paper_trial_contract_is_frozen_and_never_authorizes_live_trading():
     assert PAPER_TRIAL_CONTRACT["strategy"]["top_n"] == 3
     assert PAPER_TRIAL_CONTRACT["decision_and_execution"]["limit_buffer"] == 0.005
-    assert PAPER_TRIAL_CONTRACT["forward_observation"]["minimum_calendar_sessions"] == 126
+    assert PAPER_TRIAL_CONTRACT["forward_observation"]["minimum_trading_sessions"] == 126
+    assert PAPER_TRIAL_CONTRACT["forward_observation"]["descriptive_checkpoints_trading_sessions"] == [21, 63, 126]
     assert PAPER_TRIAL_CONTRACT["live_trading_authorized"] is False
     assert len(canonical_sha256(PAPER_TRIAL_CONTRACT)) == 64
