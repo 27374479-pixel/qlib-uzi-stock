@@ -13,7 +13,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from x02_provenance import file_fingerprint, validate_reproduction_artifacts
+from x02_provenance import SELECTION_FILES, file_fingerprint, validate_reproduction_artifacts
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "output" / "x02_reproduction_20260912"
@@ -31,6 +31,7 @@ EXPECTED_OUTPUTS = (
     "minute_bar_structure_audit.json",
     "report.json",
     "features.parquet",
+    *SELECTION_FILES.values(),
     "next_bar_execution_audit.json",
     "next_bar_execution_comparison.json",
     "next_bar_execution_comparison.md",
@@ -53,7 +54,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--reuse-reproduction",
         action="store_true",
-        help="reuse report.json/features.parquet only when their recorded hashes match the current engine and artifacts",
+        help=(
+            "reuse report/features/frozen-selection artifacts only when all recorded hashes "
+            "match the current engine and exact local files"
+        ),
     )
     return p.parse_args()
 
@@ -88,7 +92,7 @@ def main() -> None:
             )
 
     manifest = {
-        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V3",
+        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V4",
         "parameter_search": False,
         "post_result_retuning_authorized": False,
         "live_trading_authorized": False,
