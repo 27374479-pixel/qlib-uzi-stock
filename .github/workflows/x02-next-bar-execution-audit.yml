@@ -11,6 +11,7 @@ on:
       - "analyze_x02_execution_uncertainty_v2.py"
       - "analyze_x02_execution_stability.py"
       - "evaluate_x02_execution_gate.py"
+      - "prepare_x02_paper_trial.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
       - "reproduce_x02_local.py"
@@ -21,6 +22,7 @@ on:
       - "test_x02_execution_uncertainty.py"
       - "test_analyze_x02_execution_stability.py"
       - "test_evaluate_x02_execution_gate.py"
+      - "test_prepare_x02_paper_trial.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
@@ -35,6 +37,7 @@ on:
       - "analyze_x02_execution_uncertainty_v2.py"
       - "analyze_x02_execution_stability.py"
       - "evaluate_x02_execution_gate.py"
+      - "prepare_x02_paper_trial.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
       - "reproduce_x02_local.py"
@@ -45,6 +48,7 @@ on:
       - "test_x02_execution_uncertainty.py"
       - "test_analyze_x02_execution_stability.py"
       - "test_evaluate_x02_execution_gate.py"
+      - "test_prepare_x02_paper_trial.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
@@ -84,6 +88,7 @@ jobs:
           python -m py_compile analyze_x02_execution_uncertainty_v2.py
           python -m py_compile analyze_x02_execution_stability.py
           python -m py_compile evaluate_x02_execution_gate.py
+          python -m py_compile prepare_x02_paper_trial.py
           python -m py_compile run_x02_execution_validation.py
 
       - name: Run next-bar execution regression tests
@@ -96,5 +101,6 @@ jobs:
             test_x02_execution_uncertainty.py \
             test_analyze_x02_execution_stability.py \
             test_evaluate_x02_execution_gate.py \
+            test_prepare_x02_paper_trial.py \
             test_run_x02_execution_validation.py \
             test_x02_provenance.py
