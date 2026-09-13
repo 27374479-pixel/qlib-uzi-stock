@@ -1,8 +1,8 @@
 """Run the frozen X02 execution-validation chain locally in a fixed order.
 
-This is orchestration only. It does not tune parameters. The final gate applies
-a pre-registered minimum execution-survival rule. The runner fails fast and
-records source/output hashes.
+This is orchestration only. It does not tune parameters. The final historical
+gate can at most unlock a frozen forward paper trial; neither the gate nor the
+runner authorizes live trading. The runner fails fast and records hashes.
 """
 from __future__ import annotations
 
@@ -29,6 +29,7 @@ STAGES = (
     ("execution_uncertainty", "analyze_x02_execution_uncertainty.py"),
     ("execution_stability", "analyze_x02_execution_stability.py"),
     ("execution_gate", "evaluate_x02_execution_gate.py"),
+    ("paper_trial_readiness", "prepare_x02_paper_trial.py"),
 )
 EXPECTED_OUTPUTS = (
     "minute_bar_structure_audit.json",
@@ -45,6 +46,8 @@ EXPECTED_OUTPUTS = (
     "execution_stability.md",
     "execution_gate.json",
     "execution_gate.md",
+    "paper_trial_contract.json",
+    "paper_trial_readiness.json",
 )
 SOURCE_FILES = (
     "audit_x02_minute_bar_structure.py",
@@ -56,6 +59,7 @@ SOURCE_FILES = (
     "analyze_x02_execution_uncertainty_v2.py",
     "analyze_x02_execution_stability.py",
     "evaluate_x02_execution_gate.py",
+    "prepare_x02_paper_trial.py",
     "x02_provenance.py",
     "v4_3_long_only_portfolio.py",
 )
@@ -104,7 +108,7 @@ def main() -> None:
             )
 
     manifest = {
-        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V6",
+        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V7",
         "parameter_search": False,
         "post_result_retuning_authorized": False,
         "live_trading_authorized": False,
@@ -151,15 +155,15 @@ def main() -> None:
     manifest["failed_stage"] = None
     manifest["final_lineage"] = final_lineage
     manifest["artifacts"] = artifact_fingerprints()
-    gate_path = OUT / "execution_gate.json"
-    if gate_path.exists():
-        manifest["execution_gate"] = json.loads(gate_path.read_text(encoding="utf-8"))
-    uncertainty_path = OUT / "execution_uncertainty.json"
-    if uncertainty_path.exists():
-        manifest["execution_uncertainty"] = json.loads(uncertainty_path.read_text(encoding="utf-8"))
-    stability_path = OUT / "execution_stability.json"
-    if stability_path.exists():
-        manifest["execution_stability"] = json.loads(stability_path.read_text(encoding="utf-8"))
+    for name, filename in (
+        ("execution_gate", "execution_gate.json"),
+        ("execution_uncertainty", "execution_uncertainty.json"),
+        ("execution_stability", "execution_stability.json"),
+        ("paper_trial_readiness", "paper_trial_readiness.json"),
+    ):
+        path = OUT / filename
+        if path.exists():
+            manifest[name] = json.loads(path.read_text(encoding="utf-8"))
     manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     _write_manifest(manifest)
     print(f"\nPASS: {MANIFEST}", flush=True)
