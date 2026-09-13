@@ -7,10 +7,13 @@ on:
       - "audit_x02_minute_bar_structure.py"
       - "compare_x02_next_bar_execution.py"
       - "run_x02_execution_validation.py"
+      - "x02_provenance.py"
+      - "reproduce_x02_local.py"
       - "test_x02_next_bar_execution.py"
       - "test_x02_minute_bar_structure.py"
       - "test_compare_x02_next_bar_execution.py"
       - "test_run_x02_execution_validation.py"
+      - "test_x02_provenance.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
   push:
     branches: [main]
@@ -19,10 +22,13 @@ on:
       - "audit_x02_minute_bar_structure.py"
       - "compare_x02_next_bar_execution.py"
       - "run_x02_execution_validation.py"
+      - "x02_provenance.py"
+      - "reproduce_x02_local.py"
       - "test_x02_next_bar_execution.py"
       - "test_x02_minute_bar_structure.py"
       - "test_compare_x02_next_bar_execution.py"
       - "test_run_x02_execution_validation.py"
+      - "test_x02_provenance.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
   workflow_dispatch:
 
@@ -50,6 +56,8 @@ jobs:
 
       - name: Compile execution audit modules
         run: |
+          python -m py_compile x02_provenance.py
+          python -m py_compile reproduce_x02_local.py
           python -m py_compile audit_x02_next_bar_execution.py
           python -m py_compile audit_x02_minute_bar_structure.py
           python -m py_compile compare_x02_next_bar_execution.py
@@ -61,4 +69,5 @@ jobs:
             test_x02_next_bar_execution.py \
             test_x02_minute_bar_structure.py \
             test_compare_x02_next_bar_execution.py \
-            test_run_x02_execution_validation.py
+            test_run_x02_execution_validation.py \
+            test_x02_provenance.py
