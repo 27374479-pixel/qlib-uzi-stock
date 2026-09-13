@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - ".github/workflows/x02-full-backtest.yml"
+      - "reproduce_x02_local.py"
+      - "run_x02_execution_validation.py"
+      - "audit_x02_next_bar_execution.py"
+      - "analyze_x02_execution_uncertainty_v2.py"
+      - "analyze_x02_execution_stability.py"
+      - "evaluate_x02_execution_gate.py"
+      - "prepare_x02_paper_trial.py"
   workflow_dispatch:
 
 permissions:
@@ -58,7 +65,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           out = Path('output/x02_reproduction_20260912')
-          for name in ['execution_gate.json','paper_trial_readiness.json','execution_uncertainty.json','execution_stability.json','next_bar_execution_comparison.json','execution_validation_run_manifest.json']:
+          for name in ['report.json','execution_gate.json','paper_trial_readiness.json','execution_uncertainty.json','execution_stability.json','next_bar_execution_comparison.json','execution_validation_run_manifest.json']:
               p = out / name
               print(f'\n===== {name} =====')
               if p.exists():
