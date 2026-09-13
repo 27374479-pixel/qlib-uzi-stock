@@ -119,7 +119,7 @@ def render_markdown(result: dict[str, Any]) -> str:
         f"- Next-record CAGR: {pct(result.get('primary_next_bar_cagr'))}",
         f"- CAGR retention vs legacy: {pct(result.get('primary_cagr_retention'))}",
         f"- Fill rate: {pct(result.get('primary_fill_rate'))}",
-        f"- Mean filled entry slippage vs 14:45: {pct(result.get('primary_mean_entry_slippage_vs_1445'))}",
+        f"- Mean entry slippage vs 14:45: {pct(result.get('primary_mean_entry_slippage_vs_1445'))}",
         f"- P90 filled entry slippage vs 14:45: {pct(result.get('primary_p90_entry_slippage_vs_1445'))}",
         f"- Next-record max drawdown: {pct(result.get('primary_next_bar_max_drawdown'))}",
         f"- Bootstrap probability CAGR > 0: {pct(result.get('bootstrap_probability_cagr_positive'))}",
