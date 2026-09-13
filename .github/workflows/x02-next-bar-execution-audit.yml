@@ -5,14 +5,19 @@ on:
     paths:
       - "audit_x02_next_bar_execution.py"
       - "audit_x02_minute_bar_structure.py"
+      - "bind_x02_execution_artifacts.py"
       - "compare_x02_next_bar_execution.py"
+      - "analyze_x02_execution_uncertainty.py"
+      - "analyze_x02_execution_uncertainty_v2.py"
       - "evaluate_x02_execution_gate.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
       - "reproduce_x02_local.py"
       - "test_x02_next_bar_execution.py"
       - "test_x02_minute_bar_structure.py"
+      - "test_x02_artifact_manifest.py"
       - "test_compare_x02_next_bar_execution.py"
+      - "test_x02_execution_uncertainty.py"
       - "test_evaluate_x02_execution_gate.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
@@ -22,14 +27,19 @@ on:
     paths:
       - "audit_x02_next_bar_execution.py"
       - "audit_x02_minute_bar_structure.py"
+      - "bind_x02_execution_artifacts.py"
       - "compare_x02_next_bar_execution.py"
+      - "analyze_x02_execution_uncertainty.py"
+      - "analyze_x02_execution_uncertainty_v2.py"
       - "evaluate_x02_execution_gate.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
       - "reproduce_x02_local.py"
       - "test_x02_next_bar_execution.py"
       - "test_x02_minute_bar_structure.py"
+      - "test_x02_artifact_manifest.py"
       - "test_compare_x02_next_bar_execution.py"
+      - "test_x02_execution_uncertainty.py"
       - "test_evaluate_x02_execution_gate.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
@@ -64,7 +74,10 @@ jobs:
           python -m py_compile reproduce_x02_local.py
           python -m py_compile audit_x02_next_bar_execution.py
           python -m py_compile audit_x02_minute_bar_structure.py
+          python -m py_compile bind_x02_execution_artifacts.py
           python -m py_compile compare_x02_next_bar_execution.py
+          python -m py_compile analyze_x02_execution_uncertainty.py
+          python -m py_compile analyze_x02_execution_uncertainty_v2.py
           python -m py_compile evaluate_x02_execution_gate.py
           python -m py_compile run_x02_execution_validation.py
 
@@ -73,7 +86,9 @@ jobs:
           pytest -q \
             test_x02_next_bar_execution.py \
             test_x02_minute_bar_structure.py \
+            test_x02_artifact_manifest.py \
             test_compare_x02_next_bar_execution.py \
+            test_x02_execution_uncertainty.py \
             test_evaluate_x02_execution_gate.py \
             test_run_x02_execution_validation.py \
             test_x02_provenance.py
