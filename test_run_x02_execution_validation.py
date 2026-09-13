@@ -28,6 +28,8 @@ def test_artifact_fingerprints_are_explicit_about_missing_outputs(tmp_path: Path
     assert result[EXPECTED_OUTPUTS[1]]["sha256"] is None
 
 
-def test_gate_outputs_are_part_of_expected_artifacts():
+def test_gate_and_frozen_selection_outputs_are_expected_artifacts():
     assert "execution_gate.json" in EXPECTED_OUTPUTS
     assert "execution_gate.md" in EXPECTED_OUTPUTS
+    assert "original_gate_selected.parquet" in EXPECTED_OUTPUTS
+    assert "no_market_gate_selected.parquet" in EXPECTED_OUTPUTS
