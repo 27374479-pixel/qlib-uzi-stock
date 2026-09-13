@@ -2,17 +2,13 @@
 
 This module does not search parameters and does not alter the legacy X02
 selection. It freezes the Top-3 decision at the observed 14:45 close, then asks
-whether each selected slot could still be filled at the open of the *next*
-five-minute bar, whose persisted end-label is 14:50. Under the legacy engine's
-end-labelled-bar convention, this is the first bar after the 14:45 close; it is
-not a claim that the fill occurs at literal wall-clock 14:50.
+whether each selected slot could still be filled at the open of the persisted
+five-minute record labelled 14:50. The exact vendor wall-clock meaning of that
+label is audited separately and is not assumed here.
 
 Unfilled slots remain cash; they are never replaced with a lower-ranked stock
-after seeing next-bar data. The audit is deliberately separate from
-``reproduce_x02_local.py`` so the legacy reproduction remains byte-for-byte
-interpretable. The heavy research engine is imported lazily so the accounting
-rules can be unit-tested in a minimal CI environment without loading the full
-local research stack.
+after seeing next-bar data. The heavy research engine is imported lazily so the
+accounting rules can be unit-tested in a minimal CI environment.
 """
 from __future__ import annotations
 
@@ -21,6 +17,8 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from x02_provenance import require_reproduction_artifacts
 
 OUT = Path("output/x02_reproduction_20260912")
 NEXT_BAR_LABEL = "14:50"
@@ -36,14 +34,11 @@ PERIODS = {
 
 
 def _engine() -> Any:
-    """Load the legacy portfolio engine only when repository data work needs it."""
     import v4_3_long_only_portfolio as engine
-
     return engine
 
 
 def select_legacy_top3(features: pd.DataFrame, variant: str) -> pd.DataFrame:
-    """Freeze the legacy selection using information available by 14:45."""
     engine = _engine()
     y = features[features["base_executable"] & features["limit_gap"].ge(LIMIT_BUFFER)].copy()
     if variant == "original_gate":
@@ -55,7 +50,6 @@ def select_legacy_top3(features: pd.DataFrame, variant: str) -> pd.DataFrame:
 
 
 def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
-    """Read the next end-labelled five-minute bar needed for execution audit."""
     import duckdb
 
     engine = _engine()
@@ -101,25 +95,11 @@ def strict_next_bar_portfolio(
     top_n: int = TOP_N,
     limit_buffer: float = LIMIT_BUFFER,
 ) -> tuple[pd.Series, pd.DataFrame]:
-    """Price filled slots at next-bar open and keep failed entries as cash.
-
-    Selection is already frozen. A selected slot is executable only if the
-    next-bar open exists, the bar has positive volume/amount, and the actual
-    fill remains at least ``limit_buffer`` below the known daily upper limit.
-
-    Missing exit data after a successful entry is an audit failure rather than
-    a reason to silently drop/reweight the position.
-    """
     idx = pd.DatetimeIndex(pd.to_datetime(all_dates)).normalize()
     if selected.empty:
         return pd.Series(0.0, index=idx, name="net_return"), selected.copy()
 
-    z = selected.merge(
-        next_bar,
-        on=["trade_date", "instrument"],
-        how="left",
-        validate="one_to_one",
-    ).copy()
+    z = selected.merge(next_bar, on=["trade_date", "instrument"], how="left", validate="one_to_one").copy()
     counts = z.groupby("trade_date")["instrument"].size()
     bad_counts = counts[counts.ne(top_n)]
     if not bad_counts.empty:
@@ -144,10 +124,7 @@ def strict_next_bar_portfolio(
     if bool(filled.any()):
         engine = _engine()
         z.loc[filled, "slot_return"] = engine._net_return(
-            z.loc[filled, "next_entry_open"],
-            z.loc[filled, "exit_1000"],
-            z.loc[filled, "trade_date"],
-            cost_name,
+            z.loc[filled, "next_entry_open"], z.loc[filled, "exit_1000"], z.loc[filled, "trade_date"], cost_name
         )
     z["cash_slot"] = ~z["next_bar_executable"]
 
@@ -156,12 +133,7 @@ def strict_next_bar_portfolio(
     return series, z
 
 
-def _period_slice(
-    series: pd.Series,
-    ledger: pd.DataFrame,
-    start: pd.Timestamp | None,
-    end: pd.Timestamp | None,
-) -> tuple[pd.Series, pd.DataFrame]:
+def _period_slice(series: pd.Series, ledger: pd.DataFrame, start: pd.Timestamp | None, end: pd.Timestamp | None):
     s = series
     z = ledger
     if start is not None:
@@ -175,14 +147,8 @@ def _period_slice(
 
 def _execution_stats(ledger: pd.DataFrame) -> dict[str, object]:
     if ledger.empty:
-        return {
-            "selection_rows": 0,
-            "filled_rows": 0,
-            "fill_rate": None,
-            "cash_slots": 0,
-            "active_selection_days": 0,
-            "days_with_any_unfilled_slot": 0,
-        }
+        return {"selection_rows": 0, "filled_rows": 0, "fill_rate": None, "cash_slots": 0,
+                "active_selection_days": 0, "days_with_any_unfilled_slot": 0}
     filled = ledger[ledger["next_bar_executable"]]
     return {
         "selection_rows": int(len(ledger)),
@@ -196,11 +162,9 @@ def _execution_stats(ledger: pd.DataFrame) -> dict[str, object]:
 
 def main() -> None:
     engine = _engine()
+    lineage = require_reproduction_artifacts(OUT, Path(engine.__file__))
     features_path = OUT / "features.parquet"
     legacy_report_path = OUT / "report.json"
-    if not features_path.exists() or not legacy_report_path.exists():
-        raise SystemExit("run reproduce_x02_local.py first; local reproduction artifacts are missing")
-
     features = pd.read_parquet(features_path)
     legacy_report = json.loads(legacy_report_path.read_text(encoding="utf-8"))
     first = pd.Timestamp(legacy_report["coverage"]["first"])
@@ -208,32 +172,29 @@ def main() -> None:
     all_dates = [d for d in pd.to_datetime(engine._prepare_candidates()[1]) if first <= d <= last]
 
     report: dict[str, object] = {
-        "audit": "X02_NEXT_BAR_EXECUTION_V1",
+        "audit": "X02_NEXT_BAR_EXECUTION_V2",
         "selection_frozen_at": "14:45 bar close",
-        "fill_proxy": "open of next 5m bar labelled 14:50",
+        "fill_proxy": "open of persisted 5m record labelled 14:50",
         "bar_label_contract": (
-            "legacy minute bars are treated as end-labelled; the 14:50-labelled bar is the first bar "
-            "after the 14:45 close, not a claim of a literal 14:50 clock-time fill"
+            "14:50 is the next persisted five-minute label used after the frozen 14:45 decision; "
+            "the separate structure audit may support end-labelling but cannot prove vendor wall-clock semantics"
         ),
+        "inputs": lineage,
         "top_n": TOP_N,
         "limit_buffer": LIMIT_BUFFER,
         "parameter_search": False,
         "rank_replacement_after_next_bar": False,
         "unfilled_slot_policy": "cash; no reweighting and no replacement",
         "missing_exit_policy": "hard failure after a successful entry",
-        "periods": {
-            name: {
-                "start": None if start is None else str(start.date()),
-                "end": None if end is None else str(end.date()),
-            }
-            for name, (start, end) in PERIODS.items()
-        },
+        "periods": {name: {"start": None if start is None else str(start.date()),
+                           "end": None if end is None else str(end.date())}
+                    for name, (start, end) in PERIODS.items()},
         "results": {},
         "limitations": [
             "This is an execution stress test, not a new strategy search.",
-            "A next-bar open is a conservative causal fill proxy, not proof that a live order would fill at that exact price.",
-            "Positive bar volume/amount is used only as an ex-post executability check and does not imply guaranteed fill at the bar open.",
-            "The persisted vendor bar-label convention should still be independently inspected on local raw data before live-trading interpretation.",
+            "A next-record open is a causal stress proxy, not proof that a live order would fill at that exact price.",
+            "Positive bar volume/amount is an ex-post executability check and does not imply guaranteed fill at the bar open.",
+            "Vendor bar-label semantics require independent confirmation before live-trading interpretation.",
         ],
     }
 
