@@ -7,5 +7,7 @@ pandas
 scikit-learn
 baostock
 pyarrow
+duckdb
+pypdf
 -r UZI-Skill/requirements.txt
 -e ./Sequoia-X

@@ -103,7 +103,7 @@ jobs:
               'cluster_config_version': 'v4.18-b.cluster-freeze.2',
               'market_blind': True,
               'x02_returns_read': False,
-              'text_feature_version': 'v4.18-b.text.1',
+              'text_feature_version': 'v4.18-b.text.2',
               'similarity_metric': 'binary_cosine_char_2_3gram_ascii_token',
               'similarity_threshold': 0.55,
               'calendar_sha256': date_hash,

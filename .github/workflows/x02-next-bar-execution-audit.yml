@@ -1,0 +1,109 @@
+name: X02 next-bar execution audit tests
+
+on:
+  pull_request:
+    paths:
+      - "audit_x02_next_bar_execution.py"
+      - "audit_x02_minute_bar_structure.py"
+      - "bind_x02_execution_artifacts.py"
+      - "compare_x02_next_bar_execution.py"
+      - "analyze_x02_execution_uncertainty.py"
+      - "analyze_x02_execution_uncertainty_v2.py"
+      - "analyze_x02_execution_stability.py"
+      - "evaluate_x02_execution_gate.py"
+      - "prepare_x02_paper_trial.py"
+      - "run_x02_execution_validation.py"
+      - "x02_provenance.py"
+      - "reproduce_x02_local.py"
+      - "test_x02_reproduction.py"
+      - "test_x02_next_bar_execution.py"
+      - "test_x02_minute_bar_structure.py"
+      - "test_x02_artifact_manifest.py"
+      - "test_compare_x02_next_bar_execution.py"
+      - "test_x02_execution_uncertainty.py"
+      - "test_analyze_x02_execution_stability.py"
+      - "test_evaluate_x02_execution_gate.py"
+      - "test_prepare_x02_paper_trial.py"
+      - "test_run_x02_execution_validation.py"
+      - "test_x02_provenance.py"
+      - ".github/workflows/x02-next-bar-execution-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "audit_x02_next_bar_execution.py"
+      - "audit_x02_minute_bar_structure.py"
+      - "bind_x02_execution_artifacts.py"
+      - "compare_x02_next_bar_execution.py"
+      - "analyze_x02_execution_uncertainty.py"
+      - "analyze_x02_execution_uncertainty_v2.py"
+      - "analyze_x02_execution_stability.py"
+      - "evaluate_x02_execution_gate.py"
+      - "prepare_x02_paper_trial.py"
+      - "run_x02_execution_validation.py"
+      - "x02_provenance.py"
+      - "reproduce_x02_local.py"
+      - "test_x02_reproduction.py"
+      - "test_x02_next_bar_execution.py"
+      - "test_x02_minute_bar_structure.py"
+      - "test_x02_artifact_manifest.py"
+      - "test_compare_x02_next_bar_execution.py"
+      - "test_x02_execution_uncertainty.py"
+      - "test_analyze_x02_execution_stability.py"
+      - "test_evaluate_x02_execution_gate.py"
+      - "test_prepare_x02_paper_trial.py"
+      - "test_run_x02_execution_validation.py"
+      - "test_x02_provenance.py"
+      - ".github/workflows/x02-next-bar-execution-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install lightweight test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pytest duckdb
+
+      - name: Compile execution audit modules
+        run: |
+          python -m py_compile x02_provenance.py
+          python -m py_compile reproduce_x02_local.py
+          python -m py_compile audit_x02_next_bar_execution.py
+          python -m py_compile audit_x02_minute_bar_structure.py
+          python -m py_compile bind_x02_execution_artifacts.py
+          python -m py_compile compare_x02_next_bar_execution.py
+          python -m py_compile analyze_x02_execution_uncertainty.py
+          python -m py_compile analyze_x02_execution_uncertainty_v2.py
+          python -m py_compile analyze_x02_execution_stability.py
+          python -m py_compile evaluate_x02_execution_gate.py
+          python -m py_compile prepare_x02_paper_trial.py
+          python -m py_compile run_x02_execution_validation.py
+
+      - name: Run next-bar execution regression tests
+        run: |
+          pytest -q \
+            test_x02_reproduction.py \
+            test_x02_next_bar_execution.py \
+            test_x02_minute_bar_structure.py \
+            test_x02_artifact_manifest.py \
+            test_compare_x02_next_bar_execution.py \
+            test_x02_execution_uncertainty.py \
+            test_analyze_x02_execution_stability.py \
+            test_evaluate_x02_execution_gate.py \
+            test_prepare_x02_paper_trial.py \
+            test_run_x02_execution_validation.py \
+            test_x02_provenance.py

@@ -36,6 +36,7 @@ from v4_18_event_text_features import (
     binary_cosine,
     normalize_title,
     text_tokens,
+    theme_eligible,
 )
 
 BUILDER_VERSION = "v4.18-c.cluster-replay.1"
@@ -202,8 +203,10 @@ def load_events(path: Path, calendar_hash: str, session_index: dict[str, int], t
         normalize_title(title, name)
         for title, name in zip(events["title"], events["stock_name"])
     ]
+    events["_theme_eligible"] = events["title"].map(theme_eligible)
+    events = events[events["_theme_eligible"]].copy()
+
     events["tokens"] = events["normalized_title"].map(text_tokens)
-    # Empty-token rows cannot make a defensible semantic match. They receive singleton episodes.
     return events.sort_values(["session_index", "event_id"]).reset_index(drop=True)
 
 
