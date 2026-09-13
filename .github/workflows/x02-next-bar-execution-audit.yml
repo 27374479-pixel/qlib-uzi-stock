@@ -4,16 +4,20 @@ on:
   pull_request:
     paths:
       - "audit_x02_next_bar_execution.py"
+      - "audit_x02_minute_bar_structure.py"
       - "compare_x02_next_bar_execution.py"
       - "test_x02_next_bar_execution.py"
+      - "test_x02_minute_bar_structure.py"
       - "test_compare_x02_next_bar_execution.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
   push:
     branches: [main]
     paths:
       - "audit_x02_next_bar_execution.py"
+      - "audit_x02_minute_bar_structure.py"
       - "compare_x02_next_bar_execution.py"
       - "test_x02_next_bar_execution.py"
+      - "test_x02_minute_bar_structure.py"
       - "test_compare_x02_next_bar_execution.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
   workflow_dispatch:
@@ -43,10 +47,12 @@ jobs:
       - name: Compile execution audit modules
         run: |
           python -m py_compile audit_x02_next_bar_execution.py
+          python -m py_compile audit_x02_minute_bar_structure.py
           python -m py_compile compare_x02_next_bar_execution.py
 
       - name: Run next-bar execution regression tests
         run: |
           pytest -q \
             test_x02_next_bar_execution.py \
+            test_x02_minute_bar_structure.py \
             test_compare_x02_next_bar_execution.py
