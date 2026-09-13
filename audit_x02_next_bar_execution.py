@@ -31,6 +31,10 @@ PERIODS = {
     "development": (None, pd.Timestamp("2023-12-31")),
     "later": (pd.Timestamp("2024-01-01"), None),
 }
+LEDGER_EXECUTION_COLUMNS = (
+    "next_bar_rows", "next_entry_open", "next_entry_volume", "next_entry_amount",
+    "next_bar_limit_gap", "next_bar_executable", "slot_return", "cash_slot",
+)
 
 
 def _engine() -> Any:
@@ -57,9 +61,10 @@ def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise FileNotFoundError(f"missing persisted minute files: {missing}")
     if selected.empty:
-        return pd.DataFrame(
-            columns=["trade_date", "instrument", "next_entry_open", "next_entry_volume", "next_entry_amount"]
-        )
+        return pd.DataFrame(columns=[
+            "trade_date", "instrument", "next_bar_rows", "next_entry_open",
+            "next_entry_volume", "next_entry_amount",
+        ])
 
     keys = selected[["trade_date", "instrument"]].drop_duplicates().copy()
     con = duckdb.connect()
@@ -71,9 +76,10 @@ def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
     SELECT
         CAST(s.trade_date AS DATE) AS trade_date,
         s.instrument,
-        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{NEXT_BAR_LABEL}' THEN m.open END) AS next_entry_open,
-        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{NEXT_BAR_LABEL}' THEN m.volume END) AS next_entry_volume,
-        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{NEXT_BAR_LABEL}' THEN m.amount END) AS next_entry_amount
+        COUNT(m.datetime) AS next_bar_rows,
+        MAX(m.open) AS next_entry_open,
+        MAX(m.volume) AS next_entry_volume,
+        MAX(m.amount) AS next_entry_amount
     FROM selected s
     LEFT JOIN read_parquet([{files_sql}]) m
       ON m.instrument = s.instrument
@@ -84,7 +90,19 @@ def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
     out = con.execute(query).df()
     con.close()
     out["trade_date"] = pd.to_datetime(out["trade_date"]).dt.normalize()
+    duplicate = out["next_bar_rows"].fillna(0).gt(1)
+    if bool(duplicate.any()):
+        offenders = out.loc[duplicate, ["trade_date", "instrument", "next_bar_rows"]].astype(str).to_dict("records")
+        raise RuntimeError(f"duplicate {NEXT_BAR_LABEL} minute records for selected slots: {offenders[:10]}")
     return out
+
+
+def _empty_execution_ledger(selected: pd.DataFrame) -> pd.DataFrame:
+    ledger = selected.copy()
+    for column in LEDGER_EXECUTION_COLUMNS:
+        if column not in ledger.columns:
+            ledger[column] = pd.Series(dtype="object")
+    return ledger
 
 
 def strict_next_bar_portfolio(
@@ -97,13 +115,18 @@ def strict_next_bar_portfolio(
 ) -> tuple[pd.Series, pd.DataFrame]:
     idx = pd.DatetimeIndex(pd.to_datetime(all_dates)).normalize()
     if selected.empty:
-        return pd.Series(0.0, index=idx, name="net_return"), selected.copy()
+        return pd.Series(0.0, index=idx, name="net_return"), _empty_execution_ledger(selected)
 
     z = selected.merge(next_bar, on=["trade_date", "instrument"], how="left", validate="one_to_one").copy()
     counts = z.groupby("trade_date")["instrument"].size()
     bad_counts = counts[counts.ne(top_n)]
     if not bad_counts.empty:
         raise ValueError(f"frozen selection must contain exactly {top_n} slots per active day: {bad_counts.to_dict()}")
+    if "next_bar_rows" in z.columns:
+        duplicate = z["next_bar_rows"].fillna(0).gt(1)
+        if bool(duplicate.any()):
+            offenders = z.loc[duplicate, ["trade_date", "instrument", "next_bar_rows"]].astype(str).to_dict("records")
+            raise RuntimeError(f"duplicate next-bar records reached accounting: {offenders[:10]}")
 
     z["next_bar_limit_gap"] = z["upper_limit"] / z["next_entry_open"] - 1.0
     z["next_bar_executable"] = (
@@ -186,6 +209,7 @@ def main() -> None:
         "rank_replacement_after_next_bar": False,
         "unfilled_slot_policy": "cash; no reweighting and no replacement",
         "missing_exit_policy": "hard failure after a successful entry",
+        "duplicate_next_bar_policy": "hard failure; duplicates may not be collapsed by MAX/MIN",
         "periods": {name: {"start": None if start is None else str(start.date()),
                            "end": None if end is None else str(end.date())}
                     for name, (start, end) in PERIODS.items()},
