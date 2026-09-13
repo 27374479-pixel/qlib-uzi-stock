@@ -1,9 +1,9 @@
 """Reproduce existing X02 specification; no announcement or parameter search."""
 import json
-import hashlib
 from pathlib import Path
 import pandas as pd
 import v4_3_long_only_portfolio as engine
+from x02_provenance import sha256_file
 
 OUT = Path('output/x02_reproduction_20260912')
 
@@ -21,7 +21,8 @@ def main():
     print(f'Candidates: {len(candidates)}; extracting persisted minutes', flush=True)
     minute = engine._minute_extract(candidates)
     features = engine._add_intraday_features(candidates, minute)
-    features.to_parquet(OUT / 'features.parquet', index=False)
+    features_path = OUT / 'features.parquet'
+    features.to_parquet(features_path, index=False)
     executable = features[features.base_executable]
     if executable.empty:
         raise RuntimeError('No executable coverage')
@@ -44,7 +45,9 @@ def main():
                            later=(pd.Timestamp('2024-01-01'),None))
             reports[key] = {name:engine._metrics(*engine._slice(series,ledger,*window)) for name,window in periods.items()}
     report = dict(contract=contract, coverage=coverage, results=reports,
-                  engine_sha256=hashlib.sha256(Path(engine.__file__).read_bytes()).hexdigest(),
+                  engine_sha256=sha256_file(Path(engine.__file__)),
+                  features_sha256=sha256_file(features_path),
+                  lineage_contract='report.json is valid only with the exact engine/features hashes recorded above',
                   limitations=['Reproduces legacy execution assumptions; not live-trading certification.',
                                '14:45 close fill and missing-exit handling require separate execution audit.',
                                'Previously inspected later period is not pristine OOS.'])
