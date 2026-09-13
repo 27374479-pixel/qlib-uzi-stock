@@ -42,6 +42,15 @@ def _engine() -> Any:
     return engine
 
 
+def _validate_frozen_prices(selected: pd.DataFrame) -> None:
+    for column, label in (("entry_1445", "14:45 entries"), ("exit_1000", "10:00 exits")):
+        values = pd.to_numeric(selected[column], errors="coerce")
+        invalid = values.isna() | values.le(0)
+        if bool(invalid.any()):
+            offenders = selected.loc[invalid, ["trade_date", "instrument", column]].astype(str).to_dict("records")
+            raise RuntimeError(f"frozen selected rows have invalid {label}: {offenders[:10]}")
+
+
 def load_frozen_selection(variant: str) -> pd.DataFrame:
     if variant not in SELECTION_FILES:
         raise ValueError(f"unknown variant: {variant}")
@@ -61,10 +70,7 @@ def load_frozen_selection(variant: str) -> pd.DataFrame:
     bad = counts[counts.ne(TOP_N)]
     if not bad.empty:
         raise RuntimeError(f"frozen selection must contain exactly {TOP_N} slots per active day for {variant}")
-    missing_exit = selected["exit_1000"].isna()
-    if bool(missing_exit.any()):
-        offenders = selected.loc[missing_exit, ["trade_date", "instrument"]].astype(str).to_dict("records")
-        raise RuntimeError(f"frozen selected rows have missing 10:00 exits: {offenders[:10]}")
+    _validate_frozen_prices(selected)
     return selected
 
 
@@ -132,14 +138,12 @@ def strict_next_bar_portfolio(
     if selected.empty:
         return pd.Series(0.0, index=idx, name="net_return"), _empty_execution_ledger(selected)
 
+    _validate_frozen_prices(selected)
     z = selected.merge(next_bar, on=["trade_date", "instrument"], how="left", validate="one_to_one").copy()
     counts = z.groupby("trade_date")["instrument"].size()
     bad_counts = counts[counts.ne(top_n)]
     if not bad_counts.empty:
         raise ValueError(f"frozen selection must contain exactly {top_n} slots per active day: {bad_counts.to_dict()}")
-    if z["exit_1000"].isna().any():
-        offenders = z.loc[z["exit_1000"].isna(), ["trade_date", "instrument"]].astype(str).to_dict("records")
-        raise RuntimeError(f"frozen selected rows have missing 10:00 exits: {offenders[:10]}")
     if "next_bar_rows" in z.columns:
         duplicate = z["next_bar_rows"].fillna(0).gt(1)
         if bool(duplicate.any()):
@@ -191,11 +195,14 @@ def _execution_stats(ledger: pd.DataFrame) -> dict[str, object]:
         return {
             "selection_rows": 0, "filled_rows": 0, "fill_rate": None, "cash_slots": 0,
             "active_selection_days": 0, "days_with_any_unfilled_slot": 0,
+            "observed_next_record_rows": 0,
             "mean_entry_slippage_vs_1445": None, "median_entry_slippage_vs_1445": None,
+            "p90_entry_slippage_vs_1445": None, "worst_entry_slippage_vs_1445": None,
             "unfilled_reasons": {},
         }
     filled = ledger[ledger["next_bar_executable"]]
     observed_slippage = pd.to_numeric(ledger["entry_slippage_vs_1445"], errors="coerce").dropna()
+    filled_slippage = pd.to_numeric(filled["entry_slippage_vs_1445"], errors="coerce").dropna()
     reasons = ledger.loc[ledger["cash_slot"], "unfilled_reason"].value_counts().to_dict()
     return {
         "selection_rows": int(len(ledger)),
@@ -204,8 +211,11 @@ def _execution_stats(ledger: pd.DataFrame) -> dict[str, object]:
         "cash_slots": int(ledger["cash_slot"].sum()),
         "active_selection_days": int(ledger["trade_date"].nunique()),
         "days_with_any_unfilled_slot": int(ledger.groupby("trade_date")["cash_slot"].any().sum()),
-        "mean_entry_slippage_vs_1445": float(observed_slippage.mean()) if len(observed_slippage) else None,
-        "median_entry_slippage_vs_1445": float(observed_slippage.median()) if len(observed_slippage) else None,
+        "observed_next_record_rows": int(len(observed_slippage)),
+        "mean_entry_slippage_vs_1445": float(filled_slippage.mean()) if len(filled_slippage) else None,
+        "median_entry_slippage_vs_1445": float(filled_slippage.median()) if len(filled_slippage) else None,
+        "p90_entry_slippage_vs_1445": float(filled_slippage.quantile(0.90)) if len(filled_slippage) else None,
+        "worst_entry_slippage_vs_1445": float(filled_slippage.max()) if len(filled_slippage) else None,
         "unfilled_reasons": {str(k): int(v) for k, v in reasons.items()},
     }
 
@@ -220,7 +230,7 @@ def main() -> None:
     all_dates = [d for d in pd.to_datetime(engine._prepare_candidates()[1]) if first <= d <= last]
 
     report: dict[str, object] = {
-        "audit": "X02_NEXT_BAR_EXECUTION_V3",
+        "audit": "X02_NEXT_BAR_EXECUTION_V4",
         "selection_source": "exact frozen selection parquet artifacts from legacy reproduction",
         "selection_frozen_at": "14:45 bar close",
         "fill_proxy": "open of persisted 5m record labelled 14:50",
@@ -235,7 +245,9 @@ def main() -> None:
         "rank_replacement_after_next_bar": False,
         "unfilled_slot_policy": "cash; no reweighting and no replacement",
         "missing_exit_policy": "hard failure for any frozen selected row",
+        "invalid_price_policy": "hard failure for missing/nonpositive frozen 14:45 entries or 10:00 exits",
         "duplicate_next_bar_policy": "hard failure; duplicates may not be collapsed by MAX/MIN",
+        "slippage_stat_policy": "entry slippage summary statistics use filled slots only; observed_next_record_rows is reported separately",
         "periods": {name: {"start": None if start is None else str(start.date()),
                            "end": None if end is None else str(end.date())}
                     for name, (start, end) in PERIODS.items()},
