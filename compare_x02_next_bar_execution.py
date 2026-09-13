@@ -1,4 +1,4 @@
-"""Compare the legacy X02 reproduction with the frozen next-bar execution audit.
+"""Compare the legacy X02 reproduction with the frozen next-record execution audit.
 
 This is descriptive reporting only. It does not search parameters, change the
 selection rule, or decide a new strategy after observing the stress-test result.
@@ -21,6 +21,7 @@ CORE_METRICS = ("total_return", "cagr", "max_drawdown", "sharpe", "active_days")
 EXECUTION_METRICS = (
     "selection_rows", "filled_rows", "fill_rate", "cash_slots",
     "active_selection_days", "days_with_any_unfilled_slot",
+    "mean_entry_slippage_vs_1445", "median_entry_slippage_vs_1445", "unfilled_reasons",
 )
 
 
@@ -52,12 +53,18 @@ def validate_lineage(legacy: dict[str, Any], stress: dict[str, Any], legacy_sha2
     inputs = stress.get("inputs") or {}
     legacy_features = legacy.get("features_sha256")
     legacy_engine = legacy.get("engine_sha256")
+    legacy_selections = {
+        variant: (meta or {}).get("sha256")
+        for variant, meta in (legacy.get("selection_artifacts") or {}).items()
+    }
     if not legacy_features:
         failures.append("legacy report lacks features_sha256")
     if inputs.get("features_sha256") != legacy_features:
         failures.append("stress audit features hash does not match legacy report")
     if inputs.get("engine_sha256") != legacy_engine:
         failures.append("stress audit engine hash does not match legacy report")
+    if inputs.get("selection_sha256") != legacy_selections:
+        failures.append("stress audit frozen-selection hashes do not match legacy report")
     if legacy_sha256 is not None and inputs.get("report_sha256") != legacy_sha256:
         failures.append("stress audit report hash does not match the report.json being compared")
     return {"pass": not failures, "failures": failures}
@@ -79,7 +86,7 @@ def build_comparison(
         raise ValueError("legacy and next-bar reports have no common result keys")
 
     comparison: dict[str, Any] = {
-        "comparison": "X02_LEGACY_1445_CLOSE_VS_NEXT_BAR_OPEN_V2",
+        "comparison": "X02_LEGACY_1445_CLOSE_VS_NEXT_RECORD_OPEN_V3",
         "descriptive_only": True,
         "parameter_search": False,
         "lineage": lineage,
@@ -88,8 +95,8 @@ def build_comparison(
         "bar_label_contract": stress.get("bar_label_contract"),
         "results": {},
         "interpretation_boundary": (
-            "Deltas and retention ratios describe execution sensitivity only. They must not be used to retune the frozen signal, "
-            "market gate, Top-N, limit buffer, or exit after observing the result."
+            "Deltas, retention ratios and slippage diagnostics describe execution sensitivity only. They must not be used to retune "
+            "the frozen signal, market gate, Top-N, limit buffer, or exit after observing the result."
         ),
     }
 
@@ -132,12 +139,12 @@ def _ratio(value: object) -> str:
 
 def render_markdown(comparison: dict[str, Any]) -> str:
     lines = [
-        "# X02 next-bar execution comparison",
+        "# X02 next-record execution comparison",
         "",
         "Descriptive execution-sensitivity report only; no parameter search or post-result retuning is authorized.",
         "",
-        "| Spec | Period | Legacy CAGR | Next-bar CAGR | CAGR retained | Δ CAGR | Legacy MDD | Next-bar MDD | Fill rate | Cash slots |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Spec | Period | Legacy CAGR | Next-record CAGR | CAGR retained | Δ CAGR | Legacy MDD | Next-record MDD | Fill rate | Mean entry slip | Cash slots |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for key, periods in comparison["results"].items():
         for period, row in periods.items():
@@ -151,14 +158,15 @@ def render_markdown(comparison: dict[str, Any]) -> str:
                     key, period, _pct(old.get("cagr")), _pct(new.get("cagr")),
                     _ratio(retention.get("cagr")), _pct(delta.get("cagr")),
                     _pct(old.get("max_drawdown")), _pct(new.get("max_drawdown")),
-                    _pct(execution.get("fill_rate")), str(execution.get("cash_slots", "n/a")),
+                    _pct(execution.get("fill_rate")), _pct(execution.get("mean_entry_slippage_vs_1445")),
+                    str(execution.get("cash_slots", "n/a")),
                 ]) + " |"
             )
     lines.extend([
         "", "## Reading the deltas", "",
         "CAGR retained is shown only when legacy CAGR is positive; negative-development periods deliberately show n/a rather than a misleading ratio. "
-        "A lower fill rate or many cash slots identifies where next-record executability, rather than signal ranking, removes exposure. "
-        "Max-drawdown deltas use the legacy engine's metric definition for apples-to-apples comparison.", "",
+        "Mean entry slip is the observed next-record open divided by the frozen 14:45 entry price minus one; positive values are worse entry prices for a long strategy. "
+        "Unfilled-reason counts remain available in the JSON report. Max-drawdown deltas use the legacy engine's metric definition for apples-to-apples comparison.", "",
     ])
     return "\n".join(lines)
 
