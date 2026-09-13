@@ -1,8 +1,8 @@
 """Run the frozen X02 execution-validation chain locally in a fixed order.
 
-This is orchestration only. It does not tune parameters or interpret results.
-The runner fails fast and writes a manifest with stage status, source hashes,
-and output hashes so mixed-run artifacts cannot be mistaken for one chain.
+This is orchestration only. It does not tune parameters. The final gate applies
+a pre-registered minimum execution-survival rule and never authorizes live
+trading. The runner fails fast and records source/output hashes.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ STAGES = (
     ("legacy_reproduction", "reproduce_x02_local.py"),
     ("next_bar_execution", "audit_x02_next_bar_execution.py"),
     ("comparison", "compare_x02_next_bar_execution.py"),
+    ("execution_gate", "evaluate_x02_execution_gate.py"),
 )
 EXPECTED_OUTPUTS = (
     "minute_bar_structure_audit.json",
@@ -33,12 +34,15 @@ EXPECTED_OUTPUTS = (
     "next_bar_execution_audit.json",
     "next_bar_execution_comparison.json",
     "next_bar_execution_comparison.md",
+    "execution_gate.json",
+    "execution_gate.md",
 )
 SOURCE_FILES = (
     "audit_x02_minute_bar_structure.py",
     "reproduce_x02_local.py",
     "audit_x02_next_bar_execution.py",
     "compare_x02_next_bar_execution.py",
+    "evaluate_x02_execution_gate.py",
     "x02_provenance.py",
     "v4_3_long_only_portfolio.py",
 )
@@ -84,9 +88,10 @@ def main() -> None:
             )
 
     manifest = {
-        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V2",
+        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V3",
         "parameter_search": False,
         "post_result_retuning_authorized": False,
+        "live_trading_authorized": False,
         "started_at_utc": datetime.now(timezone.utc).isoformat(),
         "reuse_reproduction": bool(args.reuse_reproduction),
         "reuse_validation": reuse_validation,
@@ -130,6 +135,9 @@ def main() -> None:
     manifest["failed_stage"] = None
     manifest["final_lineage"] = final_lineage
     manifest["artifacts"] = artifact_fingerprints()
+    gate_path = OUT / "execution_gate.json"
+    if gate_path.exists():
+        manifest["execution_gate"] = json.loads(gate_path.read_text(encoding="utf-8"))
     manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     _write_manifest(manifest)
     print(f"\nPASS: {MANIFEST}", flush=True)
