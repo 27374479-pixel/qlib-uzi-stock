@@ -4,13 +4,17 @@ on:
   pull_request:
     paths:
       - "audit_x02_next_bar_execution.py"
+      - "compare_x02_next_bar_execution.py"
       - "test_x02_next_bar_execution.py"
+      - "test_compare_x02_next_bar_execution.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
   push:
     branches: [main]
     paths:
       - "audit_x02_next_bar_execution.py"
+      - "compare_x02_next_bar_execution.py"
       - "test_x02_next_bar_execution.py"
+      - "test_compare_x02_next_bar_execution.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
   workflow_dispatch:
 
@@ -36,8 +40,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas pytest
 
-      - name: Compile audit module
-        run: python -m py_compile audit_x02_next_bar_execution.py
+      - name: Compile execution audit modules
+        run: |
+          python -m py_compile audit_x02_next_bar_execution.py
+          python -m py_compile compare_x02_next_bar_execution.py
 
-      - name: Run next-bar accounting regression tests
-        run: pytest -q test_x02_next_bar_execution.py
+      - name: Run next-bar execution regression tests
+        run: |
+          pytest -q \
+            test_x02_next_bar_execution.py \
+            test_compare_x02_next_bar_execution.py
