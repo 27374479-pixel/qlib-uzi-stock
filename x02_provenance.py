@@ -6,6 +6,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+SELECTION_FILES = {
+    "original_gate": "original_gate_selected.parquet",
+    "no_market_gate": "no_market_gate_selected.parquet",
+}
+
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -32,6 +37,10 @@ def validate_reproduction_artifacts(out: Path, engine_path: Path) -> dict[str, o
     for path in (report_path, features_path, engine_path):
         if not path.exists():
             failures.append(f"missing {path}")
+    for filename in SELECTION_FILES.values():
+        path = out / filename
+        if not path.exists():
+            failures.append(f"missing {path}")
     if failures:
         return {"pass": False, "failures": failures}
 
@@ -49,6 +58,21 @@ def validate_reproduction_artifacts(out: Path, engine_path: Path) -> dict[str, o
         failures.append("report.json lacks features_sha256; rerun reproduce_x02_local.py once")
     elif str(expected_features) != actual_features:
         failures.append("report features_sha256 does not match current features.parquet")
+
+    selection_artifacts = report.get("selection_artifacts") or {}
+    actual_selection_hashes: dict[str, str] = {}
+    for variant, filename in SELECTION_FILES.items():
+        path = out / filename
+        actual_hash = sha256_file(path)
+        actual_selection_hashes[variant] = actual_hash
+        metadata = selection_artifacts.get(variant) or {}
+        if metadata.get("filename") != filename:
+            failures.append(f"selection artifact filename mismatch for {variant}")
+        expected_hash = metadata.get("sha256")
+        if not expected_hash:
+            failures.append(f"report.json lacks selection hash for {variant}; rerun reproduce_x02_local.py once")
+        elif str(expected_hash) != actual_hash:
+            failures.append(f"selection artifact hash mismatch for {variant}")
 
     contract = report.get("contract", {})
     expected_contract = {
@@ -70,6 +94,7 @@ def validate_reproduction_artifacts(out: Path, engine_path: Path) -> dict[str, o
         "report_sha256": sha256_file(report_path),
         "features_sha256": actual_features,
         "engine_sha256": actual_engine,
+        "selection_sha256": actual_selection_hashes,
     }
 
 
