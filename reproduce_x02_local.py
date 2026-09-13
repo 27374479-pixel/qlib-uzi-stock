@@ -1,9 +1,11 @@
 """Reproduce existing X02 specification; no announcement or parameter search."""
 import json
 from pathlib import Path
+
 import pandas as pd
+
 import v4_3_long_only_portfolio as engine
-from x02_provenance import sha256_file
+from x02_provenance import SELECTION_FILES, sha256_file
 
 OUT = Path('output/x02_reproduction_20260912')
 
@@ -30,14 +32,36 @@ def main():
     coverage = dict(candidate_rows=len(candidates), minute_matches=len(minute),
                     executable_rows=len(executable), first=str(min(dates)), last=str(max(dates)))
     reports = {}
+    selection_artifacts = {}
     for variant in contract['variants']:
         eligible = features[features.base_executable & features.limit_gap.ge(.005)].copy()
         if variant == 'original_gate':
             eligible = eligible[eligible.breadth5.fillna(-1).gt(0) & eligible.money_effect.fillna(-1).gt(0)].copy()
         eligible['score'] = eligible.clean_mom20_rank.fillna(float('-inf'))
-        selected = engine._select_top(eligible, 3)
+        selected = engine._select_top(eligible, 3).copy()
+        if selected.empty:
+            raise RuntimeError(f'Frozen selection is empty for {variant}')
+        counts = selected.groupby('trade_date').instrument.size()
+        if not counts.eq(3).all():
+            raise RuntimeError(f'Frozen selection does not contain exactly three slots for {variant}')
+        missing_exit = selected.exit_1000.isna()
+        if bool(missing_exit.any()):
+            offenders = selected.loc[missing_exit, ['trade_date', 'instrument']].astype(str).to_dict('records')
+            raise RuntimeError(f'Legacy selected rows have missing 10:00 exits for {variant}: {offenders[:10]}')
+
+        selection_path = OUT / SELECTION_FILES[variant]
+        selected.to_parquet(selection_path, index=False)
+        selection_artifacts[variant] = {
+            'filename': selection_path.name,
+            'sha256': sha256_file(selection_path),
+            'rows': int(len(selected)),
+            'active_days': int(selected.trade_date.nunique()),
+        }
+
         for cost in contract['costs']:
             series, ledger = engine._portfolio_series(selected, dates, '10:00', cost)
+            if len(ledger) != len(selected):
+                raise RuntimeError(f'Legacy portfolio dropped frozen selected rows for {variant}/{cost}')
             key = f'{variant}_{cost}'
             ledger.to_csv(OUT / f'{key}_ledger.csv', index=False)
             series.rename('net_return').to_csv(OUT / f'{key}_daily.csv')
@@ -47,9 +71,11 @@ def main():
     report = dict(contract=contract, coverage=coverage, results=reports,
                   engine_sha256=sha256_file(Path(engine.__file__)),
                   features_sha256=sha256_file(features_path),
-                  lineage_contract='report.json is valid only with the exact engine/features hashes recorded above',
+                  selection_artifacts=selection_artifacts,
+                  lineage_contract='report.json is valid only with the exact engine/features/selection hashes recorded above',
                   limitations=['Reproduces legacy execution assumptions; not live-trading certification.',
-                               '14:45 close fill and missing-exit handling require separate execution audit.',
+                               '14:45 close fill requires separate next-record execution audit.',
+                               'Selected-row exit coverage is now a hard requirement to prevent legacy reweighting.',
                                'Previously inspected later period is not pristine OOS.'])
     (OUT / 'report.json').write_text(json.dumps(report, indent=2, default=str), encoding='utf-8')
     print(json.dumps(report, indent=2, default=str), flush=True)
