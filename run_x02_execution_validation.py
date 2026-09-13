@@ -1,21 +1,24 @@
 """Run the frozen X02 execution-validation chain locally in a fixed order.
 
 This is orchestration only. It does not tune parameters or interpret results.
-The runner fails fast and writes a manifest with stage status and output hashes.
+The runner fails fast and writes a manifest with stage status, source hashes,
+and output hashes so mixed-run artifacts cannot be mistaken for one chain.
 """
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from x02_provenance import file_fingerprint, validate_reproduction_artifacts
+
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "output" / "x02_reproduction_20260912"
 MANIFEST = OUT / "execution_validation_run_manifest.json"
+ENGINE = ROOT / "v4_3_long_only_portfolio.py"
 
 STAGES = (
     ("minute_bar_structure", "audit_x02_minute_bar_structure.py"),
@@ -31,6 +34,14 @@ EXPECTED_OUTPUTS = (
     "next_bar_execution_comparison.json",
     "next_bar_execution_comparison.md",
 )
+SOURCE_FILES = (
+    "audit_x02_minute_bar_structure.py",
+    "reproduce_x02_local.py",
+    "audit_x02_next_bar_execution.py",
+    "compare_x02_next_bar_execution.py",
+    "x02_provenance.py",
+    "v4_3_long_only_portfolio.py",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,7 +49,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--reuse-reproduction",
         action="store_true",
-        help="reuse existing report.json/features.parquet but still rerun data-contract, next-bar and comparison audits",
+        help="reuse report.json/features.parquet only when their recorded hashes match the current engine and artifacts",
     )
     return p.parse_args()
 
@@ -49,23 +60,12 @@ def build_plan(reuse_reproduction: bool = False) -> list[tuple[str, str]]:
     return [stage for stage in STAGES if stage[0] != "legacy_reproduction"]
 
 
-def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
 def artifact_fingerprints(out: Path = OUT) -> dict[str, dict[str, object]]:
-    result = {}
-    for name in EXPECTED_OUTPUTS:
-        path = out / name
-        if path.exists():
-            result[name] = {"exists": True, "bytes": path.stat().st_size, "sha256": sha256_file(path)}
-        else:
-            result[name] = {"exists": False, "bytes": None, "sha256": None}
-    return result
+    return {name: file_fingerprint(out / name) for name in EXPECTED_OUTPUTS}
+
+
+def source_fingerprints(root: Path = ROOT) -> dict[str, dict[str, object]]:
+    return {name: file_fingerprint(root / name) for name in SOURCE_FILES}
 
 
 def _write_manifest(payload: dict) -> None:
@@ -75,18 +75,22 @@ def _write_manifest(payload: dict) -> None:
 
 def main() -> None:
     args = parse_args()
+    reuse_validation = None
     if args.reuse_reproduction:
-        required = [OUT / "report.json", OUT / "features.parquet"]
-        missing = [str(path) for path in required if not path.exists()]
-        if missing:
-            raise SystemExit(f"--reuse-reproduction requested but required artifacts are missing: {missing}")
+        reuse_validation = validate_reproduction_artifacts(OUT, ENGINE)
+        if not reuse_validation["pass"]:
+            raise SystemExit(
+                "--reuse-reproduction rejected: " + "; ".join(reuse_validation["failures"])
+            )
 
     manifest = {
-        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V1",
+        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V2",
         "parameter_search": False,
         "post_result_retuning_authorized": False,
         "started_at_utc": datetime.now(timezone.utc).isoformat(),
         "reuse_reproduction": bool(args.reuse_reproduction),
+        "reuse_validation": reuse_validation,
+        "sources": source_fingerprints(),
         "stages": [],
         "status": "RUNNING",
     }
@@ -104,16 +108,27 @@ def main() -> None:
             "returncode": int(proc.returncode),
         }
         manifest["stages"].append(record)
+        manifest["artifacts"] = artifact_fingerprints()
         if proc.returncode != 0:
             manifest["status"] = "FAILED"
             manifest["failed_stage"] = name
-            manifest["artifacts"] = artifact_fingerprints()
             manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
             _write_manifest(manifest)
             raise SystemExit(proc.returncode)
+        _write_manifest(manifest)
+
+    final_lineage = validate_reproduction_artifacts(OUT, ENGINE)
+    if not final_lineage["pass"]:
+        manifest["status"] = "FAILED"
+        manifest["failed_stage"] = "final_lineage_validation"
+        manifest["final_lineage"] = final_lineage
+        manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
+        _write_manifest(manifest)
+        raise SystemExit("final reproduction lineage validation failed")
 
     manifest["status"] = "PASS"
     manifest["failed_stage"] = None
+    manifest["final_lineage"] = final_lineage
     manifest["artifacts"] = artifact_fingerprints()
     manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     _write_manifest(manifest)
