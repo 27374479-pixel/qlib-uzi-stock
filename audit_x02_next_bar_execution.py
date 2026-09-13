@@ -1,15 +1,18 @@
 """Conservative next-bar execution audit for the frozen X02 reproduction.
 
 This module does not search parameters and does not alter the legacy X02
-selection.  It freezes the Top-3 decision at the observed 14:45 close, then
-asks whether each selected slot could still be filled at the *next* 5-minute
-bar open (14:50).  Unfilled slots remain cash; they are never replaced with a
-lower-ranked stock after seeing 14:50 data.
+selection. It freezes the Top-3 decision at the observed 14:45 close, then asks
+whether each selected slot could still be filled at the open of the *next*
+five-minute bar, whose persisted end-label is 14:50. Under the legacy engine's
+end-labelled-bar convention, this is the first bar after the 14:45 close; it is
+not a claim that the fill occurs at literal wall-clock 14:50.
 
-The audit is deliberately separate from ``reproduce_x02_local.py`` so the
-legacy reproduction remains byte-for-byte interpretable.  The heavy research
-engine is imported lazily so the accounting rules can be unit-tested in a
-minimal CI environment without loading the full local research stack.
+Unfilled slots remain cash; they are never replaced with a lower-ranked stock
+after seeing next-bar data. The audit is deliberately separate from
+``reproduce_x02_local.py`` so the legacy reproduction remains byte-for-byte
+interpretable. The heavy research engine is imported lazily so the accounting
+rules can be unit-tested in a minimal CI environment without loading the full
+local research stack.
 """
 from __future__ import annotations
 
@@ -20,11 +23,16 @@ from typing import Any
 import pandas as pd
 
 OUT = Path("output/x02_reproduction_20260912")
-ENTRY_LABEL = "14:50"
+NEXT_BAR_LABEL = "14:50"
 TOP_N = 3
 LIMIT_BUFFER = 0.005
 VARIANTS = ("original_gate", "no_market_gate")
 COSTS = ("BASE", "CONSERVATIVE")
+PERIODS = {
+    "all": (None, None),
+    "development": (None, pd.Timestamp("2023-12-31")),
+    "later": (pd.Timestamp("2024-01-01"), None),
+}
 
 
 def _engine() -> Any:
@@ -47,7 +55,7 @@ def select_legacy_top3(features: pd.DataFrame, variant: str) -> pd.DataFrame:
 
 
 def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
-    """Read only the 14:50 bar needed for a post-selection execution audit."""
+    """Read the next end-labelled five-minute bar needed for execution audit."""
     import duckdb
 
     engine = _engine()
@@ -69,14 +77,14 @@ def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
     SELECT
         CAST(s.trade_date AS DATE) AS trade_date,
         s.instrument,
-        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{ENTRY_LABEL}' THEN m.open END) AS next_entry_open,
-        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{ENTRY_LABEL}' THEN m.volume END) AS next_entry_volume,
-        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{ENTRY_LABEL}' THEN m.amount END) AS next_entry_amount
+        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{NEXT_BAR_LABEL}' THEN m.open END) AS next_entry_open,
+        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{NEXT_BAR_LABEL}' THEN m.volume END) AS next_entry_volume,
+        MAX(CASE WHEN strftime(m.datetime, '%H:%M')='{NEXT_BAR_LABEL}' THEN m.amount END) AS next_entry_amount
     FROM selected s
     LEFT JOIN read_parquet([{files_sql}]) m
       ON m.instrument = s.instrument
      AND CAST(m.datetime AS DATE) = CAST(s.trade_date AS DATE)
-     AND strftime(m.datetime, '%H:%M') = '{ENTRY_LABEL}'
+     AND strftime(m.datetime, '%H:%M') = '{NEXT_BAR_LABEL}'
     GROUP BY 1,2
     """
     out = con.execute(query).df()
@@ -95,9 +103,9 @@ def strict_next_bar_portfolio(
 ) -> tuple[pd.Series, pd.DataFrame]:
     """Price filled slots at next-bar open and keep failed entries as cash.
 
-    Selection is already frozen.  A selected slot is executable only if the
-    14:50 open exists, the bar has positive volume/amount, and the actual fill
-    remains at least ``limit_buffer`` below the known daily upper limit.
+    Selection is already frozen. A selected slot is executable only if the
+    next-bar open exists, the bar has positive volume/amount, and the actual
+    fill remains at least ``limit_buffer`` below the known daily upper limit.
 
     Missing exit data after a successful entry is an audit failure rather than
     a reason to silently drop/reweight the position.
@@ -148,6 +156,44 @@ def strict_next_bar_portfolio(
     return series, z
 
 
+def _period_slice(
+    series: pd.Series,
+    ledger: pd.DataFrame,
+    start: pd.Timestamp | None,
+    end: pd.Timestamp | None,
+) -> tuple[pd.Series, pd.DataFrame]:
+    s = series
+    z = ledger
+    if start is not None:
+        s = s[s.index >= start]
+        z = z[z["trade_date"] >= start]
+    if end is not None:
+        s = s[s.index <= end]
+        z = z[z["trade_date"] <= end]
+    return s, z
+
+
+def _execution_stats(ledger: pd.DataFrame) -> dict[str, object]:
+    if ledger.empty:
+        return {
+            "selection_rows": 0,
+            "filled_rows": 0,
+            "fill_rate": None,
+            "cash_slots": 0,
+            "active_selection_days": 0,
+            "days_with_any_unfilled_slot": 0,
+        }
+    filled = ledger[ledger["next_bar_executable"]]
+    return {
+        "selection_rows": int(len(ledger)),
+        "filled_rows": int(len(filled)),
+        "fill_rate": float(len(filled) / len(ledger)),
+        "cash_slots": int(ledger["cash_slot"].sum()),
+        "active_selection_days": int(ledger["trade_date"].nunique()),
+        "days_with_any_unfilled_slot": int(ledger.groupby("trade_date")["cash_slot"].any().sum()),
+    }
+
+
 def main() -> None:
     engine = _engine()
     features_path = OUT / "features.parquet"
@@ -163,19 +209,31 @@ def main() -> None:
 
     report: dict[str, object] = {
         "audit": "X02_NEXT_BAR_EXECUTION_V1",
-        "selection_frozen_at": "14:45 close",
-        "fill_proxy": "14:50 bar open",
+        "selection_frozen_at": "14:45 bar close",
+        "fill_proxy": "open of next 5m bar labelled 14:50",
+        "bar_label_contract": (
+            "legacy minute bars are treated as end-labelled; the 14:50-labelled bar is the first bar "
+            "after the 14:45 close, not a claim of a literal 14:50 clock-time fill"
+        ),
         "top_n": TOP_N,
         "limit_buffer": LIMIT_BUFFER,
         "parameter_search": False,
-        "rank_replacement_after_1450": False,
+        "rank_replacement_after_next_bar": False,
         "unfilled_slot_policy": "cash; no reweighting and no replacement",
         "missing_exit_policy": "hard failure after a successful entry",
+        "periods": {
+            name: {
+                "start": None if start is None else str(start.date()),
+                "end": None if end is None else str(end.date()),
+            }
+            for name, (start, end) in PERIODS.items()
+        },
         "results": {},
         "limitations": [
             "This is an execution stress test, not a new strategy search.",
-            "14:50 bar-open availability is a conservative delay proxy, not proof that a live order would fill at that exact price.",
-            "The persisted vendor bar-label convention should be independently verified before treating 14:50 open as the first post-14:45 tradable price.",
+            "A next-bar open is a conservative causal fill proxy, not proof that a live order would fill at that exact price.",
+            "Positive bar volume/amount is used only as an ex-post executability check and does not imply guaranteed fill at the bar open.",
+            "The persisted vendor bar-label convention should still be independently inspected on local raw data before live-trading interpretation.",
         ],
     }
 
@@ -185,19 +243,14 @@ def main() -> None:
         for cost in COSTS:
             series, ledger = strict_next_bar_portfolio(selected, next_bar, all_dates, cost)
             key = f"{variant}_{cost}"
-            filled = ledger[ledger["next_bar_executable"]].copy()
-            active_days = int(ledger["trade_date"].nunique()) if not ledger.empty else 0
-            days_with_cash = int(ledger.groupby("trade_date")["cash_slot"].any().sum()) if not ledger.empty else 0
-            metrics = engine._metrics(series, filled)
-            metrics.update(
-                selection_rows=int(len(ledger)),
-                filled_rows=int(len(filled)),
-                fill_rate=float(len(filled) / len(ledger)) if len(ledger) else None,
-                cash_slots=int(ledger["cash_slot"].sum()) if not ledger.empty else 0,
-                active_selection_days=active_days,
-                days_with_any_unfilled_slot=days_with_cash,
-            )
-            report["results"][key] = metrics
+            period_results = {}
+            for period_name, (start, end) in PERIODS.items():
+                period_series, period_ledger = _period_slice(series, ledger, start, end)
+                period_filled = period_ledger[period_ledger["next_bar_executable"]]
+                metrics = engine._metrics(period_series, period_filled)
+                metrics.update(_execution_stats(period_ledger))
+                period_results[period_name] = metrics
+            report["results"][key] = period_results
             ledger.to_csv(OUT / f"{key}_next_bar_ledger.csv", index=False)
             series.to_csv(OUT / f"{key}_next_bar_daily.csv", header=True)
 
