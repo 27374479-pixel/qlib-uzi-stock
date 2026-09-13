@@ -77,10 +77,17 @@ def test_entry_slippage_is_measured_from_frozen_1445_price():
     assert ledger["entry_slippage_vs_1445"].tolist() == pytest.approx([0.01, -0.01, 0.0])
 
 
-def test_missing_exit_for_any_frozen_slot_is_hard_failure():
+def test_missing_or_nonpositive_frozen_prices_are_hard_failure():
+    selected = _selected()
+    selected.loc[selected["instrument"].eq("A"), "entry_1445"] = 0.0
+    with pytest.raises(RuntimeError, match="invalid 14:45 entries"):
+        audit.strict_next_bar_portfolio(
+            selected, _next_bar(), [pd.Timestamp("2024-01-02")], "BASE"
+        )
+
     selected = _selected()
     selected.loc[selected["instrument"].eq("B"), "exit_1000"] = float("nan")
-    with pytest.raises(RuntimeError, match="missing 10:00 exits"):
+    with pytest.raises(RuntimeError, match="invalid 10:00 exits"):
         audit.strict_next_bar_portfolio(
             selected, _next_bar(), [pd.Timestamp("2024-01-02")], "BASE"
         )
@@ -94,13 +101,13 @@ def test_frozen_active_day_must_keep_exactly_three_slots():
         )
 
 
-def test_execution_stats_are_period_local():
+def test_execution_stats_are_period_local_and_slippage_is_filled_only():
     ledger = pd.DataFrame(
         {
             "trade_date": pd.to_datetime(["2023-12-29"] * 3 + ["2024-01-02"] * 3),
             "next_bar_executable": [True, True, False, True, False, False],
             "cash_slot": [False, False, True, False, True, True],
-            "entry_slippage_vs_1445": [0.01, 0.02, None, 0.03, 0.04, None],
+            "entry_slippage_vs_1445": [0.01, 0.02, None, 0.03, 0.40, None],
             "unfilled_reason": ["filled", "filled", "missing_next_record", "filled", "limit_buffer_fail", "missing_next_record"],
         }
     )
@@ -117,8 +124,11 @@ def test_execution_stats_are_period_local():
     assert stats["cash_slots"] == 2
     assert stats["active_selection_days"] == 1
     assert stats["days_with_any_unfilled_slot"] == 1
-    assert stats["mean_entry_slippage_vs_1445"] == pytest.approx(0.035)
-    assert stats["median_entry_slippage_vs_1445"] == pytest.approx(0.035)
+    assert stats["observed_next_record_rows"] == 2
+    assert stats["mean_entry_slippage_vs_1445"] == pytest.approx(0.03)
+    assert stats["median_entry_slippage_vs_1445"] == pytest.approx(0.03)
+    assert stats["p90_entry_slippage_vs_1445"] == pytest.approx(0.03)
+    assert stats["worst_entry_slippage_vs_1445"] == pytest.approx(0.03)
     assert stats["unfilled_reasons"] == {"limit_buffer_fail": 1, "missing_next_record": 1}
 
 
