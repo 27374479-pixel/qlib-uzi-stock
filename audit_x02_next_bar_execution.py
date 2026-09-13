@@ -7,16 +7,17 @@ bar open (14:50).  Unfilled slots remain cash; they are never replaced with a
 lower-ranked stock after seeing 14:50 data.
 
 The audit is deliberately separate from ``reproduce_x02_local.py`` so the
-legacy reproduction remains byte-for-byte interpretable.
+legacy reproduction remains byte-for-byte interpretable.  The heavy research
+engine is imported lazily so the accounting rules can be unit-tested in a
+minimal CI environment without loading the full local research stack.
 """
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
-
-import v4_3_long_only_portfolio as engine
 
 OUT = Path("output/x02_reproduction_20260912")
 ENTRY_LABEL = "14:50"
@@ -26,8 +27,16 @@ VARIANTS = ("original_gate", "no_market_gate")
 COSTS = ("BASE", "CONSERVATIVE")
 
 
+def _engine() -> Any:
+    """Load the legacy portfolio engine only when repository data work needs it."""
+    import v4_3_long_only_portfolio as engine
+
+    return engine
+
+
 def select_legacy_top3(features: pd.DataFrame, variant: str) -> pd.DataFrame:
     """Freeze the legacy selection using information available by 14:45."""
+    engine = _engine()
     y = features[features["base_executable"] & features["limit_gap"].ge(LIMIT_BUFFER)].copy()
     if variant == "original_gate":
         y = y[y["breadth5"].fillna(-1).gt(0) & y["money_effect"].fillna(-1).gt(0)].copy()
@@ -41,6 +50,7 @@ def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
     """Read only the 14:50 bar needed for a post-selection execution audit."""
     import duckdb
 
+    engine = _engine()
     missing = [str(path) for path in engine.MINUTE_FILES if not path.exists()]
     if missing:
         raise FileNotFoundError(f"missing persisted minute files: {missing}")
@@ -124,6 +134,7 @@ def strict_next_bar_portfolio(
     z["slot_return"] = 0.0
     filled = z["next_bar_executable"]
     if bool(filled.any()):
+        engine = _engine()
         z.loc[filled, "slot_return"] = engine._net_return(
             z.loc[filled, "next_entry_open"],
             z.loc[filled, "exit_1000"],
@@ -138,6 +149,7 @@ def strict_next_bar_portfolio(
 
 
 def main() -> None:
+    engine = _engine()
     features_path = OUT / "features.parquet"
     legacy_report_path = OUT / "report.json"
     if not features_path.exists() or not legacy_report_path.exists():
