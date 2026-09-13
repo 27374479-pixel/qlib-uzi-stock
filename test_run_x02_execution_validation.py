@@ -11,6 +11,7 @@ def test_default_plan_runs_all_frozen_stages_in_order():
         ("execution_artifact_binding", "bind_x02_execution_artifacts.py"),
         ("comparison", "compare_x02_next_bar_execution.py"),
         ("execution_uncertainty", "analyze_x02_execution_uncertainty.py"),
+        ("execution_stability", "analyze_x02_execution_stability.py"),
         ("execution_gate", "evaluate_x02_execution_gate.py"),
     ]
 
@@ -23,6 +24,7 @@ def test_reuse_plan_skips_only_legacy_reproduction():
         "execution_artifact_binding",
         "comparison",
         "execution_uncertainty",
+        "execution_stability",
         "execution_gate",
     ]
 
@@ -37,7 +39,7 @@ def test_artifact_fingerprints_are_explicit_about_missing_outputs(tmp_path: Path
     assert result[EXPECTED_OUTPUTS[1]]["sha256"] is None
 
 
-def test_gate_selection_and_uncertainty_outputs_are_expected_artifacts():
+def test_gate_selection_uncertainty_and_stability_outputs_are_expected_artifacts():
     assert "execution_gate.json" in EXPECTED_OUTPUTS
     assert "execution_gate.md" in EXPECTED_OUTPUTS
     assert "original_gate_selected.parquet" in EXPECTED_OUTPUTS
@@ -45,3 +47,5 @@ def test_gate_selection_and_uncertainty_outputs_are_expected_artifacts():
     assert "execution_artifact_manifest.json" in EXPECTED_OUTPUTS
     assert "execution_uncertainty.json" in EXPECTED_OUTPUTS
     assert "execution_uncertainty.md" in EXPECTED_OUTPUTS
+    assert "execution_stability.json" in EXPECTED_OUTPUTS
+    assert "execution_stability.md" in EXPECTED_OUTPUTS
