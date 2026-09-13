@@ -9,6 +9,7 @@ on:
       - "compare_x02_next_bar_execution.py"
       - "analyze_x02_execution_uncertainty.py"
       - "analyze_x02_execution_uncertainty_v2.py"
+      - "analyze_x02_execution_stability.py"
       - "evaluate_x02_execution_gate.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
@@ -18,6 +19,7 @@ on:
       - "test_x02_artifact_manifest.py"
       - "test_compare_x02_next_bar_execution.py"
       - "test_x02_execution_uncertainty.py"
+      - "test_analyze_x02_execution_stability.py"
       - "test_evaluate_x02_execution_gate.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
@@ -31,6 +33,7 @@ on:
       - "compare_x02_next_bar_execution.py"
       - "analyze_x02_execution_uncertainty.py"
       - "analyze_x02_execution_uncertainty_v2.py"
+      - "analyze_x02_execution_stability.py"
       - "evaluate_x02_execution_gate.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
@@ -40,6 +43,7 @@ on:
       - "test_x02_artifact_manifest.py"
       - "test_compare_x02_next_bar_execution.py"
       - "test_x02_execution_uncertainty.py"
+      - "test_analyze_x02_execution_stability.py"
       - "test_evaluate_x02_execution_gate.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
@@ -78,6 +82,7 @@ jobs:
           python -m py_compile compare_x02_next_bar_execution.py
           python -m py_compile analyze_x02_execution_uncertainty.py
           python -m py_compile analyze_x02_execution_uncertainty_v2.py
+          python -m py_compile analyze_x02_execution_stability.py
           python -m py_compile evaluate_x02_execution_gate.py
           python -m py_compile run_x02_execution_validation.py
 
@@ -89,6 +94,7 @@ jobs:
             test_x02_artifact_manifest.py \
             test_compare_x02_next_bar_execution.py \
             test_x02_execution_uncertainty.py \
+            test_analyze_x02_execution_stability.py \
             test_evaluate_x02_execution_gate.py \
             test_run_x02_execution_validation.py \
             test_x02_provenance.py
