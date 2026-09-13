@@ -47,9 +47,11 @@ def _reports():
                     "sharpe": 0.5, "active_days": 90,
                     "selection_rows": 300, "filled_rows": 270, "fill_rate": 0.9,
                     "cash_slots": 30, "active_selection_days": 100,
-                    "days_with_any_unfilled_slot": 20,
+                    "days_with_any_unfilled_slot": 20, "observed_next_record_rows": 290,
                     "mean_entry_slippage_vs_1445": 0.004,
                     "median_entry_slippage_vs_1445": 0.003,
+                    "p90_entry_slippage_vs_1445": 0.009,
+                    "worst_entry_slippage_vs_1445": 0.02,
                     "unfilled_reasons": {"limit_buffer_fail": 30},
                 },
                 "later": {
@@ -57,9 +59,11 @@ def _reports():
                     "sharpe": 0.7, "active_days": 45,
                     "selection_rows": 150, "filled_rows": 135, "fill_rate": 0.9,
                     "cash_slots": 15, "active_selection_days": 50,
-                    "days_with_any_unfilled_slot": 10,
+                    "days_with_any_unfilled_slot": 10, "observed_next_record_rows": 145,
                     "mean_entry_slippage_vs_1445": 0.005,
                     "median_entry_slippage_vs_1445": 0.004,
+                    "p90_entry_slippage_vs_1445": 0.011,
+                    "worst_entry_slippage_vs_1445": 0.025,
                     "unfilled_reasons": {"limit_buffer_fail": 10, "missing_next_record": 5},
                 },
             }
@@ -80,7 +84,9 @@ def test_build_comparison_reports_execution_deltas_retention_and_slippage():
     assert row["positive_metric_retention"]["cagr"] == pytest.approx(0.60)
     assert row["execution"]["fill_rate"] == pytest.approx(0.9)
     assert row["execution"]["cash_slots"] == 30
+    assert row["execution"]["observed_next_record_rows"] == 290
     assert row["execution"]["mean_entry_slippage_vs_1445"] == pytest.approx(0.004)
+    assert row["execution"]["p90_entry_slippage_vs_1445"] == pytest.approx(0.009)
 
 
 def test_markdown_contains_periods_fill_rate_retention_and_slippage():
@@ -91,6 +97,9 @@ def test_markdown_contains_periods_fill_rate_retention_and_slippage():
     assert "90.00%" in text
     assert "0.60x" in text
     assert "0.40%" in text
+    assert "0.90%" in text
+    assert "Mean filled slip" in text
+    assert "P90 filled slip" in text
     assert "Descriptive execution-sensitivity report only" in text
 
 
