@@ -19,14 +19,19 @@ OUTPUT_JSON = OUT / "execution_gate.json"
 OUTPUT_MD = OUT / "execution_gate.md"
 PRIMARY_SPEC = "original_gate_CONSERVATIVE"
 PRIMARY_PERIOD = "later"
+REQUIRED_BAR_INFERENCE = "CONSISTENT_WITH_END_LABELLED_5M_NOT_PROOF"
 
 
 def evaluate(bar_audit: dict[str, Any], comparison: dict[str, Any]) -> dict[str, Any]:
     reasons: list[str] = []
+    aggregate = bar_audit.get("aggregate", {})
     bar_valid = bool(bar_audit.get("validation", {}).get("pass"))
+    bar_inference = aggregate.get("inference")
     lineage_valid = bool(comparison.get("lineage", {}).get("pass"))
     if not bar_valid:
         reasons.append("minute-bar structure audit did not pass")
+    if bar_inference != REQUIRED_BAR_INFERENCE:
+        reasons.append("minute-bar label structure remains ambiguous for the next-record interpretation")
     if not lineage_valid:
         reasons.append("comparison lineage validation did not pass")
 
@@ -45,21 +50,20 @@ def evaluate(bar_audit: dict[str, Any], comparison: dict[str, Any]) -> dict[str,
     elif float(primary_cagr) <= 0:
         status = "EXECUTION_NOT_ROBUST"
         paper_trading_authorized = False
-        reasons.append("primary historical-later CONSERVATIVE next-bar CAGR is not positive")
+        reasons.append("primary historical-later CONSERVATIVE next-record CAGR is not positive")
     else:
         status = "PROVISIONALLY_ROBUST_FOR_PAPER_TRADING_ONLY"
         paper_trading_authorized = True
-        reasons.append("primary historical-later CONSERVATIVE next-bar CAGR remains positive")
+        reasons.append("primary historical-later CONSERVATIVE next-record CAGR remains positive")
 
     primary = row or {}
     execution = primary.get("execution", {})
     retention = primary.get("positive_metric_retention", {})
-    aggregate = bar_audit.get("aggregate", {})
     return {
-        "gate": "X02_EXECUTION_SURVIVAL_GATE_V1",
+        "gate": "X02_EXECUTION_SURVIVAL_GATE_V2",
         "pre_registered_rule": (
-            "Technical validity is mandatory. For the exact frozen spec, the minimal historical execution-survival "
-            "condition is positive next-bar CAGR for original_gate_CONSERVATIVE in the 2024+ historical-later segment."
+            "Technical validity and bar-label structural evidence are mandatory. For the exact frozen spec, the minimal historical "
+            "execution-survival condition is positive next-record CAGR for original_gate_CONSERVATIVE in the 2024+ historical-later segment."
         ),
         "status": status,
         "paper_trading_authorized": paper_trading_authorized,
@@ -72,8 +76,11 @@ def evaluate(bar_audit: dict[str, Any], comparison: dict[str, Any]) -> dict[str,
         "primary_cagr_retention": retention.get("cagr"),
         "primary_fill_rate": execution.get("fill_rate"),
         "primary_cash_slots": execution.get("cash_slots"),
+        "primary_mean_entry_slippage_vs_1445": execution.get("mean_entry_slippage_vs_1445"),
+        "primary_unfilled_reasons": execution.get("unfilled_reasons"),
         "primary_next_bar_max_drawdown": primary.get("next_bar", {}).get("max_drawdown"),
-        "bar_label_inference": aggregate.get("inference"),
+        "bar_label_inference": bar_inference,
+        "required_bar_label_inference": REQUIRED_BAR_INFERENCE,
         "reasons": reasons,
         "interpretation_boundary": (
             "A positive historical-later result is only a minimum execution-survival check. The period is not pristine OOS, "
@@ -95,10 +102,12 @@ def render_markdown(result: dict[str, Any]) -> str:
         f"**Status:** `{result['status']}`",
         "",
         f"- Primary: `{result['primary_spec']}` / `{result['primary_period']}`",
-        f"- Next-bar CAGR: {pct(result.get('primary_next_bar_cagr'))}",
+        f"- Next-record CAGR: {pct(result.get('primary_next_bar_cagr'))}",
         f"- CAGR retention vs legacy: {pct(result.get('primary_cagr_retention'))}",
         f"- Fill rate: {pct(result.get('primary_fill_rate'))}",
-        f"- Next-bar max drawdown: {pct(result.get('primary_next_bar_max_drawdown'))}",
+        f"- Mean entry slippage vs 14:45: {pct(result.get('primary_mean_entry_slippage_vs_1445'))}",
+        f"- Next-record max drawdown: {pct(result.get('primary_next_bar_max_drawdown'))}",
+        f"- Bar-label inference: `{result.get('bar_label_inference')}`",
         f"- Paper trading authorized by this research gate: {result['paper_trading_authorized']}",
         f"- Live trading authorized: {result['live_trading_authorized']}",
         "",
