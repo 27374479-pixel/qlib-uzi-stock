@@ -20,8 +20,9 @@ OUTPUT_MD = OUT / "next_bar_execution_comparison.md"
 CORE_METRICS = ("total_return", "cagr", "max_drawdown", "sharpe", "active_days")
 EXECUTION_METRICS = (
     "selection_rows", "filled_rows", "fill_rate", "cash_slots",
-    "active_selection_days", "days_with_any_unfilled_slot",
-    "mean_entry_slippage_vs_1445", "median_entry_slippage_vs_1445", "unfilled_reasons",
+    "active_selection_days", "days_with_any_unfilled_slot", "observed_next_record_rows",
+    "mean_entry_slippage_vs_1445", "median_entry_slippage_vs_1445",
+    "p90_entry_slippage_vs_1445", "worst_entry_slippage_vs_1445", "unfilled_reasons",
 )
 
 
@@ -86,7 +87,7 @@ def build_comparison(
         raise ValueError("legacy and next-bar reports have no common result keys")
 
     comparison: dict[str, Any] = {
-        "comparison": "X02_LEGACY_1445_CLOSE_VS_NEXT_RECORD_OPEN_V3",
+        "comparison": "X02_LEGACY_1445_CLOSE_VS_NEXT_RECORD_OPEN_V4",
         "descriptive_only": True,
         "parameter_search": False,
         "lineage": lineage,
@@ -143,8 +144,8 @@ def render_markdown(comparison: dict[str, Any]) -> str:
         "",
         "Descriptive execution-sensitivity report only; no parameter search or post-result retuning is authorized.",
         "",
-        "| Spec | Period | Legacy CAGR | Next-record CAGR | CAGR retained | Δ CAGR | Legacy MDD | Next-record MDD | Fill rate | Mean entry slip | Cash slots |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Spec | Period | Legacy CAGR | Next-record CAGR | CAGR retained | Δ CAGR | Legacy MDD | Next-record MDD | Fill rate | Mean filled slip | P90 filled slip | Cash slots |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for key, periods in comparison["results"].items():
         for period, row in periods.items():
@@ -159,14 +160,15 @@ def render_markdown(comparison: dict[str, Any]) -> str:
                     _ratio(retention.get("cagr")), _pct(delta.get("cagr")),
                     _pct(old.get("max_drawdown")), _pct(new.get("max_drawdown")),
                     _pct(execution.get("fill_rate")), _pct(execution.get("mean_entry_slippage_vs_1445")),
-                    str(execution.get("cash_slots", "n/a")),
+                    _pct(execution.get("p90_entry_slippage_vs_1445")), str(execution.get("cash_slots", "n/a")),
                 ]) + " |"
             )
     lines.extend([
         "", "## Reading the deltas", "",
         "CAGR retained is shown only when legacy CAGR is positive; negative-development periods deliberately show n/a rather than a misleading ratio. "
-        "Mean entry slip is the observed next-record open divided by the frozen 14:45 entry price minus one; positive values are worse entry prices for a long strategy. "
-        "Unfilled-reason counts remain available in the JSON report. Max-drawdown deltas use the legacy engine's metric definition for apples-to-apples comparison.", "",
+        "Slippage summary statistics are computed on slots that actually pass the next-record executability checks; rejected slots are not mixed into fill-price slippage. "
+        "Positive slippage values are worse entry prices for a long strategy. Unfilled-reason counts remain available in the JSON report. "
+        "Max-drawdown deltas use the legacy engine's metric definition for apples-to-apples comparison.", "",
     ])
     return "\n".join(lines)
 
