@@ -6,12 +6,14 @@ on:
       - "audit_x02_next_bar_execution.py"
       - "audit_x02_minute_bar_structure.py"
       - "compare_x02_next_bar_execution.py"
+      - "evaluate_x02_execution_gate.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
       - "reproduce_x02_local.py"
       - "test_x02_next_bar_execution.py"
       - "test_x02_minute_bar_structure.py"
       - "test_compare_x02_next_bar_execution.py"
+      - "test_evaluate_x02_execution_gate.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
@@ -21,12 +23,14 @@ on:
       - "audit_x02_next_bar_execution.py"
       - "audit_x02_minute_bar_structure.py"
       - "compare_x02_next_bar_execution.py"
+      - "evaluate_x02_execution_gate.py"
       - "run_x02_execution_validation.py"
       - "x02_provenance.py"
       - "reproduce_x02_local.py"
       - "test_x02_next_bar_execution.py"
       - "test_x02_minute_bar_structure.py"
       - "test_compare_x02_next_bar_execution.py"
+      - "test_evaluate_x02_execution_gate.py"
       - "test_run_x02_execution_validation.py"
       - "test_x02_provenance.py"
       - ".github/workflows/x02-next-bar-execution-audit.yml"
@@ -61,6 +65,7 @@ jobs:
           python -m py_compile audit_x02_next_bar_execution.py
           python -m py_compile audit_x02_minute_bar_structure.py
           python -m py_compile compare_x02_next_bar_execution.py
+          python -m py_compile evaluate_x02_execution_gate.py
           python -m py_compile run_x02_execution_validation.py
 
       - name: Run next-bar execution regression tests
@@ -69,5 +74,6 @@ jobs:
             test_x02_next_bar_execution.py \
             test_x02_minute_bar_structure.py \
             test_compare_x02_next_bar_execution.py \
+            test_evaluate_x02_execution_gate.py \
             test_run_x02_execution_validation.py \
             test_x02_provenance.py
