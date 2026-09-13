@@ -1,14 +1,13 @@
-"""Conservative next-bar execution audit for the frozen X02 reproduction.
+"""Conservative next-record execution audit for the frozen X02 reproduction.
 
-This module does not search parameters and does not alter the legacy X02
-selection. It freezes the Top-3 decision at the observed 14:45 close, then asks
-whether each selected slot could still be filled at the open of the persisted
-five-minute record labelled 14:50. The exact vendor wall-clock meaning of that
-label is audited separately and is not assumed here.
+This module never rebuilds or re-ranks the legacy selection. The exact Top-3
+rows written by ``reproduce_x02_local.py`` are cryptographically bound in the
+legacy report and loaded here. Each frozen slot is then tested against the
+persisted five-minute record labelled 14:50. Vendor wall-clock label semantics
+are audited separately and are not assumed here.
 
-Unfilled slots remain cash; they are never replaced with a lower-ranked stock
-after seeing next-bar data. The heavy research engine is imported lazily so the
-accounting rules can be unit-tested in a minimal CI environment.
+Unfilled slots remain cash; they are never replaced or reweighted after
+next-record information becomes available.
 """
 from __future__ import annotations
 
@@ -18,7 +17,7 @@ from typing import Any
 
 import pandas as pd
 
-from x02_provenance import require_reproduction_artifacts
+from x02_provenance import SELECTION_FILES, require_reproduction_artifacts
 
 OUT = Path("output/x02_reproduction_20260912")
 NEXT_BAR_LABEL = "14:50"
@@ -33,7 +32,8 @@ PERIODS = {
 }
 LEDGER_EXECUTION_COLUMNS = (
     "next_bar_rows", "next_entry_open", "next_entry_volume", "next_entry_amount",
-    "next_bar_limit_gap", "next_bar_executable", "slot_return", "cash_slot",
+    "next_bar_limit_gap", "entry_slippage_vs_1445", "next_bar_executable",
+    "unfilled_reason", "slot_return", "cash_slot",
 )
 
 
@@ -42,15 +42,30 @@ def _engine() -> Any:
     return engine
 
 
-def select_legacy_top3(features: pd.DataFrame, variant: str) -> pd.DataFrame:
-    engine = _engine()
-    y = features[features["base_executable"] & features["limit_gap"].ge(LIMIT_BUFFER)].copy()
-    if variant == "original_gate":
-        y = y[y["breadth5"].fillna(-1).gt(0) & y["money_effect"].fillna(-1).gt(0)].copy()
-    elif variant != "no_market_gate":
+def load_frozen_selection(variant: str) -> pd.DataFrame:
+    if variant not in SELECTION_FILES:
         raise ValueError(f"unknown variant: {variant}")
-    y["score"] = y["clean_mom20_rank"].fillna(float("-inf"))
-    return engine._select_top(y, TOP_N)
+    path = OUT / SELECTION_FILES[variant]
+    selected = pd.read_parquet(path)
+    required = {"trade_date", "instrument", "entry_1445", "exit_1000", "upper_limit"}
+    missing = sorted(required - set(selected.columns))
+    if missing:
+        raise RuntimeError(f"frozen selection {path.name} is missing columns: {missing}")
+    selected = selected.copy()
+    selected["trade_date"] = pd.to_datetime(selected["trade_date"]).dt.normalize()
+    if selected.empty:
+        raise RuntimeError(f"frozen selection is empty for {variant}")
+    if selected.duplicated(["trade_date", "instrument"]).any():
+        raise RuntimeError(f"frozen selection has duplicate trade_date/instrument keys for {variant}")
+    counts = selected.groupby("trade_date")["instrument"].size()
+    bad = counts[counts.ne(TOP_N)]
+    if not bad.empty:
+        raise RuntimeError(f"frozen selection must contain exactly {TOP_N} slots per active day for {variant}")
+    missing_exit = selected["exit_1000"].isna()
+    if bool(missing_exit.any()):
+        offenders = selected.loc[missing_exit, ["trade_date", "instrument"]].astype(str).to_dict("records")
+        raise RuntimeError(f"frozen selected rows have missing 10:00 exits: {offenders[:10]}")
+    return selected
 
 
 def extract_next_bar(selected: pd.DataFrame) -> pd.DataFrame:
@@ -122,6 +137,9 @@ def strict_next_bar_portfolio(
     bad_counts = counts[counts.ne(top_n)]
     if not bad_counts.empty:
         raise ValueError(f"frozen selection must contain exactly {top_n} slots per active day: {bad_counts.to_dict()}")
+    if z["exit_1000"].isna().any():
+        offenders = z.loc[z["exit_1000"].isna(), ["trade_date", "instrument"]].astype(str).to_dict("records")
+        raise RuntimeError(f"frozen selected rows have missing 10:00 exits: {offenders[:10]}")
     if "next_bar_rows" in z.columns:
         duplicate = z["next_bar_rows"].fillna(0).gt(1)
         if bool(duplicate.any()):
@@ -129,18 +147,18 @@ def strict_next_bar_portfolio(
             raise RuntimeError(f"duplicate next-bar records reached accounting: {offenders[:10]}")
 
     z["next_bar_limit_gap"] = z["upper_limit"] / z["next_entry_open"] - 1.0
-    z["next_bar_executable"] = (
-        z["next_entry_open"].notna()
-        & z["next_entry_volume"].fillna(0).gt(0)
-        & z["next_entry_amount"].fillna(0).gt(0)
-        & z["upper_limit"].notna()
-        & z["next_bar_limit_gap"].ge(limit_buffer)
-    )
+    z["entry_slippage_vs_1445"] = z["next_entry_open"] / z["entry_1445"] - 1.0
+    has_record = z["next_bar_rows"].fillna(0).eq(1) & z["next_entry_open"].notna()
+    has_liquidity = z["next_entry_volume"].fillna(0).gt(0) & z["next_entry_amount"].fillna(0).gt(0)
+    has_limit = z["upper_limit"].notna()
+    limit_ok = z["next_bar_limit_gap"].ge(limit_buffer)
+    z["next_bar_executable"] = has_record & has_liquidity & has_limit & limit_ok
 
-    missing_exit = z["next_bar_executable"] & z["exit_1000"].isna()
-    if bool(missing_exit.any()):
-        offenders = z.loc[missing_exit, ["trade_date", "instrument"]].astype(str).to_dict("records")
-        raise RuntimeError(f"filled next-bar positions have missing 10:00 exits: {offenders[:10]}")
+    z["unfilled_reason"] = "filled"
+    z.loc[~has_record, "unfilled_reason"] = "missing_next_record"
+    z.loc[has_record & ~has_liquidity, "unfilled_reason"] = "nonpositive_liquidity"
+    z.loc[has_record & has_liquidity & ~has_limit, "unfilled_reason"] = "missing_upper_limit"
+    z.loc[has_record & has_liquidity & has_limit & ~limit_ok, "unfilled_reason"] = "limit_buffer_fail"
 
     z["slot_return"] = 0.0
     filled = z["next_bar_executable"]
@@ -170,9 +188,15 @@ def _period_slice(series: pd.Series, ledger: pd.DataFrame, start: pd.Timestamp |
 
 def _execution_stats(ledger: pd.DataFrame) -> dict[str, object]:
     if ledger.empty:
-        return {"selection_rows": 0, "filled_rows": 0, "fill_rate": None, "cash_slots": 0,
-                "active_selection_days": 0, "days_with_any_unfilled_slot": 0}
+        return {
+            "selection_rows": 0, "filled_rows": 0, "fill_rate": None, "cash_slots": 0,
+            "active_selection_days": 0, "days_with_any_unfilled_slot": 0,
+            "mean_entry_slippage_vs_1445": None, "median_entry_slippage_vs_1445": None,
+            "unfilled_reasons": {},
+        }
     filled = ledger[ledger["next_bar_executable"]]
+    observed_slippage = pd.to_numeric(ledger["entry_slippage_vs_1445"], errors="coerce").dropna()
+    reasons = ledger.loc[ledger["cash_slot"], "unfilled_reason"].value_counts().to_dict()
     return {
         "selection_rows": int(len(ledger)),
         "filled_rows": int(len(filled)),
@@ -180,22 +204,24 @@ def _execution_stats(ledger: pd.DataFrame) -> dict[str, object]:
         "cash_slots": int(ledger["cash_slot"].sum()),
         "active_selection_days": int(ledger["trade_date"].nunique()),
         "days_with_any_unfilled_slot": int(ledger.groupby("trade_date")["cash_slot"].any().sum()),
+        "mean_entry_slippage_vs_1445": float(observed_slippage.mean()) if len(observed_slippage) else None,
+        "median_entry_slippage_vs_1445": float(observed_slippage.median()) if len(observed_slippage) else None,
+        "unfilled_reasons": {str(k): int(v) for k, v in reasons.items()},
     }
 
 
 def main() -> None:
     engine = _engine()
     lineage = require_reproduction_artifacts(OUT, Path(engine.__file__))
-    features_path = OUT / "features.parquet"
     legacy_report_path = OUT / "report.json"
-    features = pd.read_parquet(features_path)
     legacy_report = json.loads(legacy_report_path.read_text(encoding="utf-8"))
     first = pd.Timestamp(legacy_report["coverage"]["first"])
     last = pd.Timestamp(legacy_report["coverage"]["last"])
     all_dates = [d for d in pd.to_datetime(engine._prepare_candidates()[1]) if first <= d <= last]
 
     report: dict[str, object] = {
-        "audit": "X02_NEXT_BAR_EXECUTION_V2",
+        "audit": "X02_NEXT_BAR_EXECUTION_V3",
+        "selection_source": "exact frozen selection parquet artifacts from legacy reproduction",
         "selection_frozen_at": "14:45 bar close",
         "fill_proxy": "open of persisted 5m record labelled 14:50",
         "bar_label_contract": (
@@ -208,7 +234,7 @@ def main() -> None:
         "parameter_search": False,
         "rank_replacement_after_next_bar": False,
         "unfilled_slot_policy": "cash; no reweighting and no replacement",
-        "missing_exit_policy": "hard failure after a successful entry",
+        "missing_exit_policy": "hard failure for any frozen selected row",
         "duplicate_next_bar_policy": "hard failure; duplicates may not be collapsed by MAX/MIN",
         "periods": {name: {"start": None if start is None else str(start.date()),
                            "end": None if end is None else str(end.date())}
@@ -223,7 +249,7 @@ def main() -> None:
     }
 
     for variant in VARIANTS:
-        selected = select_legacy_top3(features, variant)
+        selected = load_frozen_selection(variant)
         next_bar = extract_next_bar(selected)
         for cost in COSTS:
             series, ledger = strict_next_bar_portfolio(selected, next_bar, all_dates, cost)
