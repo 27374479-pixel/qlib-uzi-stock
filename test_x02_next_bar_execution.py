@@ -125,3 +125,36 @@ def test_execution_stats_are_period_local():
         "active_selection_days": 1,
         "days_with_any_unfilled_slot": 1,
     }
+
+
+def test_empty_selection_returns_schema_safe_empty_ledger():
+    selected = _selected().iloc[0:0].copy()
+    series, ledger = audit.strict_next_bar_portfolio(
+        selected,
+        pd.DataFrame(),
+        [pd.Timestamp("2024-01-02")],
+        "BASE",
+    )
+    assert series.iloc[0] == 0.0
+    assert ledger.empty
+    assert "next_bar_executable" in ledger.columns
+    assert "cash_slot" in ledger.columns
+    assert audit._execution_stats(ledger)["selection_rows"] == 0
+
+
+def test_duplicate_next_bar_records_are_hard_failure_in_accounting():
+    selected = _selected()
+    next_bar = pd.DataFrame(
+        {
+            "trade_date": pd.to_datetime(["2024-01-02"] * 3),
+            "instrument": ["A", "B", "C"],
+            "next_bar_rows": [1, 2, 1],
+            "next_entry_open": [10.0] * 3,
+            "next_entry_volume": [100.0] * 3,
+            "next_entry_amount": [1000.0] * 3,
+        }
+    )
+    with pytest.raises(RuntimeError, match="duplicate next-bar records"):
+        audit.strict_next_bar_portfolio(
+            selected, next_bar, [pd.Timestamp("2024-01-02")], "BASE"
+        )
