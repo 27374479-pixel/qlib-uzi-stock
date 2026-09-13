@@ -2,12 +2,51 @@
 import json
 from pathlib import Path
 
+import duckdb
 import pandas as pd
 
 import v4_3_long_only_portfolio as engine
 from x02_provenance import SELECTION_FILES, sha256_file
 
 OUT = Path('output/x02_reproduction_20260912')
+
+
+def minute_coverage_end() -> pd.Timestamp:
+    """Return the final persisted minute date across the frozen TraderHarness files."""
+    missing = [str(path) for path in engine.MINUTE_FILES if not path.exists()]
+    if missing:
+        raise FileNotFoundError(f'missing persisted minute files: {missing}')
+    files_sql = ','.join("'" + str(path.resolve()).replace("'", "''") + "'" for path in engine.MINUTE_FILES)
+    con = duckdb.connect()
+    try:
+        value = con.execute(
+            f"SELECT MAX(CAST(datetime AS DATE)) FROM read_parquet([{files_sql}])"
+        ).fetchone()[0]
+    finally:
+        con.close()
+    if value is None:
+        raise RuntimeError('persisted minute files contain no datetimes')
+    return pd.Timestamp(value).normalize()
+
+
+def restrict_to_complete_exit_horizon(
+    features: pd.DataFrame,
+    coverage_end: pd.Timestamp,
+) -> tuple[pd.DataFrame, list[pd.Timestamp]]:
+    """Drop whole trade dates whose required exit session is beyond minute coverage.
+
+    This is a data-horizon truncation only: it occurs before ranking/selection and
+    never inspects returns. Missing exits *within* the covered horizon remain hard
+    failures later so the legacy engine cannot silently reweight surviving rows.
+    """
+    x = features.copy()
+    x['trade_date'] = pd.to_datetime(x['trade_date']).dt.normalize()
+    x['exit_date'] = pd.to_datetime(x['exit_date']).dt.normalize()
+    cutoff = pd.Timestamp(coverage_end).normalize()
+    incomplete_dates = sorted(x.loc[x['exit_date'] > cutoff, 'trade_date'].drop_duplicates())
+    if incomplete_dates:
+        x = x[~x['trade_date'].isin(incomplete_dates)].copy()
+    return x, incomplete_dates
 
 
 def main():
@@ -23,14 +62,34 @@ def main():
     print(f'Candidates: {len(candidates)}; extracting persisted minutes', flush=True)
     minute = engine._minute_extract(candidates)
     features = engine._add_intraday_features(candidates, minute)
+
+    coverage_end = minute_coverage_end()
+    features, excluded_trade_dates = restrict_to_complete_exit_horizon(features, coverage_end)
+    if excluded_trade_dates:
+        print(
+            'Excluding whole trade dates beyond persisted exit-data horizon: '
+            + ', '.join(str(pd.Timestamp(d).date()) for d in excluded_trade_dates),
+            flush=True,
+        )
+    if features.empty:
+        raise RuntimeError('No candidates remain inside complete exit-data horizon')
+
     features_path = OUT / 'features.parquet'
     features.to_parquet(features_path, index=False)
     executable = features[features.base_executable]
     if executable.empty:
         raise RuntimeError('No executable coverage')
     dates = [d for d in dates if executable.trade_date.min() <= d <= executable.trade_date.max()]
-    coverage = dict(candidate_rows=len(candidates), minute_matches=len(minute),
-                    executable_rows=len(executable), first=str(min(dates)), last=str(max(dates)))
+    coverage = dict(
+        candidate_rows=len(candidates),
+        minute_matches=len(minute),
+        candidate_rows_complete_exit_horizon=len(features),
+        executable_rows=len(executable),
+        minute_coverage_end=str(coverage_end.date()),
+        horizon_excluded_trade_dates=[str(pd.Timestamp(d).date()) for d in excluded_trade_dates],
+        first=str(min(dates)),
+        last=str(max(dates)),
+    )
     reports = {}
     selection_artifacts = {}
     for variant in contract['variants']:
@@ -75,7 +134,8 @@ def main():
                   lineage_contract='report.json is valid only with the exact engine/features/selection hashes recorded above',
                   limitations=['Reproduces legacy execution assumptions; not live-trading certification.',
                                '14:45 close fill requires separate next-record execution audit.',
-                               'Selected-row exit coverage is now a hard requirement to prevent legacy reweighting.',
+                               'Whole trade dates whose required exit session lies beyond persisted minute coverage are excluded before ranking.',
+                               'Selected-row exit coverage inside the retained horizon is a hard requirement to prevent legacy reweighting.',
                                'Previously inspected later period is not pristine OOS.'])
     (OUT / 'report.json').write_text(json.dumps(report, indent=2, default=str), encoding='utf-8')
     print(json.dumps(report, indent=2, default=str), flush=True)
