@@ -8,14 +8,23 @@ def test_default_plan_runs_all_frozen_stages_in_order():
         ("minute_bar_structure", "audit_x02_minute_bar_structure.py"),
         ("legacy_reproduction", "reproduce_x02_local.py"),
         ("next_bar_execution", "audit_x02_next_bar_execution.py"),
+        ("execution_artifact_binding", "bind_x02_execution_artifacts.py"),
         ("comparison", "compare_x02_next_bar_execution.py"),
+        ("execution_uncertainty", "analyze_x02_execution_uncertainty.py"),
         ("execution_gate", "evaluate_x02_execution_gate.py"),
     ]
 
 
 def test_reuse_plan_skips_only_legacy_reproduction():
     names = [name for name, _ in build_plan(True)]
-    assert names == ["minute_bar_structure", "next_bar_execution", "comparison", "execution_gate"]
+    assert names == [
+        "minute_bar_structure",
+        "next_bar_execution",
+        "execution_artifact_binding",
+        "comparison",
+        "execution_uncertainty",
+        "execution_gate",
+    ]
 
 
 def test_artifact_fingerprints_are_explicit_about_missing_outputs(tmp_path: Path):
@@ -28,8 +37,11 @@ def test_artifact_fingerprints_are_explicit_about_missing_outputs(tmp_path: Path
     assert result[EXPECTED_OUTPUTS[1]]["sha256"] is None
 
 
-def test_gate_and_frozen_selection_outputs_are_expected_artifacts():
+def test_gate_selection_and_uncertainty_outputs_are_expected_artifacts():
     assert "execution_gate.json" in EXPECTED_OUTPUTS
     assert "execution_gate.md" in EXPECTED_OUTPUTS
     assert "original_gate_selected.parquet" in EXPECTED_OUTPUTS
     assert "no_market_gate_selected.parquet" in EXPECTED_OUTPUTS
+    assert "execution_artifact_manifest.json" in EXPECTED_OUTPUTS
+    assert "execution_uncertainty.json" in EXPECTED_OUTPUTS
+    assert "execution_uncertainty.md" in EXPECTED_OUTPUTS
