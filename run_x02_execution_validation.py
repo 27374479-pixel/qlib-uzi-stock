@@ -1,8 +1,8 @@
 """Run the frozen X02 execution-validation chain locally in a fixed order.
 
 This is orchestration only. It does not tune parameters. The final gate applies
-a pre-registered minimum execution-survival rule and never authorizes live
-trading. The runner fails fast and records source/output hashes.
+a pre-registered minimum execution-survival rule. The runner fails fast and
+records source/output hashes.
 """
 from __future__ import annotations
 
@@ -24,7 +24,9 @@ STAGES = (
     ("minute_bar_structure", "audit_x02_minute_bar_structure.py"),
     ("legacy_reproduction", "reproduce_x02_local.py"),
     ("next_bar_execution", "audit_x02_next_bar_execution.py"),
+    ("execution_artifact_binding", "bind_x02_execution_artifacts.py"),
     ("comparison", "compare_x02_next_bar_execution.py"),
+    ("execution_uncertainty", "analyze_x02_execution_uncertainty.py"),
     ("execution_gate", "evaluate_x02_execution_gate.py"),
 )
 EXPECTED_OUTPUTS = (
@@ -33,8 +35,11 @@ EXPECTED_OUTPUTS = (
     "features.parquet",
     *SELECTION_FILES.values(),
     "next_bar_execution_audit.json",
+    "execution_artifact_manifest.json",
     "next_bar_execution_comparison.json",
     "next_bar_execution_comparison.md",
+    "execution_uncertainty.json",
+    "execution_uncertainty.md",
     "execution_gate.json",
     "execution_gate.md",
 )
@@ -42,7 +47,10 @@ SOURCE_FILES = (
     "audit_x02_minute_bar_structure.py",
     "reproduce_x02_local.py",
     "audit_x02_next_bar_execution.py",
+    "bind_x02_execution_artifacts.py",
     "compare_x02_next_bar_execution.py",
+    "analyze_x02_execution_uncertainty.py",
+    "analyze_x02_execution_uncertainty_v2.py",
     "evaluate_x02_execution_gate.py",
     "x02_provenance.py",
     "v4_3_long_only_portfolio.py",
@@ -92,7 +100,7 @@ def main() -> None:
             )
 
     manifest = {
-        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V4",
+        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V5",
         "parameter_search": False,
         "post_result_retuning_authorized": False,
         "live_trading_authorized": False,
@@ -142,6 +150,9 @@ def main() -> None:
     gate_path = OUT / "execution_gate.json"
     if gate_path.exists():
         manifest["execution_gate"] = json.loads(gate_path.read_text(encoding="utf-8"))
+    uncertainty_path = OUT / "execution_uncertainty.json"
+    if uncertainty_path.exists():
+        manifest["execution_uncertainty"] = json.loads(uncertainty_path.read_text(encoding="utf-8"))
     manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     _write_manifest(manifest)
     print(f"\nPASS: {MANIFEST}", flush=True)
