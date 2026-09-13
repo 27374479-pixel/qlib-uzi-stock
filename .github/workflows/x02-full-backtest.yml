@@ -31,6 +31,13 @@ jobs:
           assert all(p.stat().st_size > 1000000 for p in paths), 'LFS minute data were not materialized'
           PY
 
+      - name: Materialize canonical CSI800 membership path
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+          echo "CSI800 membership rows: $(wc -l < qlib_data/cn_data/instruments/csi800.txt)"
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -49,7 +56,6 @@ jobs:
         if: always()
         run: |
           python - <<'PY'
-          import json
           from pathlib import Path
           out = Path('output/x02_reproduction_20260912')
           for name in ['execution_gate.json','paper_trial_readiness.json','execution_uncertainty.json','execution_stability.json','next_bar_execution_comparison.json','execution_validation_run_manifest.json']:
