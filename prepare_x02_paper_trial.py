@@ -59,8 +59,8 @@ PAPER_TRIAL_CONTRACT = {
     },
     "forward_observation": {
         "start_rule": "first eligible trading session after a READY_FOR_FORWARD_PAPER_TRIAL readiness artifact is created",
-        "minimum_calendar_sessions": 126,
-        "descriptive_checkpoints_sessions": [21, 63, 126],
+        "minimum_trading_sessions": 126,
+        "descriptive_checkpoints_trading_sessions": [21, 63, 126],
         "early_stop_for_performance": False,
         "required_metrics": [
             "net_return",
