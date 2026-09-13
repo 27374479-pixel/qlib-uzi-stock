@@ -27,6 +27,7 @@ STAGES = (
     ("execution_artifact_binding", "bind_x02_execution_artifacts.py"),
     ("comparison", "compare_x02_next_bar_execution.py"),
     ("execution_uncertainty", "analyze_x02_execution_uncertainty.py"),
+    ("execution_stability", "analyze_x02_execution_stability.py"),
     ("execution_gate", "evaluate_x02_execution_gate.py"),
 )
 EXPECTED_OUTPUTS = (
@@ -40,6 +41,8 @@ EXPECTED_OUTPUTS = (
     "next_bar_execution_comparison.md",
     "execution_uncertainty.json",
     "execution_uncertainty.md",
+    "execution_stability.json",
+    "execution_stability.md",
     "execution_gate.json",
     "execution_gate.md",
 )
@@ -51,6 +54,7 @@ SOURCE_FILES = (
     "compare_x02_next_bar_execution.py",
     "analyze_x02_execution_uncertainty.py",
     "analyze_x02_execution_uncertainty_v2.py",
+    "analyze_x02_execution_stability.py",
     "evaluate_x02_execution_gate.py",
     "x02_provenance.py",
     "v4_3_long_only_portfolio.py",
@@ -100,7 +104,7 @@ def main() -> None:
             )
 
     manifest = {
-        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V5",
+        "runner": "X02_EXECUTION_VALIDATION_CHAIN_V6",
         "parameter_search": False,
         "post_result_retuning_authorized": False,
         "live_trading_authorized": False,
@@ -153,6 +157,9 @@ def main() -> None:
     uncertainty_path = OUT / "execution_uncertainty.json"
     if uncertainty_path.exists():
         manifest["execution_uncertainty"] = json.loads(uncertainty_path.read_text(encoding="utf-8"))
+    stability_path = OUT / "execution_stability.json"
+    if stability_path.exists():
+        manifest["execution_stability"] = json.loads(stability_path.read_text(encoding="utf-8"))
     manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     _write_manifest(manifest)
     print(f"\nPASS: {MANIFEST}", flush=True)
