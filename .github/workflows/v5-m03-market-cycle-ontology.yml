@@ -1,0 +1,19 @@
+name: V5 M03 market-cycle ontology
+on:
+  pull_request:
+    branches: ["codex/v5-m02-market-cycle-source-readiness"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest
+      - run: python -m py_compile v5_m03_market_cycle_ontology.py
+      - run: pytest -q test_v5_m03_market_cycle_ontology.py
+      - run: python v5_m03_market_cycle_ontology.py
