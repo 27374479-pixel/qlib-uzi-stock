@@ -38,7 +38,7 @@ Therefore the literal event shape is source-ready, while event identity is not.
 
 ## Technical verification
 
-Workflow run: `34816042323`
+Final workflow run after ledger freeze: `34816191709`
 
 - unit tests: **6 passed**;
 - fail-closed decision verification: passed;
@@ -46,10 +46,10 @@ Workflow run: `34816042323`
 - frozen M01 result SHA-256: `cff4365fb4d979facca5910d7c9e30162f13f80b3362d26f26492370f0f8d87b`;
 - frozen M02 review SHA-256: `af44466e2189f0f92f527b2b8af3d7842ec5ec8d084b62a5303097e1d6f5ae1f`;
 - frozen M02 result SHA-256: `9b544d40824bbe28235a0ece36daadfafcfb25ef6daeb210bf5a3d2e9d9da971`;
-- evidence-ledger SHA-256 at audit time: `9a7bc2aeb5bb96c0034686af9d5fb2156ed328f77facd0d32070e45189874336`;
+- frozen evidence-ledger SHA-256 at final audit: `2d47d53d8501e49e2e3cb2af6c49f0730fd428a2ad1fa406e1ce4ca3b2cda96c`;
 - artifact: `v5-w02-leader-top-source-readiness`;
-- artifact id: `10336585946`;
-- ZIP SHA-256: `2cb327e96fa1b5489a3ab5d5e183aa8ed40e75ae236564b73d82b1be37d1544b`.
+- artifact id: `10336386875`;
+- ZIP SHA-256: `31cfd327a8998ef6fc8c17b45378d0861552b57a3034079fb14daba2eea74192`.
 
 ## Authorizations remain closed
 
