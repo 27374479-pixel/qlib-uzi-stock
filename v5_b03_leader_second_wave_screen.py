@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +32,15 @@ CONTRACT = {
     "round_trip_cost": b01.ROUND_TRIP_COST,
     "parameter_search": False,
 }
+
+
+def screen_config() -> core.ScreenConfig:
+    """Reuse the frozen B01 data protocol but bind metadata to B03 outputs."""
+    return replace(
+        b01.screen_config(),
+        output=str(REPORT.relative_to(ROOT)),
+        observations_output=str(OBSERVATIONS.relative_to(ROOT)),
+    )
 
 
 def add_b03_features(frame: pd.DataFrame) -> pd.DataFrame:
@@ -89,10 +98,19 @@ def evaluate_pair(selected: pd.DataFrame, control: pd.DataFrame, config: core.Sc
     return result
 
 
+def b03_qualification(dev: dict[str, Any], later: dict[str, Any]) -> dict[str, Any]:
+    result = b01.qualification_from_primary(dev, later)
+    result["reasons"] = [
+        reason.replace("selected-vs-volume-control", "selected-vs-lower-height-control")
+        for reason in result.get("reasons", [])
+    ]
+    return result
+
+
 def run() -> dict[str, Any]:
     if not PREREG.exists():
         raise FileNotFoundError(PREREG)
-    config = b01.screen_config()
+    config = screen_config()
     frame = add_b03_features(b01.prepare_frame(config))
     masks = b03_masks(frame)
     cohorts = {name: frame.loc[mask].copy() for name, mask in masks.items()}
@@ -106,17 +124,35 @@ def run() -> dict[str, Any]:
             for gap in (2, 3)
         }
     dev, later = periods["development_2021_2023"]["2d"], periods["historical_later_2024_plus"]["2d"]
-    qualification = b01.qualification_from_primary(dev, later)
+    qualification = b03_qualification(dev, later)
     OUT.mkdir(parents=True, exist_ok=True)
     cols = ["date", "instrument", "entry_date", "entry_filled", "gap_sessions", "peak_board_height", "peak_market_max", "return_1d", "return_2d", "return_5d", "market_excess_1d", "market_excess_2d", "market_excess_5d"]
     obs = []
     for name, cohort in cohorts.items():
         if len(cohort):
-            item = cohort[cols].copy(); item["cohort"] = name; obs.append(item)
+            item = cohort[cols].copy()
+            item["cohort"] = name
+            obs.append(item)
     if obs:
         pd.concat(obs, ignore_index=True).to_parquet(OBSERVATIONS, index=False, compression="zstd")
-    counts = {name: {"signals": int(len(c)), "active_dates": int(c["date"].nunique()), "executable": int(c["entry_filled"].fillna(False).sum())} for name, c in cohorts.items()}
-    report = {"contract": CONTRACT, "preregistration_sha256": sha256_file(PREREG), "config": asdict(config), "counts": counts, "periods": periods, "diagnostics": diagnostics, "primary_qualification": qualification, "interpretation_boundary": "Frozen one-shot B03 screen; diagnostics do not modify eligibility."}
+    counts = {
+        name: {
+            "signals": int(len(c)),
+            "active_dates": int(c["date"].nunique()),
+            "executable": int(c["entry_filled"].fillna(False).sum()),
+        }
+        for name, c in cohorts.items()
+    }
+    report = {
+        "contract": CONTRACT,
+        "preregistration_sha256": sha256_file(PREREG),
+        "config": asdict(config),
+        "counts": counts,
+        "periods": periods,
+        "diagnostics": diagnostics,
+        "primary_qualification": qualification,
+        "interpretation_boundary": "Frozen one-shot B03 screen; diagnostics do not modify eligibility.",
+    }
     REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     print(json.dumps({"status": qualification["status"], "counts": counts, "development_2d": dev, "historical_later_2d": later}, ensure_ascii=False, indent=2, default=str))
     return report
