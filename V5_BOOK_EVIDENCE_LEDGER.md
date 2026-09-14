@@ -14,12 +14,12 @@ Purpose: prevent V5 from turning memorable trading phrases into invented algorit
 |---|---|---|---|---|
 | U-L1 | Upper volume, market-total-leader section | The market total leader can be approached with named leader tactics such as first-yin, dragon-return and second-wave. | B | B02 literal first-yin daily proxy was rejected; B03 conservative second-wave proxy was insufficient/poor. Do not infer new timing rules from their diagnostics. |
 | U-L2 | Upper volume, leader-trait list | The leader discussion lists three-board start, first-wave disagreement with historical-high turnover, accessible board-by-board turnover and >=1bn CNY disagreement turnover among traits. | A/B | B01 tested a literal conjunction and did not qualify. The failure does not license changing 3 boards / 1bn / 20-day high after seeing results. |
-| U-L3 | Upper volume, nearby total-leader / followers passage | After a total leader ebbs for roughly two or three days, followers/replacement leaders can emerge; recognition/consensus matters. | B | The two-to-three-day phrase was used only to preregister B03's interruption window. Replacement-leader research needs a new source-grounded experiment, not B03 retuning. |
+| U-L3 | Upper volume, nearby total-leader / followers passage | After a total leader ebbs for roughly two or three days, followers/replacement leaders can emerge; recognition/consensus matters. | B | The two-to-three-day phrase was used only to preregister B03's interruption window and L01's explicitly labelled dragon-return proxy. Replacement-leader research still needs a new source-grounded experiment, not B03 retuning. |
 | L-S1 | Lower PDF page 68/227 (printed p.37) | A mature short-term system commonly trades on roughly a next-day / 1–2 day holding rhythm; several tactics are listed as examples rather than a universal entry rule. | A for horizon, C for tactic definitions | Justifies 2 trading days as a recurring primary horizon for short-term screens; it does not create alpha by itself. |
 | L-S2 | Lower PDF page 119/227 (printed p.88) | In a short/medium-term stock-selection checklist, stocks with a downward 20-day moving-average direction are excluded. The same checklist also excludes disordered charts, no-base structures, unreadable forms, consolidation/wash stages and non-main-rise stages, and says environment/theme/sentiment/safety matter. | A for MA20 direction; C for the broader contextual items | K01 isolated the literal MA20-direction veto and found it not robust. Therefore the isolated rule is not promoted; the broader checklist must not be reverse-engineered from K01 outcomes. |
 | L-S3 | Lower PDF page 120/227 (printed p.89) | Profitable short-term trading is described as trend-up / main-rise / leader-style participation within a complete transaction system and disciplined execution. | C | Do not map 'main rise' to arbitrary momentum thresholds. Needs a stronger source definition before coding. |
 | L-T1 | Lower PDF page 118/227 (printed p.87) | For trend stocks, the text discusses a staged large advance, leaving if no intraday new high for three days, and using a break of the 10-day line as a short-wave profit-taking floor. | A/B | 'Three days' and '10-day line' are concrete, but the prerequisite definition of a trend stock / staged advance is not machine-ready. Do not test these generically across all stocks until that context is grounded. |
-| L-L1 | Lower PDF page 123/227 (printed p.92) | A leader's rough evolution is described as launch -> confirmation -> fermentation -> acceleration -> disagreement -> counter-wrap -> dragon-return. | B | Strong candidate for a stage-transition research program, but each stage needs a transparent point-in-time operational proxy fixed before any stage-return result is read. Prefer validating stage ordering/state transitions before trading rules. |
+| L-L1 | Lower PDF page 123/227 (printed p.92) | A leader's rough evolution is described as launch -> confirmation -> fermentation -> acceleration -> disagreement -> counter-wrap -> dragon-return. | B | L01 froze a transparent daily stage proxy and passed a structural-only audit: 7,116 labelled rows across 2021-05-17..2026-09-03, zero label invariant failures, and near-perfect/immediate precursor consistency. This validates only representation coherence, not returns or a trading rule. Any economic test still needs a new preregistration. |
 | L-R1 | Lower PDF pages 117–119/227 | The text repeatedly emphasizes that markets do not offer opportunities at every moment and that method choice must depend on environment, theme/air-flow, sentiment and safety. | C | Important all-weather architecture principle: allow 'no trade/cash' states. Do not invent numeric regime thresholds from this prose. First seek more concrete source descriptions or test predeclared state proxies separately. |
 
 ## Negative-evidence register
@@ -32,6 +32,12 @@ Negative results are first-class evidence and remain frozen:
 - **K01:** isolated MA20-downward veto was not validated despite hundreds of thousands of observations; development had the wrong relative sign and both periods lacked a positive bootstrap lower bound.
 
 These results prohibit 'rescue' through post-result threshold moves. A new experiment needs a new source claim or a separately justified operationalization fixed before seeing its result.
+
+## Representation evidence register
+
+Representation-only results are neither positive alpha evidence nor negative alpha evidence:
+
+- **L01:** the frozen leader-stage proxy is `STRUCTURALLY_VALID_FOR_DESCRIPTIVE_STAGE_AUDIT`. It produced 7,116 labelled rows across 1,085 CSI800 instruments and 1,289 dates, with zero frozen-definition invariant failures. This permits descriptive stage work only; return testing remains locked behind a separate preregistration.
 
 ## Promotion ladder
 
@@ -46,12 +52,14 @@ A source idea must move through the following order:
 7. **Combination research:** only after individual sleeves have independent evidence. Do not improve a failed sleeve by hiding it inside a portfolio.
 8. **Forward paper trial:** only after technical lineage/execution gates; no live authorization follows automatically.
 
+For representation programs such as L01, steps 3–4 are replaced by a frozen proxy specification followed by structural validation. Economic testing starts a new preregistered experiment rather than inheriting a pass from representation work.
+
 ## Next research queue
 
 Priority is based on source clarity, not on which historical diagnostic looked best:
 
-1. **Stage-transition audit (L-L1):** formalize a minimal point-in-time mapping for launch/confirmation/acceleration/disagreement/counter-wrap/return, document proxy uncertainty, and first test whether the proposed labels form the source-described chronology. No trading rule until the state representation itself survives audit.
-2. **Opportunity/no-opportunity evidence extraction (L-R1):** continue reading the two books for concrete descriptions of environment, sentiment and when to stay out. Do not create a regime router until source language yields defensible observables.
+1. **Opportunity/no-opportunity evidence extraction (L-R1):** continue reading the two books for concrete descriptions of environment, sentiment and when to stay out. Do not create a regime router until source language yields defensible observables.
+2. **Leader-stage economic preregistration (L-L1):** L01 representation is coherent, but late states are sparse (counter-wrap 23 rows, dragon-return 27). Before any return is read, decide whether there is enough source justification and coverage for one narrow stage comparison; otherwise defer rather than weaken definitions.
 3. **Replacement-leader / follower structure (U-L3):** extract cleaner source context before any code because the current OCR is multi-column and ambiguous.
 4. **Trend-stock exit rules (L-T1):** defer until a book-grounded, machine-ready definition of the prerequisite trend/main-rise state is found.
 
