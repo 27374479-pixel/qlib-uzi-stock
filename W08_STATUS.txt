@@ -1,0 +1,1 @@
+W08 leader identity source review is fail-closed. The lower-volume W01 passage says leader stock but does not specify whether that means market-total, sector, theme, or another scope. The upper-volume market-total-leader section is relevant evidence but is not automatically identical to the W01 term. No historical return is used to choose a leader proxy.
