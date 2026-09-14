@@ -1,0 +1,41 @@
+name: V5 M07 recovery-state readiness
+
+on:
+  pull_request:
+    branches: ["codex/v5-m06-recovery-polarity-representation"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest
+      - run: python -m py_compile v5_m07_recovery_state_readiness.py
+      - run: pytest -q test_v5_m07_recovery_state_readiness.py
+      - run: python v5_m07_recovery_state_readiness.py
+      - name: Verify fail-closed result
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('output/v5_m07_recovery_state_readiness/report.json').read_text(encoding='utf-8'))
+          d=r['decision']
+          assert d['status']=='DEFER_RECOVERY_STATE_PREREGISTRATION'
+          assert d['ready'] is False
+          assert d['w01_return_screen_authorized'] is False
+          assert d['paper_trading_authorized'] is False
+          assert d['live_trading_authorized'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-m07-recovery-state-readiness
+          path: output/v5_m07_recovery_state_readiness/
+          if-no-files-found: error
+          retention-days: 14
