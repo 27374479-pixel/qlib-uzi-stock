@@ -10,9 +10,9 @@ R01 reviewed the supplied-book passages about adapting methods to different mark
 
 Those passages are strong enough to justify a fail-closed architecture, but they do **not** provide defensible numeric thresholds for breadth, index return, turnover, sentiment, limit-up counts or moving-average regime labels. R01 therefore deliberately stops before constructing a market classifier.
 
-## Frozen router contract V2
+## Frozen router contract V3
 
-The router now recognizes exactly three opportunity states:
+The router recognizes exactly three opportunity states:
 
 - `UNKNOWN`
 - `NO_TRADE`
@@ -20,28 +20,31 @@ The router now recognizes exactly three opportunity states:
 
 `UNKNOWN` and `NO_TRADE` both route to `CASH_ONLY`.
 
-A caller cannot activate `OPPORTUNITY_PRESENT` merely by passing a `VALIDATED` status string. The V2 handoff additionally requires:
+A caller cannot activate `OPPORTUNITY_PRESENT` merely by passing a `VALIDATED` status string. The classifier handoff additionally requires a contract ID, preregistration flag, upstream lineage verification, and well-formed SHA-256 identifiers for both the classifier contract and validation artifact.
 
-- non-empty classifier contract ID;
-- `status == VALIDATED`;
-- `preregistered == true`;
-- `lineage_verified == true` from the upstream artifact verifier;
-- a well-formed 64-hex classifier-contract SHA-256;
-- a well-formed 64-hex validation-artifact SHA-256.
+V3 also closes the analogous sleeve-authorization hole. A caller cannot make a strategy eligible simply by writing `authorization=PAPER_ONLY` or `RESEARCH_ONLY`. Each claimed non-`UNAUTHORIZED` sleeve must carry:
 
-The R01 router explicitly does **not** claim to open or re-hash future external classifier files itself. Its job is to reject an incomplete handoff and make the lineage boundary explicit.
+- a non-empty evidence ID;
+- a non-empty authorization contract ID;
+- `authorization_lineage_verified == true` from the upstream artifact verifier;
+- a well-formed 64-hex authorization-artifact SHA-256.
 
-Even with a valid future classifier handoff, the router can only expose sleeves with their own `RESEARCH_ONLY` or `PAPER_ONLY` authorization and evidence ID. An `UNAUTHORIZED` sleeve remains inactive. A failed strategy therefore cannot be rescued simply by placing it behind a regime filter.
+A malformed claimed authorization is reported and stays inactive. An explicitly `UNAUTHORIZED` sleeve is also inactive. Thus both sides of the router — **market opportunity** and **strategy eligibility** — fail closed.
+
+The R01 router deliberately checks the handoff envelope rather than pretending to verify future external files that it has not opened. A later integration must perform the actual immutable-file hashing upstream and pass the verified lineage into this contract.
 
 ## Verification
 
-The V2 CI contract suite passed **13 tests**. The emitted current stub remained:
+The V3 CI contract suite passed **16 tests**. It covers missing/malformed classifier lineage, missing/malformed sleeve authorization lineage, duplicate sleeves, unauthorized sleeves, valid research/paper sleeves and the default fail-closed stub.
+
+The emitted current stub remained:
 
 - requested state: `UNKNOWN`;
 - effective state: `UNKNOWN`;
 - action: `CASH_ONLY`;
 - active sleeves: none;
 - classifier handoff: missing/invalid;
+- invalid claimed sleeve authorizations: none, because the stub claims none;
 - live trading authorized: false;
 - portfolio optimization authorized: false.
 
@@ -49,4 +52,4 @@ The V2 CI contract suite passed **13 tests**. The emitted current stub remained:
 
 R01 is governance and architecture evidence, not alpha evidence. It does not say when an opportunity is present. It only establishes the safe behavior while that knowledge is absent.
 
-A future numeric opportunity classifier requires its own source evidence, frozen observables, preregistration, historical validation and immutable validation artifact. Until then, the system must fail closed to cash rather than infer that an unclassified market is tradable.
+A future numeric opportunity classifier requires its own source evidence, frozen observables, preregistration, historical validation and immutable validation artifact. A future sleeve likewise requires its own immutable authorization artifact. Until those exist and are independently verified, the system must fail closed to cash rather than infer that an unclassified market or self-declared strategy is tradable.
