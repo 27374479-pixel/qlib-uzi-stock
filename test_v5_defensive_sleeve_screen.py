@@ -69,17 +69,25 @@ def test_insufficient_later_sample_rejects():
     assert any('historical_later_2024_plus' in reason for reason in result['reasons'])
 
 
-def test_vol20_is_past_only_rolling_statistic():
+def test_vol20_is_past_only_rolling_statistic_and_clean_rank_is_derived():
     dates = pd.bdate_range('2024-01-02', periods=20)
     returns = np.linspace(-.01, .01, 20)
     close = 100 * (1 + returns)
     preclose = np.full(20, 100.0)
-    frame = pd.DataFrame({'instrument': ['A'] * 20, 'date': dates, 'close': close, 'preclose': preclose})
+    frame = pd.DataFrame({
+        'instrument': ['A'] * 20,
+        'date': dates,
+        'close': close,
+        'preclose': preclose,
+        'clean_mom60': np.linspace(.01, .20, 20),
+    })
     first = d01.add_d01_features(frame)
     before = float(first.loc[18, 'vol20'])
+    assert first['clean_mom60_rank'].notna().all()
 
     changed = frame.copy()
     changed.loc[19, 'close'] = 200.0
+    changed.loc[19, 'clean_mom60'] = 9.0
     second = d01.add_d01_features(changed)
     after = float(second.loc[18, 'vol20'])
     assert before == after
