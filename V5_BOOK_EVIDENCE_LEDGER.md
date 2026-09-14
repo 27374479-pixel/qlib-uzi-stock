@@ -43,7 +43,7 @@ Representation-only results are neither positive alpha evidence nor negative alp
 
 Architecture evidence constrains how future components may interact without claiming a profitable signal:
 
-- **R01:** source review supports a first-class cash/no-trade state and adaptive method selection, but not a numeric market classifier. Router contract V2 therefore fails closed. A future `OPPORTUNITY_PRESENT` handoff must be preregistered, validated, lineage-verified and bound to 64-hex contract/validation artifact hashes. Even then, only independently authorized sleeves are eligible; live trading remains false.
+- **R01:** source review supports a first-class cash/no-trade state and adaptive method selection, but not a numeric market classifier. Router contract V3 therefore fails closed on both sides: a future `OPPORTUNITY_PRESENT` handoff must be preregistered, validated, lineage-verified and bound to contract/validation SHA-256 identifiers; every claimed `RESEARCH_ONLY` or `PAPER_ONLY` sleeve must independently carry a lineage-verified authorization contract and artifact SHA-256. A malformed or self-declared handoff remains inactive, and live trading remains false.
 
 ## Promotion ladder
 
@@ -58,7 +58,7 @@ A source idea must move through the following order:
 7. **Combination research:** only after individual sleeves have independent evidence. Do not improve a failed sleeve by hiding it inside a portfolio.
 8. **Forward paper trial:** only after technical lineage/execution gates; no live authorization follows automatically.
 
-For representation programs such as L01, steps 3–4 are replaced by a frozen proxy specification followed by structural validation. Economic testing starts a new preregistered experiment rather than inheriting a pass from representation work. Architecture programs such as R01 may freeze safe state/authorization behavior but cannot manufacture an `OPPORTUNITY_PRESENT` classifier from prose.
+For representation programs such as L01, steps 3–4 are replaced by a frozen proxy specification followed by structural validation. Economic testing starts a new preregistered experiment rather than inheriting a pass from representation work. Architecture programs such as R01 may freeze safe state/authorization behavior but cannot manufacture an `OPPORTUNITY_PRESENT` classifier or a sleeve authorization from prose/self-declaration.
 
 ## Next research queue
 
