@@ -9,17 +9,17 @@ The list explicitly includes both:
 - `三连板启动`;
 - `启动价位低于10元，可炒作空间大`.
 
-The numerical threshold **10 CNY** comes from the source and is frozen exactly.  U04 does not search alternative price cutoffs.
+The numerical threshold **10 CNY** comes from the source and is frozen exactly. U04 does not search alternative price cutoffs.
 
-The source does not provide a machine-ready definition of `启动价`.  U04 therefore declares one transparent operational proxy **before reading any U04 return result** rather than presenting the proxy as verbatim book text.
+The source does not provide a machine-ready definition of `启动价`. U04 therefore declares one transparent operational proxy **before reading any U04 return result** rather than presenting the proxy as verbatim book text.
 
-A secondary source convention from the supplied lower volume is used only for the recurring short-term primary horizon: roughly next-day / 1–2 trading-day holding rhythm.  It does not create the U04 price hypothesis.
+A secondary source convention from the supplied lower volume is used only for the recurring short-term primary horizon: roughly next-day / 1–2 trading-day holding rhythm. It does not create the U04 price hypothesis.
 
 ## Narrow economic question
 
 Among otherwise comparable, accessible **three-board starts**, does the book's `<10 CNY` launch-price characteristic provide a persistent **relative** short-horizon advantage over starts at `>=10 CNY`?
 
-This is a modifier test, not a standalone alpha test.  The book wording `可炒作空间大` motivates relative room/advantage; it does not state that every low-priced three-board stock must have positive absolute expectancy.
+This is a modifier test, not a standalone alpha test. The book wording `可炒作空间大` motivates relative room/advantage; it does not state that every low-priced three-board stock must have positive absolute expectancy.
 
 ## Frozen operationalization
 
@@ -27,15 +27,15 @@ For one instrument in completed daily rows, sorted by trading date:
 
 1. **three-board start event:** current row is sealed with `board_height == 3`, immediately previous row is sealed with `board_height == 2`, and row T-2 is sealed with `board_height == 1`;
 2. **accessibility base:** all three board rows are not `one_word`, matching the source's separate `板板换手，每天都能参与进去` context while holding accessibility identical in selected/control;
-3. **launch-reference price:** the `preclose` on the **first-board row** (T-2), i.e. the nominal close immediately before the three-board sequence began.  This is U04's operational proxy for `启动价`;
+3. **launch-reference price:** the `preclose` on the **first-board row** (T-2), i.e. the nominal close immediately before the three-board sequence began. This is U04's operational proxy for `启动价`;
 4. **selected / low-launch-price:** `launch_reference_price < 10.00` CNY;
 5. **control / high-launch-price:** same frozen three-board/accessibility base with `launch_reference_price >= 10.00` CNY.
 
-Selected and control must be mutually exclusive.  The `<10` boundary is strict because the source says `低于10元`.
+Selected and control must be mutually exclusive. The `<10` boundary is strict because the source says `低于10元`.
 
 ### Price-field integrity
 
-The 10-CNY claim is a **nominal price** claim.  U04 must use the persisted BaoStock nominal `preclose` field used by the repository's daily price-limit logic, not a normalized price rank or a fitted adjusted-price proxy.  Rows with missing, non-finite or non-positive launch-reference prices are in neither cohort.  U04 is technically invalid if the required nominal field is unavailable.
+The 10-CNY claim is a **nominal price** claim. U04 must use the persisted BaoStock nominal `preclose` field used by the repository's daily price-limit logic, not a normalized price rank or a fitted adjusted-price proxy. Rows with missing, non-finite or non-positive launch-reference prices are in neither cohort. U04 is technically invalid if the required nominal field is unavailable.
 
 No later market outcome or U04 return may be used to redefine `launch_reference_price`.
 
@@ -81,7 +81,7 @@ If coverage is sufficient, U04 qualifies only when **both** partitions satisfy a
 1. paired selected-minus-control 2-day mean difference > 0;
 2. date-bootstrap 95% confidence interval lower bound for that paired difference > 0.
 
-There is deliberately **no absolute-profit requirement** in the U04 modifier gate.  If the relative gate passes while selected absolute expectancy is negative, the result may still be called `QUALIFIED_AS_RELATIVE_MODIFIER_ONLY`, but it can only modify a separately validated profitable strategy.  It can never authorize standalone trading.
+There is deliberately **no absolute-profit requirement** in the U04 modifier gate. If the relative gate passes while selected absolute expectancy is negative, the result may still be called `QUALIFIED_AS_RELATIVE_MODIFIER_ONLY`, but it can only modify a separately validated profitable strategy. It can never authorize standalone trading.
 
 Any other result is `REJECTED`.
 
@@ -100,7 +100,7 @@ These are descriptive only after the frozen 2-day gate is applied.
 
 ## Existing historical work does not define U04
 
-The repository contains an older generic `price-under-10` diagnostic on a broader `core` population.  U04 is **not** a retest selected from that diagnostic's outcome: it tests the source-specific concept of **launch price at a three-board start**, with a frozen pre-sequence nominal-price definition and matched three-board accessibility context.  The old generic price diagnostic is not an input to U04's gate and cannot be used to alter this contract after results.
+The repository contains an older generic `price-under-10` diagnostic on a broader `core` population. U04 is **not** a retest selected from that diagnostic's outcome: it tests the source-specific concept of **launch price at a three-board start**, with a frozen pre-sequence nominal-price definition and matched three-board accessibility context. The old generic price diagnostic is not an input to U04's gate and cannot be used to alter this contract after results.
 
 ## Prohibited rescue
 
@@ -128,3 +128,7 @@ U04 never directly authorizes:
 - portfolio combination;
 - paper trading;
 - live trading.
+
+## Frozen post-run record
+
+The one-shot run has now completed. Frozen status: **`INSUFFICIENT`**. Development had 17 selected and 17 control executable observations with only 2 paired dates; historical-later had 31 selected and 52 control executable observations but only 5 paired dates. The preregistered paired-date gate therefore failed before any promotion decision could be made. The full immutable interpretation is recorded in `V5_U04_RESULT.md`.
