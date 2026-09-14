@@ -14,3 +14,5 @@ Coverage of lagged strong-stock treatment fields:
 Artifact: `v5-m05-recovery-dynamics-results`, id `10346027839`, ZIP SHA-256 `c5278325fc9ba9551c5429953b54b23889c3833e121000e72365f55718c8b82f`.
 
 Interpretation boundary: M05 validates only the causal/coherent representation of one-session changes in the frozen M01/M04 market-context dimensions. It does not define a recovery score or assign `BEAR_RECOVERY_CONTEXT` to dates. Historical signs, quantiles or persistence patterns may not be promoted to a classifier inside M05.
+
+No W01 return screen, X02 change, portfolio combination, paper deployment or live deployment is authorized by this result.
