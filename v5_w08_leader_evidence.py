@@ -118,10 +118,11 @@ def build_leader_evidence(panel: pd.DataFrame) -> pd.DataFrame:
 
 
 def invariant_failures(frame: pd.DataFrame) -> dict[str, int]:
+    expected_accessible = frame["board_height"].gt(0) & ~frame["one_word"]
     failures = {
         "duplicate_instrument_date": int(frame[["instrument", "date"]].duplicated().sum()),
         "three_plus_mismatch": int((frame["three_plus_board"] != frame["board_height"].ge(3)).sum()),
-        "accessible_proxy_mismatch": int((frame["accessible_board_proxy"] != (~frame["one_word"])).sum()),
+        "accessible_proxy_mismatch": int((frame["accessible_board_proxy"] != expected_accessible).sum()),
         "incomplete_streak_has_launch": int((~frame["streak_history_complete"] & frame["streak_launch_price"].notna()).sum()),
         "incomplete_streak_has_access_verdict": int((~frame["streak_history_complete"] & frame["streak_all_accessible_proxy"].notna()).sum()),
         "launch_flag_mismatch": 0,
