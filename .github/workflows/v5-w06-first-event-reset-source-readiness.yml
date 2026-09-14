@@ -1,0 +1,85 @@
+name: V5 W06 first-event reset source readiness
+
+on:
+  push:
+    branches:
+      - "codex/v5-w06-first-event-reset-source-readiness"
+    paths:
+      - "V5_W06_FIRST_EVENT_RESET_SOURCE_REVIEW.md"
+      - "V5_W05_RESULT.md"
+      - "V5_W04_RESULT.md"
+      - "V5_W03_RESULT.md"
+      - "V5_W02_RESULT.md"
+      - "V5_M02_RESULT.md"
+      - "v5_w06_first_event_reset_source_readiness.py"
+      - "test_v5_w06_first_event_reset_source_readiness.py"
+      - ".github/workflows/v5-w06-first-event-reset-source-readiness.yml"
+  pull_request:
+    branches:
+      - "codex/v5-w05-rebound-context-source-readiness"
+    paths:
+      - "V5_W06_FIRST_EVENT_RESET_SOURCE_REVIEW.md"
+      - "V5_W05_RESULT.md"
+      - "V5_W04_RESULT.md"
+      - "V5_W03_RESULT.md"
+      - "V5_W02_RESULT.md"
+      - "V5_M02_RESULT.md"
+      - "v5_w06_first_event_reset_source_readiness.py"
+      - "test_v5_w06_first_event_reset_source_readiness.py"
+      - ".github/workflows/v5-w06-first-event-reset-source-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+      - name: Compile W06 gate
+        run: python -m py_compile v5_w06_first_event_reset_source_readiness.py
+      - name: Run W06 unit tests
+        run: pytest -q test_v5_w06_first_event_reset_source_readiness.py
+      - name: Emit frozen W06 source-readiness report
+        run: python v5_w06_first_event_reset_source_readiness.py
+      - name: Verify current W06 remains fail-closed
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path('output/v5_w06_first_event_reset_source_readiness/report.json').read_text(encoding='utf-8'))
+          d = r['decision']
+          assert d['status'] == 'DEFER_FIRST_EVENT_RESET_PREREGISTRATION'
+          assert d['ready'] is False
+          assert d['first_event_reset_preregistration_authorized'] is False
+          assert d['w01_event_preregistration_authorized'] is False
+          assert d['w01_return_screen_authorized'] is False
+          assert d['effective_action'] == 'SOURCE_AND_STATE_MACHINE_RESEARCH_ONLY'
+          assert d['x02_change_authorized'] is False
+          assert d['portfolio_combination_authorized'] is False
+          assert d['paper_trading_authorized'] is False
+          assert d['live_trading_authorized'] is False
+          assert r['contract']['source_fixed']['drawdown_window_trading_sessions_approx'] == [3, 7]
+          assert r['contract']['source_fixed']['drawdown_fraction_approx'] == [0.20, 0.25]
+          assert r['contract']['source_fixed']['later_candidates_may_not_replace_first_based_on_pnl'] is True
+          print(json.dumps(d, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload W06 source-readiness artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-w06-first-event-reset-source-readiness
+          path: output/v5_w06_first_event_reset_source_readiness/
+          if-no-files-found: error
+          retention-days: 14
