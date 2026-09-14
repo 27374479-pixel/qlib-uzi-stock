@@ -20,7 +20,7 @@ Purpose: prevent V5 from turning memorable trading phrases into invented algorit
 | L-S3 | Lower PDF page 120/227 (printed p.89) | Profitable short-term trading is described as trend-up / main-rise / leader-style participation within a complete transaction system and disciplined execution. | C | Do not map 'main rise' to arbitrary momentum thresholds. Needs a stronger source definition before coding. |
 | L-T1 | Lower PDF page 118/227 (printed p.87) | For trend stocks, the text discusses a staged large advance, leaving if no intraday new high for three days, and using a break of the 10-day line as a short-wave profit-taking floor. | A/B | 'Three days' and '10-day line' are concrete, but the prerequisite definition of a trend stock / staged advance is not machine-ready. Do not test these generically across all stocks until that context is grounded. |
 | L-L1 | Lower PDF page 123/227 (printed p.92) | A leader's rough evolution is described as launch -> confirmation -> fermentation -> acceleration -> disagreement -> counter-wrap -> dragon-return. | B | L01 froze a transparent daily stage proxy and passed a structural-only audit: 7,116 labelled rows across 2021-05-17..2026-09-03, zero label invariant failures, and near-perfect/immediate precursor consistency. This validates only representation coherence, not returns or a trading rule. Any economic test still needs a new preregistration. |
-| L-R1 | Lower PDF pages 117–119/227 | The text repeatedly emphasizes that markets do not offer opportunities at every moment and that method choice must depend on environment, theme/air-flow, sentiment and safety. | C | Important all-weather architecture principle: allow 'no trade/cash' states. Do not invent numeric regime thresholds from this prose. First seek more concrete source descriptions or test predeclared state proxies separately. |
+| L-R1 | Lower PDF pages 68, 71, 117–120/227 | The text treats cash/no-trade as a legitimate short-term state, describes markets as cyclical, says not every moment is a suitable opportunity, and requires method choice to consider environment, theme/风口, sentiment and safety. | B/C | R01 extracted the architecture evidence and froze a fail-closed router contract: `UNKNOWN -> CASH_ONLY`, `NO_TRADE -> CASH_ONLY`. The source still does not justify a numeric opportunity classifier. `OPPORTUNITY_PRESENT` remains unavailable without a separately preregistered, validated, artifact-bound classifier handoff. |
 
 ## Negative-evidence register
 
@@ -39,6 +39,12 @@ Representation-only results are neither positive alpha evidence nor negative alp
 
 - **L01:** the frozen leader-stage proxy is `STRUCTURALLY_VALID_FOR_DESCRIPTIVE_STAGE_AUDIT`. It produced 7,116 labelled rows across 1,085 CSI800 instruments and 1,289 dates, with zero frozen-definition invariant failures. This permits descriptive stage work only; return testing remains locked behind a separate preregistration.
 
+## Architecture evidence register
+
+Architecture evidence constrains how future components may interact without claiming a profitable signal:
+
+- **R01:** source review supports a first-class cash/no-trade state and adaptive method selection, but not a numeric market classifier. Router contract V2 therefore fails closed. A future `OPPORTUNITY_PRESENT` handoff must be preregistered, validated, lineage-verified and bound to 64-hex contract/validation artifact hashes. Even then, only independently authorized sleeves are eligible; live trading remains false.
+
 ## Promotion ladder
 
 A source idea must move through the following order:
@@ -52,15 +58,15 @@ A source idea must move through the following order:
 7. **Combination research:** only after individual sleeves have independent evidence. Do not improve a failed sleeve by hiding it inside a portfolio.
 8. **Forward paper trial:** only after technical lineage/execution gates; no live authorization follows automatically.
 
-For representation programs such as L01, steps 3–4 are replaced by a frozen proxy specification followed by structural validation. Economic testing starts a new preregistered experiment rather than inheriting a pass from representation work.
+For representation programs such as L01, steps 3–4 are replaced by a frozen proxy specification followed by structural validation. Economic testing starts a new preregistered experiment rather than inheriting a pass from representation work. Architecture programs such as R01 may freeze safe state/authorization behavior but cannot manufacture an `OPPORTUNITY_PRESENT` classifier from prose.
 
 ## Next research queue
 
 Priority is based on source clarity, not on which historical diagnostic looked best:
 
-1. **Opportunity/no-opportunity evidence extraction (L-R1):** continue reading the two books for concrete descriptions of environment, sentiment and when to stay out. Do not create a regime router until source language yields defensible observables.
-2. **Leader-stage economic preregistration (L-L1):** L01 representation is coherent, but late states are sparse (counter-wrap 23 rows, dragon-return 27). Before any return is read, decide whether there is enough source justification and coverage for one narrow stage comparison; otherwise defer rather than weaken definitions.
-3. **Replacement-leader / follower structure (U-L3):** extract cleaner source context before any code because the current OCR is multi-column and ambiguous.
+1. **Replacement-leader / follower source extraction (U-L3):** the upper-volume OCR is multi-column and ambiguous. First separate the claims about total-leader ebb, followers/补涨 and competing leaders. Do not code a replacement-leader signal until the source relationship is unambiguous enough to preregister.
+2. **Opportunity classifier evidence (L-R1):** continue searching both books for machine-defensible observables. Until then, R01 stays `UNKNOWN -> CASH_ONLY`; do not invent breadth/index/sentiment thresholds.
+3. **Leader-stage economic preregistration (L-L1):** L01 representation is coherent, but late states are sparse (counter-wrap 23 rows, dragon-return 27). Before any return is read, decide whether there is enough source justification and coverage for one narrow stage comparison; otherwise defer rather than weaken definitions.
 4. **Trend-stock exit rules (L-T1):** defer until a book-grounded, machine-ready definition of the prerequisite trend/main-rise state is found.
 
 This ledger is research governance, not a trading signal and not an authorization to change X02 or any frozen experiment.
