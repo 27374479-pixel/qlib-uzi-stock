@@ -1,0 +1,75 @@
+name: V5 T03 trend-entry source readiness
+
+on:
+  push:
+    branches:
+      - "codex/v5-t03-trend-entry-source-readiness"
+    paths:
+      - "V5_T03_TREND_ENTRY_SOURCE_REVIEW.md"
+      - "V5_T02_RESULT.md"
+      - "v5_t03_trend_entry_source_readiness.py"
+      - "test_v5_t03_trend_entry_source_readiness.py"
+      - ".github/workflows/v5-t03-trend-entry-source-readiness.yml"
+  pull_request:
+    branches:
+      - "codex/v5-w07-left-side-resonance-source-readiness"
+    paths:
+      - "V5_T03_TREND_ENTRY_SOURCE_REVIEW.md"
+      - "V5_T02_RESULT.md"
+      - "v5_t03_trend_entry_source_readiness.py"
+      - "test_v5_t03_trend_entry_source_readiness.py"
+      - ".github/workflows/v5-t03-trend-entry-source-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+      - name: Compile T03 gate
+        run: python -m py_compile v5_t03_trend_entry_source_readiness.py
+      - name: Run T03 unit tests
+        run: pytest -q test_v5_t03_trend_entry_source_readiness.py
+      - name: Emit frozen T03 source-readiness report
+        run: python v5_t03_trend_entry_source_readiness.py
+      - name: Verify current T03 remains fail-closed
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('output/v5_t03_trend_entry_source_readiness/report.json').read_text(encoding='utf-8'))
+          d=r['decision']
+          assert d['status']=='DEFER_TREND_ENTRY_PREREGISTRATION'
+          assert d['ready'] is False
+          assert d['trend_entry_preregistration_authorized'] is False
+          assert d['trend_return_screen_authorized'] is False
+          assert d['t02_combination_authorized'] is False
+          assert d['effective_action']=='SOURCE_AND_TREND_STATE_REPRESENTATION_ONLY'
+          assert d['paper_trading_authorized'] is False
+          assert d['live_trading_authorized'] is False
+          assert r['contract']['source_fixed']['low_buy_ma_period_sessions']==12
+          assert r['contract']['source_fixed']['caution_ma_period_sessions']==20
+          assert r['contract']['source_fixed']['acute_selloff_fraction_approx']==0.20
+          print(json.dumps(d,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload T03 source-readiness artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-t03-trend-entry-source-readiness
+          path: output/v5_t03_trend_entry_source_readiness/
+          if-no-files-found: error
+          retention-days: 14
