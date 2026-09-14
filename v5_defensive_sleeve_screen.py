@@ -58,6 +58,10 @@ def add_d01_features(frame: pd.DataFrame) -> pd.DataFrame:
     by_stock = x.groupby("instrument", sort=False)
     x["vol20"] = by_stock["daily_ret"].transform(lambda s: s.rolling(20, min_periods=15).std(ddof=1))
     x["vol20_rank"] = x.groupby("date")["vol20"].rank(pct=True)
+    # The shared challenger layer computes clean_mom60 itself but only exposes a
+    # rank for the 20-day variant. D01 preregistered a cross-sectional 60-day
+    # rank, so derive that exact rank here without changing any threshold.
+    x["clean_mom60_rank"] = x.groupby("date")["clean_mom60"].rank(pct=True)
     return x
 
 
