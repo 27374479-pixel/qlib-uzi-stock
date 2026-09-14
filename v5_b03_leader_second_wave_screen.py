@@ -100,10 +100,12 @@ def evaluate_pair(selected: pd.DataFrame, control: pd.DataFrame, config: core.Sc
 
 def b03_qualification(dev: dict[str, Any], later: dict[str, Any]) -> dict[str, Any]:
     result = b01.qualification_from_primary(dev, later)
-    result["reasons"] = [
-        reason.replace("selected-vs-volume-control", "selected-vs-lower-height-control")
-        for reason in result.get("reasons", [])
-    ]
+    fixed = []
+    for reason in result.get("reasons", []):
+        reason = reason.replace("selected-vs-volume-control", "selected-vs-lower-height-control")
+        reason = reason.replace("selected-minus-volume-control", "selected-minus-lower-height-control")
+        fixed.append(reason)
+    result["reasons"] = fixed
     return result
 
 
