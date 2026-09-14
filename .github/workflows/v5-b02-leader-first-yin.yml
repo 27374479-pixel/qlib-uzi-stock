@@ -1,0 +1,87 @@
+name: V5 B02 book-grounded leader first-yin
+
+on:
+  pull_request:
+    paths:
+      - "V5_B02_LEADER_FIRST_YIN_PREREGISTRATION.md"
+      - "v5_b02_leader_first_yin_screen.py"
+      - "test_v5_b02_leader_first_yin_screen.py"
+      - ".github/workflows/v5-b02-leader-first-yin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow duckdb pytest
+      - name: Compile B02 screen
+        run: python -m py_compile v5_b02_leader_first_yin_screen.py
+      - name: Run B02 unit tests
+        run: pytest -q test_v5_b02_leader_first_yin_screen.py
+
+  screen:
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          lfs: false
+      - name: Fetch persisted point-in-time daily datasets
+        run: |
+          git lfs install --local
+          git lfs pull --include="data_lake/raw/baostock/equity_daily/*.parquet,data_lake/raw/baostock/industry_snapshots/*.parquet" --exclude=""
+          python - <<'PY'
+          from pathlib import Path
+          daily = sorted(Path('data_lake/raw/baostock/equity_daily').glob('*.parquet'))
+          industry = sorted(Path('data_lake/raw/baostock/industry_snapshots').glob('*.parquet'))
+          print('daily parquet count', len(daily), 'industry parquet count', len(industry))
+          assert daily and industry
+          assert all(p.stat().st_size > 500 for p in daily[:10])
+          PY
+      - name: Materialize canonical CSI800 membership path
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install screen dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow duckdb
+      - name: Run frozen B02 screen
+        run: python v5_b02_leader_first_yin_screen.py
+      - name: Print B02 report
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('output/v5_b02_leader_first_yin/report.json')
+          print(p.read_text(encoding='utf-8') if p.exists() else 'B02 REPORT MISSING')
+          PY
+      - name: Upload B02 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-b02-leader-first-yin-results
+          path: output/v5_b02_leader_first_yin/
+          if-no-files-found: warn
+          retention-days: 14
