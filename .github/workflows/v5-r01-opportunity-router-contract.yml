@@ -1,0 +1,60 @@
+name: V5 R01 opportunity router contract
+
+on:
+  push:
+    branches:
+      - "codex/v5-r01-opportunity-source-extraction"
+    paths:
+      - "V5_R01_OPPORTUNITY_STATE_SOURCE_NOTES.md"
+      - "v5_r01_opportunity_router_contract.py"
+      - "test_v5_r01_opportunity_router_contract.py"
+      - ".github/workflows/v5-r01-opportunity-router-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+      - name: Compile R01 contract
+        run: python -m py_compile v5_r01_opportunity_router_contract.py
+      - name: Run R01 contract tests
+        run: pytest -q test_v5_r01_opportunity_router_contract.py
+      - name: Emit fail-closed current stub
+        run: python v5_r01_opportunity_router_contract.py
+      - name: Verify current stub remains cash only
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('output/v5_r01_opportunity_router/current_router_stub.json')
+          r = json.loads(p.read_text(encoding='utf-8'))
+          d = r['decision']
+          assert d['requested_opportunity_state'] == 'UNKNOWN'
+          assert d['effective_opportunity_state'] == 'UNKNOWN'
+          assert d['action'] == 'CASH_ONLY'
+          assert d['active_sleeves'] == []
+          assert d['live_trading_authorized'] is False
+          print(json.dumps(d, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload R01 contract artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-r01-opportunity-router-contract
+          path: output/v5_r01_opportunity_router/
+          if-no-files-found: error
+          retention-days: 14
