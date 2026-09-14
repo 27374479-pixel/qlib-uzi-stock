@@ -1,0 +1,26 @@
+name: V5 W08 leader identity source readiness
+on:
+  push:
+    branches: ["codex/v5-w08-leader-identity-source-readiness"]
+  pull_request:
+    branches: ["codex/v5-m05-recovery-dynamics-representation"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest
+      - run: python -m py_compile v5_w08_leader_identity_source_readiness.py
+      - run: pytest -q test_v5_w08_leader_identity_source_readiness.py
+      - run: python v5_w08_leader_identity_source_readiness.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-w08-leader-identity-source-readiness
+          path: output/v5_w08_leader_identity_source_readiness/
+          retention-days: 14
