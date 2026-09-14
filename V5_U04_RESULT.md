@@ -43,6 +43,8 @@ The correct conclusion is **insufficient evidence**, not a pass and not a clean 
 
 The experiment was intentionally framed as a **relative modifier** test. Even if it had passed, it would not have authorized a standalone signal. Because it did not pass the frozen gate, `qualified_as_relative_modifier_only=false`.
 
+The result remains non-promoted. More future observations may eventually motivate a separately preregistered prospective study, but U04's frozen historical contract and outcome are not rewritten retroactively.
+
 ## Prohibited follow-up rescue
 
 Do not use this result to:
