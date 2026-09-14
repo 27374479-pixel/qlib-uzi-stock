@@ -21,7 +21,9 @@ def _frame():
         rows.append({"instrument": "SZ000001", "date": dates[i], "seal_up": seal, "board_height": board})
 
     # B: high board -> two non-sealed sessions -> reseal. Recovery precedence must label dragon-return,
-    # not ordinary launch even when board_height resets to 1.
+    # not ordinary launch even when board_height resets to 1.  This synthetic episode deliberately
+    # starts mid-streak, so precursor-consistency should record the missing earlier stage rather than
+    # silently assume it existed.
     b = [
         (True, 3),
         (False, 0),
@@ -82,11 +84,12 @@ def test_structural_invariants_are_clean_for_synthetic_sequence():
     assert all(v == 0 for v in failures.values())
 
 
-def test_precursor_consistency_reports_expected_links():
+def test_precursor_consistency_reports_expected_links_and_truncation():
     x = l01.annotate_stages(_frame())
     p = l01.precursor_consistency(x)
     assert p["confirmation_immediately_after_launch"]["rate"] == 1.0
-    assert p["fermentation_immediately_after_confirmation"]["rate"] == 1.0
+    # One fermentation row belongs to the clean A episode; the B episode begins mid-streak.
+    assert p["fermentation_immediately_after_confirmation"] == {"matched": 1, "total": 2, "rate": 0.5}
     assert p["first_acceleration_immediately_after_fermentation"]["rate"] == 1.0
     assert p["counter_wrap_immediately_after_disagreement"]["rate"] == 1.0
     assert p["dragon_return_has_frozen_2_or_3_session_gap"]["rate"] == 1.0
