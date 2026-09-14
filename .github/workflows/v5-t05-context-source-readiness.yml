@@ -1,0 +1,17 @@
+name: V5 T05 context source readiness
+on:
+  pull_request:
+    branches: ["codex/v5-t04-low-buy-position-source-readiness"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m py_compile v5_t05_context_source_readiness.py
+      - run: python v5_t05_context_source_readiness.py
