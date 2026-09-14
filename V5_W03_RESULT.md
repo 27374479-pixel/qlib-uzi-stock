@@ -20,17 +20,17 @@ The source does not establish that W01's lower-volume `absolute leader` is exact
 
 ## Technical verification
 
-Workflow run: `34816487264`
+Final workflow run after evidence-ledger freeze: `34816721579`
 
 - unit tests: **6 passed**;
 - fail-closed decision verification: passed;
 - W03 source-review SHA-256: `7abd8bf86125e5d4ef89a95e7b514dbff6fe1617d2493eb0843b6df47e10c3db`;
 - frozen W02 result SHA-256: `12e7d0bd52b9731765d44e7844be94b5fe16e3cf4c5d7e6b0dfd6f3ed02f8709`;
 - frozen M02 result SHA-256: `9b544d40824bbe28235a0ece36daadfafcfb25ef6daeb210bf5a3d2e9d9da971`;
-- evidence-ledger SHA-256 at audit time: `2d47d53d8501e49e2e3cb2af6c49f0730fd428a2ad1fa406e1ce4ca3b2cda96c`;
+- frozen evidence-ledger SHA-256 at final audit: `e6459d0a34c64d7ab42c57c8fca9896c6feac6ae3dfe92c8ec7cc3b8a6fff4bf`;
 - artifact: `v5-w03-absolute-leader-source-readiness`;
-- artifact id: `10336571509`;
-- ZIP SHA-256: `3312b9c00f4d7214ea1c2419815ccec56ac7ab81acc8c167ec268a4f43cdb229`.
+- artifact id: `10336800790`;
+- ZIP SHA-256: `2ef6ee5538a86e689b3b8b2508617190dcd056cd4a091e38de7130d4c331aaa5`.
 
 ## Authorizations remain closed
 
@@ -43,3 +43,7 @@ Workflow run: `34816487264`
 - live trading: false.
 
 A future W03 readiness pass would authorize only writing a separate leader preregistration, not W01 returns.
+
+## Next allowed research
+
+The strongest supplied leader-trait list has now been exhausted without yielding a unique causal classifier. The next clean gap to investigate is the W01 `见顶`/top anchor and the `20%–25%` drawdown measurement basis, again using source/representation evidence only and without consulting W01 or X02 P&L.
