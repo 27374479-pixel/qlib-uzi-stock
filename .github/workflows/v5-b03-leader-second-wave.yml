@@ -1,6 +1,14 @@
 name: V5 B03 book-grounded leader second-wave
 
 on:
+  push:
+    branches:
+      - "codex/v5-b03-second-wave"
+    paths:
+      - "V5_B03_LEADER_SECOND_WAVE_PREREGISTRATION.md"
+      - "v5_b03_leader_second_wave_screen.py"
+      - "test_v5_b03_leader_second_wave_screen.py"
+      - ".github/workflows/v5-b03-leader-second-wave.yml"
   pull_request:
     paths:
       - "V5_B03_LEADER_SECOND_WAVE_PREREGISTRATION.md"
