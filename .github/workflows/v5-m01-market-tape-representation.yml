@@ -1,0 +1,106 @@
+name: V5 M01 source-grounded market tape
+
+on:
+  push:
+    branches:
+      - "codex/v5-m01-market-tape-representation"
+    paths:
+      - "V5_M01_MARKET_TAPE_REPRESENTATION_SPEC.md"
+      - "v5_m01_market_tape_representation.py"
+      - "test_v5_m01_market_tape_representation.py"
+      - ".github/workflows/v5-m01-market-tape-representation.yml"
+  pull_request:
+    branches:
+      - "codex/v5-w01-bear-pullback-source-readiness"
+    paths:
+      - "V5_M01_MARKET_TAPE_REPRESENTATION_SPEC.md"
+      - "v5_m01_market_tape_representation.py"
+      - "test_v5_m01_market_tape_representation.py"
+      - ".github/workflows/v5-m01-market-tape-representation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow pytest
+      - name: Compile M01 audit
+        run: python -m py_compile v5_m01_market_tape_representation.py
+      - name: Run M01 unit tests
+        run: pytest -q test_v5_m01_market_tape_representation.py
+
+  audit:
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          lfs: false
+      - name: Fetch persisted point-in-time daily datasets
+        run: |
+          git lfs install --local
+          git lfs pull --include="data_lake/raw/baostock/equity_daily/*.parquet,data_lake/raw/baostock/industry_snapshots/*.parquet" --exclude=""
+          python - <<'PY'
+          from pathlib import Path
+          daily = sorted(Path('data_lake/raw/baostock/equity_daily').glob('*.parquet'))
+          print('daily parquet count', len(daily))
+          assert daily
+          PY
+      - name: Materialize canonical CSI800 membership path
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow
+      - name: Run frozen M01 structural audit
+        run: python v5_m01_market_tape_representation.py
+      - name: Print M01 report summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('output/v5_m01_market_tape_representation/report.json')
+          if not p.exists():
+              print('M01 REPORT MISSING')
+          else:
+              r = json.loads(p.read_text(encoding='utf-8'))
+              print(json.dumps({
+                  'status': r.get('status'),
+                  'period': r.get('period'),
+                  'invariant_failures': r.get('invariant_failures'),
+                  'coverage': r.get('coverage'),
+                  'authorizations': r.get('authorizations'),
+              }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload M01 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-m01-market-tape-results
+          path: output/v5_m01_market_tape_representation/
+          if-no-files-found: warn
+          retention-days: 14
