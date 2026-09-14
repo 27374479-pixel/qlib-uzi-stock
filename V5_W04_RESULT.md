@@ -36,7 +36,7 @@ A nearby trend-stock rule about three days without a new intraday high is intent
 
 ## Technical verification
 
-Workflow run: `34817132686`
+Final ledger-audited workflow run: `34817917616`
 
 - unit tests: **6 passed**;
 - fail-closed verification: passed;
@@ -44,10 +44,10 @@ Workflow run: `34817132686`
 - W03 result SHA-256: `7fea9943311fb68cdf8a732515cd29d29017a04d5726992b4effad531fa8f290`;
 - W02 result SHA-256: `12e7d0bd52b9731765d44e7844be94b5fe16e3cf4c5d7e6b0dfd6f3ed02f8709`;
 - M02 result SHA-256: `9b544d40824bbe28235a0ece36daadfafcfb25ef6daeb210bf5a3d2e9d9da971`;
-- evidence ledger SHA-256 at audit time: `e6459d0a34c64d7ab42c57c8fca9896c6feac6ae3dfe92c8ec7cc3b8a6fff4bf`;
+- evidence ledger SHA-256: `3259ecd90019a26c31b0b43d1378d9d7c82652d3bd96badde7a7de191e2291af`;
 - artifact: `v5-w04-top-anchor-source-readiness`;
-- artifact id: `10337410398`;
-- ZIP SHA-256: `05cc6948ec1aaabfdd1ff4a51e9a4f2c1a9e0be2e2a75a21c2e6d77ff4010dca`.
+- artifact id: `10337530728`;
+- ZIP SHA-256: `bed397f8192ce544f2e328f49cb30bb555fd5cc7e81c725434aaa274e12c51df`.
 
 ## Authorizations remain closed
 
