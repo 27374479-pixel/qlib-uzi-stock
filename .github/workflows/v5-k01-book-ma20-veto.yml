@@ -1,0 +1,88 @@
+name: V5 K01 book-grounded MA20 veto
+
+on:
+  push:
+    branches:
+      - "codex/v5-k01-book-ma20-veto"
+    paths:
+      - "V5_K01_BOOK_MA20_VETO_PREREGISTRATION.md"
+      - "v5_k01_book_ma20_veto.py"
+      - "test_v5_k01_book_ma20_veto.py"
+      - ".github/workflows/v5-k01-book-ma20-veto.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow duckdb pytest
+      - name: Compile K01 audit
+        run: python -m py_compile v5_k01_book_ma20_veto.py
+      - name: Run K01 unit tests
+        run: pytest -q test_v5_k01_book_ma20_veto.py
+
+  audit:
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          lfs: false
+      - name: Fetch persisted point-in-time daily datasets
+        run: |
+          git lfs install --local
+          git lfs pull --include="data_lake/raw/baostock/equity_daily/*.parquet,data_lake/raw/baostock/industry_snapshots/*.parquet" --exclude=""
+          python - <<'PY'
+          from pathlib import Path
+          daily = sorted(Path('data_lake/raw/baostock/equity_daily').glob('*.parquet'))
+          industry = sorted(Path('data_lake/raw/baostock/industry_snapshots').glob('*.parquet'))
+          print('daily parquet count', len(daily), 'industry parquet count', len(industry))
+          assert daily and industry
+          PY
+      - name: Materialize canonical CSI800 membership path
+        run: |
+          mkdir -p qlib_data/cn_data/instruments
+          cp data_lake/universe/csi800_membership_monthly.tsv qlib_data/cn_data/instruments/csi800.txt
+          test -s qlib_data/cn_data/instruments/csi800.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas pyarrow duckdb
+      - name: Run frozen K01 audit
+        run: python v5_k01_book_ma20_veto.py
+      - name: Print K01 report
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('output/v5_k01_book_ma20_veto/report.json')
+          print(p.read_text(encoding='utf-8') if p.exists() else 'K01 REPORT MISSING')
+          PY
+      - name: Upload K01 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-k01-book-ma20-veto-results
+          path: output/v5_k01_book_ma20_veto/
+          if-no-files-found: warn
+          retention-days: 14
