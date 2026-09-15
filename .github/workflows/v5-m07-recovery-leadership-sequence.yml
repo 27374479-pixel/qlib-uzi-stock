@@ -1,0 +1,51 @@
+name: V5 M07 recovery leadership sequence
+
+on:
+  push:
+    branches:
+      - "codex/v5-m07-recovery-leadership-sequence"
+    paths:
+      - "V5_M07_RECOVERY_LEADERSHIP_SEQUENCE_REVIEW.md"
+      - "v5_m07_recovery_leadership_sequence.py"
+      - "test_v5_m07_recovery_leadership_sequence.py"
+      - ".github/workflows/v5-m07-recovery-leadership-sequence.yml"
+  pull_request:
+    branches:
+      - "codex/v5-m06-recovery-factor-validation"
+    paths:
+      - "V5_M07_RECOVERY_LEADERSHIP_SEQUENCE_REVIEW.md"
+      - "v5_m07_recovery_leadership_sequence.py"
+      - "test_v5_m07_recovery_leadership_sequence.py"
+      - ".github/workflows/v5-m07-recovery-leadership-sequence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest
+      - run: python -m py_compile v5_m07_recovery_leadership_sequence.py
+      - run: pytest -q test_v5_m07_recovery_leadership_sequence.py
+      - run: python v5_m07_recovery_leadership_sequence.py
+      - name: Verify fail-closed ontology result
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('output/v5_m07_recovery_leadership_sequence/report.json').read_text(encoding='utf-8'))
+          d=r['decision']
+          assert d['status']=='ONTOLOGY_READY_TWO_STAGE_MAPPING_DEFERRED'
+          assert d['ontology_ready'] is True
+          assert d['quantitative_mapping_ready'] is False
+          assert d['historical_state_labels_authorized'] is False
+          assert d['w01_return_screen_authorized'] is False
+          assert d['live_trading_authorized'] is False
+          PY
