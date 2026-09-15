@@ -1,0 +1,52 @@
+name: V5 M06 recovery transition readiness
+
+on:
+  push:
+    branches: ["codex/v5-m06-recovery-transition-readiness"]
+    paths:
+      - "V5_M06_RECOVERY_TRANSITION_SOURCE_REVIEW.md"
+      - "v5_m06_recovery_transition_readiness.py"
+      - "test_v5_m06_recovery_transition_readiness.py"
+      - "V5_M01_RESULT.md"
+      - "V5_M04_RESULT.md"
+      - "V5_M05_RESULT.md"
+      - ".github/workflows/v5-m06-recovery-transition-readiness.yml"
+  pull_request:
+    branches: ["codex/v5-m05-recovery-dynamics-representation"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest
+      - run: python -m py_compile v5_m06_recovery_transition_readiness.py
+      - run: pytest -q test_v5_m06_recovery_transition_readiness.py
+      - run: python v5_m06_recovery_transition_readiness.py
+      - name: Verify fail-closed result
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('output/v5_m06_recovery_transition_readiness/report.json').read_text())['decision']
+          assert d['status']=='DEFER_BEAR_RECOVERY_TRANSITION_PREREGISTRATION'
+          assert d['ready'] is False
+          assert d['return_screen_authorized'] is False
+          assert d['w01_return_screen_authorized'] is False
+          assert d['paper_trading_authorized'] is False
+          assert d['live_trading_authorized'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-m06-recovery-transition-readiness
+          path: output/v5_m06_recovery_transition_readiness/
+          if-no-files-found: error
+          retention-days: 14
